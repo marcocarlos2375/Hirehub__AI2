@@ -1,0 +1,236 @@
+{
+  "content": {
+    "personalInfo": {
+      "jobTitle": "Senior Full Stack Developer",
+      "firstName": "Alexandra",
+      "lastName": "Thompson",
+      "email": "alexandra.thompson@email.com",
+      "phone": "+1 (555) 123-4567",
+      "location": "San Francisco, CA, USA",
+      "website": "https://alexandrathompson.dev",
+      "birthDate": "1990-03-15",
+      "nationality": "American",
+      "relationshipStatus": "Single",
+      "availability": "2 weeks",
+      "driverLicense": "B",
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/alexandrathompson",
+        "github": "https://github.com/alexthompson"
+
+      },
+      "websitesAndSocialLinks": [
+        { "label": "Dribble", "url": "https://dribbble.com/alexandrathompson" }
+      ]
+    },
+
+    "professionalSummary": "Results-driven Full Stack Developer with 8+ years of experience building scalable and secure web applications. Specialized in JavaScript, React, and Node.js, with a strong background in DevOps, cloud infrastructure (AWS), and team leadership. Passionate about clean architecture, testing automation, and mentoring junior developers.",
+
+    "careerObjective": "To lead cross-functional teams in designing innovative SaaS platforms that improve developer productivity and end-user experience through automation and modern web technologies.",
+
+    "employmentHistory": [
+      {
+        "jobTitle": "Senior Full Stack Developer",
+        "company": "Tech Innovations Inc.",
+        "location": "San Francisco, CA",
+        "startDate": "2021-03",
+        "endDate": "",
+        "currentlyWorking": true,
+        "description": "<span><p><strong>Description:</strong></p><ul><li><p>Led the development of a multi-tenant SaaS platform for HR analytics using <strong>Nuxt 3</strong>, <strong>Flask</strong>, and <strong>PostgreSQL</strong>, increasing platform scalability by 40%.</p></li><li><p>Integrated <strong>AI-powered resume parsing</strong> and skill-matching models using <strong>HuggingFace Transformers</strong> and <strong>OpenAI APIs</strong>.</p></li><li><p>Introduced <strong>CI/CD pipelines</strong> with GitLab and <code>Docker Compose, reducing deployment time by 60%.</code></p></li><li><p>Mentored <u>3 junior developers and</u> established <em>coding guidelines and </em>code review processes.</p></li></ul><p><strong>Key Technologies:</strong> Nuxt 3, TypeScript, Python, Flask, Docker, Redis, PostHog, Stripe API</p><ol><li><p>Developed internal dashboards and REST APIs for managing IoT devices.</p></li><li><p>Built a custom <strong>real-time notification service</strong> using <strong>WebSockets</strong> and <strong>Redis Streams</strong>.</p></li><li><p>Migrated legacy frontend from Vue 2 to Vue 3 Composition API, improving performance and maintainability.</p></li></ol></span>"
+      },
+      {
+        "jobTitle": "Full Stack Developer",
+        "company": "NextWave Solutions",
+        "location": "Los Angeles, CA",
+        "startDate": "2017-05",
+        "endDate": "2021-02",
+        "currentlyWorking": false,
+        "description": "<ul><li>Developed single-page applications with React and REST APIs using Node.js and Express.</li><li>Improved frontend performance by 40% via code-splitting and lazy loading.</li><li>Collaborated with designers and product managers in Agile sprints.</li></ul>"
+      },
+      {
+        "jobTitle": "Junior Web Developer",
+        "company": "CodeWorks Studio",
+        "location": "San Jose, CA",
+        "startDate": "2016-01",
+        "endDate": "2017-04",
+        "currentlyWorking": false,
+        "description": "<ul><li>Assisted in developing e-commerce sites using PHP and jQuery.</li><li>Wrote unit tests and handled bug fixing during maintenance phases.</li></ul>"
+      }
+    ],
+
+    "education": [
+      {
+        "school": "Stanford University",
+        "degree": "Master of Science in Computer Science",
+        "location": "Stanford, CA",
+        "startDate": "2014-09",
+        "endDate": "2016-06",
+        "description": "<p>GPA: 3.9/4.0</p><p>Specialization: Software Engineering & Cloud Systems</p>"
+      },
+      {
+        "school": "University of California, Berkeley",
+        "degree": "Bachelor of Science in Computer Science",
+        "location": "Berkeley, CA",
+        "startDate": "2010-09",
+        "endDate": "2014-06",
+        "description": "<p>Graduated with Honors. Activities: Women in Tech Club, ACM Student Chapter.</p>"
+      }
+    ],
+
+    "skills": [
+      { "skill": "JavaScript (ES6+)", "level": "Advanced", "category": "Programming Languages" },
+      { "skill": "TypeScript", "level": "Advanced", "category": "Programming Languages" },
+      { "skill": "React / Next.js", "level": "Advanced", "category": "Frontend Frameworks" },
+      { "skill": "Node.js / Express / NestJS", "level": "Advanced", "category": "Backend Technologies" },
+      { "skill": "Python / Flask", "level": "Intermediate", "category": "Programming Languages" },
+      { "skill": "PostgreSQL / MongoDB", "level": "Advanced", "category": "Databases" },
+      { "skill": "GraphQL / REST API Design", "level": "Advanced", "category": "API Design" },
+      { "skill": "Docker / Kubernetes", "level": "Intermediate", "category": "DevOps & Tools" },
+      { "skill": "AWS / CI-CD Pipelines", "level": "Advanced", "category": "" },
+      { "skill": "Team Leadership", "level": "Advanced", "category": "" },
+      { "skill": "Agile / Scrum Methodologies", "level": "Advanced", "category": "Soft Skills" },
+      { "skill": "Communication & Mentoring", "level": "Advanced", "category": "Soft Skills" }
+    ],
+
+    "technicalStack": [
+      "React",
+      "Next.js",
+      "Node.js",
+      "Express",
+      "NestJS",
+      "PostgreSQL",
+      "MongoDB",
+      "AWS ECS",
+      "GraphQL",
+      "TypeScript",
+      "Jest",
+      "Docker",
+      "Kubernetes",
+      "GitHub Actions",
+      "Terraform"
+    ],
+
+    "languages": [
+      { "language": "English", "level": "C2 (Native)" },
+      { "language": "Spanish", "level": "C1" },
+      { "language": "French", "level": "B2" }
+    ],
+
+    "certifications": [
+      {
+        "title": "AWS Solutions Architect – Professional",
+        "issuer": "Amazon Web Services",
+        "date": "2023-08",
+        "credentialId": "AWS-SAP-2023-12345",
+        "url": "https://aws.amazon.com/certification/"
+      },
+      {
+        "title": "Certified Kubernetes Administrator (CKA)",
+        "issuer": "Linux Foundation",
+        "date": "2022-03",
+        "credentialId": "CKA-2022-9876",
+        "url": "https://training.linuxfoundation.org/"
+      }
+    ],
+
+    "publications": [
+      {
+        "title": "Optimizing React Performance",
+        "publisher": "Dev.to",
+        "publicationDate": "2023-06",
+        "url": "https://dev.to/optimizing-react",
+        "description": "A detailed guide on improving React app rendering speed through memoization and profiling."
+      },
+      {
+        "title": "Scaling Node.js Applications",
+        "publisher": "Medium",
+        "publicationDate": "2022-11",
+        "url": "https://medium.com/@alexandrathompson/scaling-nodejs",
+        "description": "Discusses design patterns and load balancing strategies for large-scale Node.js systems."
+      }
+    ],
+
+    "projects": [
+      {
+        "name": "Open Source Contribution - React Query",
+        "description": "Contributed core features and tests to improve caching and async state management.",
+        "technologies": "TypeScript, React, Jest, GitHub Actions",
+        "link": "https://github.com/tanstack/query"
+      },
+      {
+        "name": "SaaS Task Manager",
+        "description": "Developed a full-featured task management platform with multi-user support and analytics dashboard.",
+        "technologies": "Next.js, NestJS, PostgreSQL, Docker",
+        "link": "https://github.com/alexthompson/taskmanager"
+      }
+    ],
+
+    "references": [
+      {
+        "name": "Michael Chen",
+        "position": "Engineering Manager",
+        "company": "Tech Innovations Inc.",
+        "email": "michael.chen@techinnovations.com",
+        "phone": "+1 (555) 234-5678"
+      },
+      {
+        "name": "Laura Parker",
+        "position": "CTO",
+        "company": "NextWave Solutions",
+        "email": "laura.parker@nextwave.com",
+        "phone": "+1 (555) 789-0123"
+      }
+    ],
+
+    "hobbies": [
+      "Open Source Contributing",
+      "Technical Writing",
+      "Rock Climbing",
+      "Traveling",
+      "Playing Guitar"
+    ],
+
+    "internships": [
+      {
+        "position": "Software Engineering Intern",
+        "company": "Google",
+        "location": "Mountain View, CA",
+        "startDate": "2015-06",
+        "endDate": "2015-08",
+        "description": "Worked on an internal dashboard for analytics using AngularJS and Go APIs."
+      }
+    ],
+
+    "customSections": {
+      "awards": [
+        {
+          "title": "Best Developer Award",
+          "location": "San Francisco",
+          "startDate": "2023-01",
+          "endDate": "",
+          "current": true,
+          "description": "<p>Received company-wide recognition for outstanding leadership and innovation.</p>"
+        }
+      ],
+      "volunteering": [
+        {
+          "title": "Coding Mentor",
+          "location": "San Francisco",
+          "startDate": "2020-06",
+          "endDate": "2023-12",
+          "current": false,
+          "description": "<p>Mentored underrepresented minorities in tech through Code2040, focusing on React and backend fundamentals.</p>"
+        }
+      ],
+      "conferences": [
+        {
+          "title": "ReactConf Speaker 2023",
+          "location": "Las Vegas, NV",
+          "startDate": "2023-09",
+          "endDate": "2023-09",
+          "current": false,
+          "description": "<p>Presented a talk on optimizing performance in modern React applications.</p>"
+        }
+      ]
+    }
+  }
+}

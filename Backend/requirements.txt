@@ -1,0 +1,12 @@
+google-genai
+openai
+python-dotenv
+fastapi
+uvicorn[standard]
+git+https://github.com/toon-format/toon-python.git
+tiktoken
+httpx[http2]
+numpy
+redis
+qdrant-client
+python-multipart
