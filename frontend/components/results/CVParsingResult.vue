@@ -234,7 +234,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ParsedCVResult } from '~/composables/useAnalysisState'
+import type { ParsedCVResult } from '~/composables/analysis/useAnalysisState'
 
 interface Props {
   data: ParsedCVResult

@@ -26,29 +26,7 @@
     </div>
 
     <!-- Generated Answer -->
-    <div class="bg-white border border-gray-200 rounded-lg p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-          <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          AI-Generated Answer
-        </h3>
-        <button
-          @click="copyToClipboard(generatedAnswer)"
-          class="px-3 py-1.5 text-sm bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-2"
-        >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          Copy
-        </button>
-      </div>
-
-      <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-        <p class="text-gray-800 leading-relaxed whitespace-pre-wrap">{{ generatedAnswer }}</p>
-      </div>
-    </div>
+  
 
     <!-- Quality Strengths -->
     <div v-if="qualityStrengths && qualityStrengths.length > 0" class="bg-green-50 border border-green-200 rounded-lg p-6">
@@ -95,25 +73,7 @@
         Suggestions for Improvement
       </h3>
 
-      <div class="space-y-3">
-        <div
-          v-for="(suggestion, index) in improvementSuggestions"
-          :key="index"
-          class="bg-white border rounded-lg p-5"
-          :class="getPriorityBorderClass(suggestion.priority)"
-        >
-          <div class="flex items-start justify-between mb-2">
-            <h4 class="font-semibold text-gray-900">{{ suggestion.issue }}</h4>
-            <span
-              class="text-xs px-2 py-1 rounded-full font-medium capitalize"
-              :class="getPriorityBadgeClass(suggestion.priority)"
-            >
-              {{ suggestion.priority }}
-            </span>
-          </div>
-          <p class="text-sm text-gray-700">{{ suggestion.suggestion }}</p>
-        </div>
-      </div>
+     
     </div>
 
     <!-- Action Buttons -->
@@ -128,7 +88,7 @@
 
         <div class="flex gap-3">
           <button
-            v-if="!isAcceptable && qualityScore < 10"
+            v-if="showRefineButton && !isAcceptable && qualityScore < 10"
             @click="$emit('refine-answer')"
             class="px-6 py-3 bg-amber-500 text-white font-medium rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-2"
           >
@@ -192,9 +152,12 @@ interface Props {
     priority: string
   }>
   isAcceptable: boolean
+  showRefineButton?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showRefineButton: true
+})
 
 const emit = defineEmits<{
   'refine-answer': []
@@ -202,6 +165,19 @@ const emit = defineEmits<{
 }>()
 
 const copySuccess = ref(false)
+
+// Convert markdown-style formatting to HTML
+const formattedAnswer = computed(() => {
+  let html = props.generatedAnswer
+
+  // Convert **bold** to <strong>bold</strong>
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+
+  // Convert newlines to <br> tags
+  html = html.replace(/\n/g, '<br>')
+
+  return html
+})
 
 const getScoreBackgroundClass = (score: number) => {
   if (score >= 9) return 'bg-green-100'
@@ -231,14 +207,16 @@ const getQualityMessage = (score: number) => {
   return 'Your answer needs significant improvement. Please add more context, details, and metrics.'
 }
 
-const getPriorityBorderClass = (priority: string) => {
+const getPriorityBorderClass = (priority: string | undefined) => {
+  if (!priority) return 'border-l-4 border-blue-500'
   const p = priority.toLowerCase()
   if (p === 'high' || p === 'critical') return 'border-l-4 border-red-500'
   if (p === 'medium' || p === 'important') return 'border-l-4 border-amber-500'
   return 'border-l-4 border-blue-500'
 }
 
-const getPriorityBadgeClass = (priority: string) => {
+const getPriorityBadgeClass = (priority: string | undefined) => {
+  if (!priority) return 'bg-blue-100 text-blue-700'
   const p = priority.toLowerCase()
   if (p === 'high' || p === 'critical') return 'bg-red-100 text-red-700'
   if (p === 'medium' || p === 'important') return 'bg-amber-100 text-amber-700'

@@ -201,7 +201,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ParsedJobResult, ParsedCVResult } from '~/composables/useAnalysisState'
+import type { ParsedJobResult, ParsedCVResult } from '~/composables/analysis/useAnalysisState'
 
 const router = useRouter()
 const {

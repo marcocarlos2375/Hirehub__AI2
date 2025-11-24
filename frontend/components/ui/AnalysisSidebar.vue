@@ -64,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import type { AnalysisStep } from '~/composables/useAnalysisState'
+import type { AnalysisStep } from '~/composables/analysis/useAnalysisState'
 
 interface Props {
   steps: AnalysisStep[]

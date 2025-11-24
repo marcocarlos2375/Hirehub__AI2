@@ -1,4 +1,4 @@
-import type { DomainMatch } from '~/composables/useDomainFinder'
+import type { DomainMatch } from '~/composables/features/useDomainFinder'
 import { generateJobSearchQueries, type QuerySet } from '~/utils/queryGenerator'
 
 export const useJobSearchQueryGenerator = () => {

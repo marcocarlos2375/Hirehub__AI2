@@ -9,83 +9,27 @@
  * - Saving/retrieving learning plans
  */
 
-export interface DeepDivePromptItem {
-  id: string
-  type: 'text' | 'textarea' | 'select' | 'multiselect' | 'number'
-  question: string
-  placeholder?: string
-  options?: string[]
-  required: boolean
-  help_text?: string
-}
+import type {
+  ExperienceLevel,
+  DeepDivePrompt,
+  LearningResource,
+  TimelineStep,
+  StartWorkflowResponse,
+  SubmitInputsResponse,
+  RefineAnswerResponse,
+  LearningPlanItem
+} from '~/types/adaptive-questions'
 
-export interface LearningResourceItem {
-  id: string
-  title: string
-  description: string
-  type: 'course' | 'project' | 'certification'
-  provider: string
-  url: string
-  duration_days: number
-  difficulty: 'beginner' | 'intermediate' | 'advanced'
-  cost: 'free' | 'paid' | 'freemium'
-  skills_covered: string[]
-  rating?: number
-}
-
-export interface AdaptiveQuestionResponse {
-  question_id: string
-  current_step: string
-  deep_dive_prompts?: DeepDivePromptItem[]
-  suggested_resources?: LearningResourceItem[]
-  resume_addition?: string
-  error?: string
-}
-
-export interface StructuredInputsResponse {
-  question_id: string
-  generated_answer: string
-  quality_score?: number
-  quality_issues?: string[]
-  quality_strengths?: string[]
-  improvement_suggestions?: Array<{
-    type: string
-    prompt: string
-    help_text?: string
-  }>
-  final_answer?: string
-  current_step: string
-  error?: string
-}
-
-export interface RefinementResponse {
-  question_id: string
-  refined_answer: string
-  quality_score?: number
-  final_answer?: string
-  current_step: string
-  iteration: number
-  error?: string
-}
-
-export interface LearningPathStep {
-  resource_id: string
-  resource_title: string
-  type: string
-  start_day: number
-  end_day: number
-  duration_days: number
-}
-
-export interface LearningPath {
-  timeline: LearningPathStep[]
+// Specific response types for this composable
+interface LearningPath {
+  timeline: TimelineStep[]
   total_days: number
   estimated_completion: string
   resources_in_path: number
 }
 
-export interface LearningResourcesResponse {
-  resources: LearningResourceItem[]
+interface LearningResourcesResponse {
+  resources: LearningResource[]
   learning_path: LearningPath
   total_resources: number
   total_duration_days: number
@@ -93,19 +37,23 @@ export interface LearningResourcesResponse {
   error?: string
 }
 
-export interface LearningPlanItem {
-  id: string
-  gap_title: string
-  gap_description: string
-  resource_ids: string[]
-  status: 'suggested' | 'in_progress' | 'completed' | 'abandoned'
-  created_at: string
-  notes?: string
-}
-
-export interface LearningPlansResponse {
+interface LearningPlansResponse {
   plans: LearningPlanItem[]
   total: number
+}
+
+interface AnswerEvaluationResponse {
+  success: boolean
+  question_id: string
+  answer_text: string
+  quality_score: number
+  quality_issues: string[]
+  quality_strengths: string[]
+  improvement_suggestions: string[]
+  is_acceptable: boolean
+  time_seconds: number
+  model: string
+  error?: string
 }
 
 export const useAdaptiveQuestions = () => {
@@ -132,11 +80,11 @@ export const useAdaptiveQuestions = () => {
     userId: string,
     parsedCV: any,
     parsedJD: any,
-    experienceCheckResponse: 'yes' | 'no' | 'willing_to_learn',
+    experienceCheckResponse: ExperienceLevel,
     language: string = 'english'
-  ): Promise<AdaptiveQuestionResponse> => {
+  ): Promise<StartWorkflowResponse> => {
     try {
-      const data = await $fetch<AdaptiveQuestionResponse>('/api/adaptive-questions/start', {
+      const data = await $fetch<StartWorkflowResponse>('/api/adaptive-questions/start', {
         method: 'POST',
         baseURL: config.public.apiBase,
         body: {
@@ -168,9 +116,9 @@ export const useAdaptiveQuestions = () => {
   const submitStructuredInputs = async (
     questionId: string,
     structuredData: Record<string, any>
-  ): Promise<StructuredInputsResponse> => {
+  ): Promise<SubmitInputsResponse> => {
     try {
-      const data = await $fetch<StructuredInputsResponse>('/api/adaptive-questions/submit-inputs', {
+      const data = await $fetch<SubmitInputsResponse>('/api/adaptive-questions/submit-inputs', {
         method: 'POST',
         baseURL: config.public.apiBase,
         body: {
@@ -190,19 +138,34 @@ export const useAdaptiveQuestions = () => {
    * Refine answer based on quality feedback.
    *
    * @param questionId - Question identifier
+   * @param questionText - The question text
+   * @param questionData - Full question object
+   * @param gapInfo - Gap information {title, description}
+   * @param generatedAnswer - The current/previous answer
+   * @param qualityIssues - Issues found in the current answer
    * @param refinementData - Additional data for answer improvement
    */
   const refineAnswer = async (
     questionId: string,
+    questionText: string,
+    questionData: any,
+    gapInfo: { title: string; description: string },
+    generatedAnswer: string,
+    qualityIssues: string[],
     refinementData: Record<string, any>
-  ): Promise<RefinementResponse> => {
+  ): Promise<RefineAnswerResponse> => {
     try {
-      const data = await $fetch<RefinementResponse>('/api/adaptive-questions/refine-answer', {
+      const data = await $fetch<RefineAnswerResponse>('/api/adaptive-questions/refine-answer', {
         method: 'POST',
         baseURL: config.public.apiBase,
         body: {
           question_id: questionId,
-          refinement_data: refinementData
+          question_text: questionText,
+          question_data: questionData,
+          gap_info: gapInfo,
+          generated_answer: generatedAnswer,
+          quality_issues: qualityIssues,
+          additional_data: refinementData
         }
       })
 
@@ -309,12 +272,49 @@ export const useAdaptiveQuestions = () => {
     }
   }
 
+  /**
+   * Evaluate a single traditional text/voice answer.
+   *
+   * @param questionId - Question identifier
+   * @param questionText - The question text
+   * @param answerText - User's answer (text or transcribed voice)
+   * @param gapInfo - Gap information {title, description}
+   * @param language - Content language (default: "english")
+   */
+  const evaluateAnswer = async (
+    questionId: string,
+    questionText: string,
+    answerText: string,
+    gapInfo: { title: string; description: string },
+    language: string = 'english'
+  ): Promise<AnswerEvaluationResponse> => {
+    try {
+      const data = await $fetch('/api/evaluate-answer', {
+        method: 'POST',
+        baseURL: config.public.apiBase,
+        body: {
+          question_id: questionId,
+          question_text: questionText,
+          answer_text: answerText,
+          gap_info: gapInfo,
+          language
+        }
+      })
+
+      return data
+    } catch (error) {
+      console.error('Error evaluating answer:', error)
+      throw error
+    }
+  }
+
   return {
     startAdaptiveQuestion,
     submitStructuredInputs,
     refineAnswer,
     getLearningResources,
     saveLearningPlan,
-    getLearningPlans
+    getLearningPlans,
+    evaluateAnswer
   }
 }

@@ -282,6 +282,11 @@ export const useAnalysisState = () => {
     }
   }
 
+  const toggleWorkflowMode = () => {
+    useAdaptiveFlow.value = !useAdaptiveFlow.value
+    console.log(`Switched to ${useAdaptiveFlow.value ? 'Adaptive' : 'Legacy'} workflow mode`)
+  }
+
   const reset = () => {
     inputJD.value = ''
     inputCV.value = ''
@@ -349,6 +354,7 @@ export const useAnalysisState = () => {
     setRewrittenResume,
     setCoverLetter,
     updateStepProgress,
+    toggleWorkflowMode,
     reset
   }
 }

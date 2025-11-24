@@ -141,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import type { DomainMatch } from '~/composables/useDomainFinder'
+import type { DomainMatch } from '~/composables/features/useDomainFinder'
 import type { QuerySet } from '~/utils/queryGenerator'
 
 interface Props {

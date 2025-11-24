@@ -230,7 +230,7 @@
 </template>
 
 <script setup lang="ts">
-import type { DomainMatch } from '~/composables/useDomainFinder'
+import type { DomainMatch } from '~/composables/features/useDomainFinder'
 
 interface Props {
   domains: DomainMatch[]

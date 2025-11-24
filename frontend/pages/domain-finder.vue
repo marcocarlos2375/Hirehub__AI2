@@ -162,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { SAMPLE_RESUMES } from '~/composables/useSampleResumes'
+import { SAMPLE_RESUMES } from '~/composables/data/useSampleResumes'
 
 const { findDomains, isLoading, error, result } = useDomainFinder()
 

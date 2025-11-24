@@ -229,31 +229,81 @@ def generate_answer_from_inputs_node(state: AdaptiveAnswerState) -> AdaptiveAnsw
     parser = JsonOutputParser(pydantic_object=AnswerGenerationOutput)
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are an expert resume writer creating professional experience descriptions.
+        ("system", """You are an expert resume writer creating professional experience descriptions in structured format.
 
 Given structured inputs about a candidate's experience, generate a compelling, professional answer.
 
 Gap: {gap_title}
 Structured Inputs: {structured_inputs}
 
-Requirements:
-- Use action verbs (Built, Implemented, Developed, Optimized)
-- Include specific technologies/tools
-- Add metrics/results if provided
-- Keep it concise (2-3 sentences max)
-- Professional tone
+FORMAT RULES - Apply based on structured_inputs["context"]:
 
-Example:
-"Developed a customer support chatbot using OpenAI GPT-3.5 API and LangChain, reducing response time by 60% and handling 100+ queries daily with 85% accuracy in a 6-month side project."
+If context is "Side Project" or "Personal Learning":
+  Format as: **[Project Name] ([Tech Stack])**
+    * [Build/Development bullet - what was created]
+    * [Engineering/Technical bullet - architecture, methods, tools]
+    * [Impact/Results bullet - metrics, outcomes, learnings]
+
+  Example:
+  **Sentiment Analysis Tool for Personal Blog (Python, ML)**
+    * Built and deployed a sentiment analysis system using pre-trained BERT model from Hugging Face Transformers, analyzing 500 web-scraped blog posts to categorize content and drive sentiment-based recommendations.
+    * Engineered data preprocessing pipeline with SMOTE for handling imbalanced classes, achieving 10% accuracy improvement in minority class identification; deployed on Raspberry Pi with automated cron jobs (24h refresh) and matplotlib visualization dashboards.
+    * Increased blog engagement by 15% (measured by average comment count) through intelligent content suggestions based on sentiment trends.
+
+If context is "Work":
+  Format as: **[Initiative/System Name] at [Company]**
+    * [Leadership/Ownership bullet]
+    * [Technical implementation bullet]
+    * [Business impact bullet with metrics]
+
+  Example:
+  **Microservices Architecture Migration at TechCorp**
+    * Led cross-functional team of 8 engineers in migrating monolithic application to microservices architecture using Docker, Kubernetes, and AWS ECS.
+    * Designed and implemented 12 loosely-coupled services with RESTful APIs, message queues (RabbitMQ), and centralized logging (ELK stack).
+    * Reduced deployment time by 70% (from 2 hours to 25 minutes) and improved system reliability to 99.9% uptime.
+
+If context is "Hackathon":
+  Format as: **[Project Name] - [Hackathon Name] ([Tech Stack])**
+    * [What was built in timeframe]
+    * [Technical challenges solved]
+    * [Awards/recognition or technical achievement]
+
+  Example:
+  **AI Recipe Generator - TechCrunch Disrupt Hackathon (Python, GPT-4)**
+    * Built a recipe generation app in 48 hours using GPT-4 API, analyzing user dietary restrictions and ingredient availability to create personalized recipes.
+    * Implemented real-time ingredient substitution algorithm and nutritional analysis using USDA Food Database API.
+    * Awarded "Best Use of AI" among 120+ teams and gained 500+ beta signups during demo presentation.
+
+If context is "Online Course" or "Certification":
+  Format as: **[Course/Certification Name]**
+    * [Skills/topics covered]
+    * [Hands-on projects completed]
+    * [Practical application]
+
+  Example:
+  **AWS Solutions Architect Professional Certification**
+    * Completed advanced training covering cloud architecture patterns, security best practices, and cost optimization strategies for enterprise-scale applications.
+    * Designed and deployed 5 capstone projects including multi-region disaster recovery system and serverless data processing pipeline.
+    * Applied learnings to architect company's cloud migration strategy, reducing infrastructure costs by 35%.
+
+REQUIREMENTS:
+1. ALWAYS use structured multi-bullet format (not a paragraph)
+2. Include project/initiative title with tech stack in bold
+3. Use 3 sub-bullets organized by: Build → Engineer → Impact
+4. Use strong action verbs (Built, Developed, Led, Engineered, Implemented, Designed)
+5. Include specific technologies from structured_inputs["tools"]
+6. Add metrics/results from structured_inputs["metrics"] or structured_inputs["achievement"]
+7. Keep each bullet to 1-2 sentences max
+8. Professional tone
 
 Return JSON:
 {{
-  "professional_answer": "...",
-  "key_points": ["Action verb used", "Specific tech mentioned", "Metrics included"]
+  "professional_answer": "**[Title]**\\n  * [Bullet 1]\\n  * [Bullet 2]\\n  * [Bullet 3]",
+  "key_points": ["Used structured format", "Action verb used", "Specific tech mentioned", "Metrics included"]
 }}
 
 {format_instructions}"""),
-        ("human", "Generate professional answer")
+        ("human", "Generate professional answer with structured formatting")
     ])
 
     chain = prompt | llm | parser
@@ -379,26 +429,68 @@ def refine_answer_node(state: AdaptiveAnswerState) -> AdaptiveAnswerState:
     parser = JsonOutputParser(pydantic_object=AnswerRefinementOutput)
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are an expert improving resume content.
+        ("system", """You are an expert improving resume content with structured formatting.
 
 Original Answer: {original_answer}
 Quality Issues: {issues}
 Additional Input from User: {refinement_data}
 
-Improve the answer by:
-- Addressing all quality issues
-- Incorporating additional information
-- Keeping it professional and concise
-- Adding metrics if possible
+CONTEXT:
+- Experience Type: {experience_context}
+- Gap Title: {gap_title}
+- Duration: {duration}
+- Technologies: {tools}
+
+FORMAT RULES - CRITICAL:
+
+If experience_context is "Side Project" or "Personal Learning":
+  Format as: **[Project Name] ([Tech Stack])**
+    * [Build/Development bullet - what was created]
+    * [Engineering/Technical bullet - architecture, methods, tools]
+    * [Impact/Results bullet - metrics, outcomes, learnings]
+
+  Example:
+  **Sentiment Analysis Tool for Personal Blog (Python, ML)**
+    * Built and deployed a sentiment analysis system using pre-trained BERT model from Hugging Face Transformers, analyzing 500 web-scraped blog posts to categorize content and drive sentiment-based recommendations.
+    * Engineered data preprocessing pipeline with SMOTE for handling imbalanced classes, achieving 10% accuracy improvement in minority class identification; deployed on Raspberry Pi with automated cron jobs (24h refresh) and matplotlib visualization dashboards.
+    * Increased blog engagement by 15% (measured by average comment count) through intelligent content suggestions based on sentiment trends.
+
+If experience_context is "Work":
+  Format as: **[Initiative/System Name] at [Company]**
+    * [Leadership/Ownership bullet]
+    * [Technical implementation bullet]
+    * [Business impact bullet]
+
+If experience_context is "Hackathon":
+  Format as: **[Project Name] - [Hackathon Name] ([Tech Stack])**
+    * [What was built in timeframe]
+    * [Technical challenges solved]
+    * [Awards/recognition or technical achievement]
+
+If experience_context is "Online Course" or "Certification":
+  Format as: **[Course/Certification Name]**
+    * [Skills/topics covered]
+    * [Hands-on projects completed]
+    * [Practical application]
+
+REQUIREMENTS:
+1. ALWAYS use structured multi-bullet format (not a paragraph)
+2. Include project title with tech stack in bold
+3. Use 3 sub-bullets organized by: Build → Engineer → Impact
+4. Address all quality issues
+5. Incorporate all additional information from user
+6. Add specific metrics and numbers
+7. Use strong action verbs
+8. Keep each bullet to 1-2 sentences max
 
 Return JSON:
 {{
-  "refined_answer": "...",
-  "improvements_made": ["Added metrics", "Made more specific"]
+  "refined_answer": "**[Title]**\\n  * [Bullet 1]\\n  * [Bullet 2]\\n  * [Bullet 3]",
+  "improvements_made": ["Added structured format", "Added metrics", "Made more specific"]
 }}
 
 {format_instructions}"""),
-        ("human", "Refine the answer")
+        ("human", "Refine the answer with proper structured formatting")
     ])
 
     chain = prompt | llm | parser
@@ -406,11 +498,23 @@ Return JSON:
     try:
         original = state.get("generated_answer") or state.get("raw_answer", "")
         refinement_data = state.get("refinement_data", {})
+        structured_inputs = state.get("structured_inputs", {})
+
+        # Extract context fields
+        experience_context = structured_inputs.get("context", "Unknown")
+        duration = structured_inputs.get("duration", "Not specified")
+        tools = structured_inputs.get("tools", [])
+        if isinstance(tools, list):
+            tools = ", ".join(tools) if tools else "Not specified"
 
         result = chain.invoke({
             "original_answer": original,
             "issues": state.get("quality_issues", []),
             "refinement_data": refinement_data,
+            "experience_context": experience_context,
+            "gap_title": state.get("gap_info", {}).get("title", "Unknown"),
+            "duration": duration,
+            "tools": tools,
             "format_instructions": parser.get_format_instructions()
         })
 

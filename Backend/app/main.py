@@ -5,6 +5,7 @@ import re
 import httpx
 import tempfile
 import hashlib
+from datetime import datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from fastapi import FastAPI, HTTPException, UploadFile, File
@@ -793,6 +794,26 @@ class SubmitAnswersResponse(BaseModel):
     updated_cv: dict  # CV with updates from answers
     time_seconds: float
     model: str
+
+class EvaluateAnswerRequest(BaseModel):
+    question_id: str
+    question_text: str
+    answer_text: str
+    gap_info: dict  # {title: str, description: str}
+    language: str = "english"
+
+class EvaluateAnswerResponse(BaseModel):
+    success: bool
+    question_id: str
+    answer_text: str
+    quality_score: int  # 1-10
+    quality_issues: list[str]
+    quality_strengths: list[str]
+    improvement_suggestions: list[str]
+    is_acceptable: bool  # score >= 7
+    time_seconds: float
+    model: str
+    error: str | None = None
 
 class RewriteResumeRequest(BaseModel):
     updated_cv: dict  # CV with updates from answers
@@ -2358,6 +2379,150 @@ async def transcribe_audio(audio_file: UploadFile = File(...)):
                 print(f"Warning: Failed to delete temporary file {temp_file_path}: {cleanup_error}")
 
 
+@app.post("/api/evaluate-answer", response_model=EvaluateAnswerResponse)
+async def evaluate_answer(request: EvaluateAnswerRequest):
+    """
+    Evaluate the quality of a single answer using AI.
+    Returns quality score (1-10), issues, strengths, and improvement suggestions.
+    """
+    start_time = time.time()
+
+    try:
+        # Create evaluation prompt
+        evaluation_prompt = f"""You are an expert career coach evaluating a candidate's answer to a job application question.
+
+**Question Context:**
+Gap Title: {request.gap_info.get('title', 'N/A')}
+Gap Description: {request.gap_info.get('description', 'N/A')}
+
+**Question Asked:**
+{request.question_text}
+
+**Candidate's Answer:**
+{request.answer_text}
+
+**Your Task:**
+Evaluate this answer on a scale of 1-10 based on:
+1. Specificity (mentions concrete technologies, tools, or methodologies)
+2. Evidence (includes metrics, results, timeframes, or tangible outcomes)
+3. Professional language (uses action verbs, clear structure)
+4. Relevance (directly addresses the gap/question)
+
+**Scoring Guidelines:**
+- 1-3: Very weak (vague, no details, generic)
+- 4-6: Needs improvement (some details but missing key elements)
+- 7-8: Good (specific, has evidence, professional)
+- 9-10: Excellent (highly specific, strong metrics, exemplary)
+
+Return a JSON object with:
+{{
+  "quality_score": <number 1-10>,
+  "quality_issues": [<list of specific issues found>],
+  "quality_strengths": [<list of positive aspects>],
+  "improvement_suggestions": [<concrete suggestions for improvement>]
+}}
+
+**CRITICAL: Provide STRONG, SPECIFIC examples with REAL numbers, NOT generic placeholders:**
+
+Examples of WEAK vs STRONG suggestions:
+
+❌ WEAK: "Add metrics (e.g., number of users, success rate)"
+✅ STRONG: "Add specific metrics like 'Tested with 50 beta users achieving 87% query resolution rate' or 'Processed 2,000+ daily requests with <300ms average response time'"
+
+❌ WEAK: "Quantify the impact"
+✅ STRONG: "Specify measurable business outcomes like 'Reduced support tickets by 42% (from 120 to 70 per week)' or 'Saved team 15 hours/week in manual customer responses'"
+
+❌ WEAK: "Mention the timeline"
+✅ STRONG: "Add project scope and duration like '6-month development across 3 agile sprints' or 'Delivered MVP in 8 weeks, scaled to production in 4 months'"
+
+❌ WEAK: "Include technical details"
+✅ STRONG: "Specify architecture and scale like 'Built microservices handling 10K requests/sec using Node.js + Redis' or 'Deployed on AWS ECS with auto-scaling (5-20 containers based on load)'"
+
+**Rules for every suggestion:**
+1. Use ACTION VERBS (Add, Specify, Include, Describe)
+2. Provide REALISTIC NUMBERS (42%, 500 users, 8 weeks, $85K, 15 hours/week)
+3. Show PROFESSIONAL SCALE (team size, business impact, technical metrics)
+4. Give 2-3 specific example formats candidate can copy/adapt
+5. Avoid vague terms: "many", "some", "significant", "various"
+
+Language: {request.language}
+"""
+
+        # Call Gemini to evaluate
+        response = gemini_client.models.generate_content(
+            model="gemini-2.0-flash-exp",
+            contents=evaluation_prompt
+        )
+
+        # Extract JSON from response
+        response_text = response.text.strip()
+
+        # Remove markdown code blocks if present
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+
+        response_text = response_text.strip()
+
+        # Parse JSON
+        evaluation_data = json.loads(response_text)
+
+        quality_score = evaluation_data.get("quality_score", 5)
+        quality_issues = evaluation_data.get("quality_issues", [])
+        quality_strengths = evaluation_data.get("quality_strengths", [])
+        improvement_suggestions = evaluation_data.get("improvement_suggestions", [])
+
+        elapsed_time = time.time() - start_time
+
+        return EvaluateAnswerResponse(
+            success=True,
+            question_id=request.question_id,
+            answer_text=request.answer_text,
+            quality_score=quality_score,
+            quality_issues=quality_issues,
+            quality_strengths=quality_strengths,
+            improvement_suggestions=improvement_suggestions,
+            is_acceptable=quality_score >= 7,
+            time_seconds=round(elapsed_time, 2),
+            model="gemini-2.0-flash-exp"
+        )
+
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {str(e)}")
+        print(f"Response text: {response_text}")
+        return EvaluateAnswerResponse(
+            success=False,
+            question_id=request.question_id,
+            answer_text=request.answer_text,
+            quality_score=5,
+            quality_issues=["Failed to parse evaluation response"],
+            quality_strengths=[],
+            improvement_suggestions=["Try providing more specific details"],
+            is_acceptable=False,
+            time_seconds=round(time.time() - start_time, 2),
+            model="gemini-2.0-flash-exp",
+            error=f"JSON parse error: {str(e)}"
+        )
+    except Exception as e:
+        print(f"Error evaluating answer: {str(e)}")
+        return EvaluateAnswerResponse(
+            success=False,
+            question_id=request.question_id,
+            answer_text=request.answer_text,
+            quality_score=0,
+            quality_issues=[],
+            quality_strengths=[],
+            improvement_suggestions=[],
+            is_acceptable=False,
+            time_seconds=round(time.time() - start_time, 2),
+            model="gemini-2.0-flash-exp",
+            error=str(e)
+        )
+
+
 @app.post("/api/submit-answers", response_model=SubmitAnswersResponse)
 async def submit_answers(request: SubmitAnswersRequest):
     """
@@ -3232,17 +3397,22 @@ async def submit_structured_inputs(request: SubmitStructuredInputsRequest):
 
 class SubmitRefinementDataRequest(BaseModel):
     question_id: str
+    question_text: str
+    question_data: dict
+    gap_info: dict
     additional_data: dict  # Additional data from user
+    generated_answer: str
+    quality_issues: list[str] = []
 
 
 class SubmitRefinementDataResponse(BaseModel):
     question_id: str
     refined_answer: str
-    quality_score: int = None
-    final_answer: str = None
+    quality_score: Optional[int] = None
+    final_answer: Optional[str] = None
     current_step: str
     iteration: int
-    error: str = None
+    error: Optional[str] = None
 
 
 @app.post("/api/adaptive-questions/refine-answer", response_model=SubmitRefinementDataResponse)
@@ -3259,11 +3429,20 @@ async def refine_answer(request: SubmitRefinementDataRequest):
         # TODO: Load state from storage
         state: AdaptiveAnswerState = {
             "question_id": request.question_id,
+            "question_text": request.question_text,
+            "question_data": request.question_data,
+            "gap_info": request.gap_info,
+            "user_id": "",  # Not used in refinement
+            "parsed_cv": {},  # Not used in refinement
+            "parsed_jd": {},  # Not used in refinement
+            "language": "english",  # Default
             "refinement_data": request.additional_data,
             "current_step": "refinement",
             "refinement_iteration": 0,  # Would be loaded from storage
-            "generated_answer": "",  # Would be loaded from storage
-            "quality_issues": [],  # Would be loaded from storage
+            "generated_answer": request.generated_answer,
+            "quality_issues": request.quality_issues,
+            "started_at": datetime.now(),  # Required field
+            "answer_accepted": False,  # Required field
         }
 
         # Refine answer

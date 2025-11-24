@@ -7,9 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is an AI-powered job application optimization system (HireHubAI) that analyzes CV/resume compatibility with job descriptions using LLMs and semantic embeddings. The system uses a multi-phase pipeline to parse documents, calculate compatibility scores, generate personalized questions, and rewrite resumes to improve job match rates.
 
 **Key Technologies:**
-- Backend: Python, FastAPI, Google Gemini API, OpenAI API
-- Frontend: Nuxt 3 (Vue 3), TypeScript, Tailwind CSS
-- Vector DB: Qdrant (for RAG-based question generation)
+- Backend: Python, FastAPI, Google Gemini API, OpenAI API, LangGraph (workflow orchestration)
+- Frontend: Nuxt 3 (Vue 3), TypeScript, Tailwind CSS, Vitest (testing)
+- Database: PostgreSQL (user data), Qdrant (vector DB for RAG)
+- Search: SearXNG (self-hosted meta-search for learning resources)
 - Speech-to-Text: NVIDIA Parakeet v3 (self-hosted GPU service) + OpenAI Whisper (fallback)
 - Optimization: TOON format for token reduction, embedding caching, prompt caching
 
@@ -38,7 +39,9 @@ docker-compose up api          # Just the API (without Parakeet GPU service)
 docker-compose up parakeet     # Just the Parakeet speech-to-text service
 
 # API will be available at http://localhost:8001
+# PostgreSQL database at localhost:5433
 # Qdrant dashboard at http://localhost:6333/dashboard
+# SearXNG at http://localhost:8888
 # Parakeet API at http://localhost:8002
 ```
 
@@ -91,6 +94,12 @@ npm run build
 
 # Preview production build
 npm run preview
+
+# Run tests
+npm run test              # Watch mode
+npm run test:run          # Run once
+npm run test:ui           # Visual UI (http://localhost:51204)
+npm run test:coverage     # Generate coverage report
 ```
 
 ### Running Tests
@@ -149,6 +158,11 @@ The project requires API keys in `Backend/.env`:
 - `USE_PARAKEET` - Enable self-hosted Parakeet speech-to-text (`true`/`false`)
   - Defaults to `false` (uses OpenAI Whisper)
 - `PARAKEET_URL` - Parakeet service URL (default: `http://parakeet:8002`)
+- `SEARXNG_URL` - SearXNG instance URL (default: `http://searxng:8080`)
+  - Used for learning resource discovery in adaptive questions
+- `DATABASE_URL` - PostgreSQL connection string
+  - Format: `postgresql://hirehub:hirehub_password@localhost:5433/hirehub`
+  - Used for storing learning plans and user data
 
 **Example `.env` file:**
 ```env
@@ -157,6 +171,8 @@ OPENAI_API_KEY=your_openai_key_here
 REDIS_URL=redis://localhost:6379/0
 USE_PARAKEET=false
 PARAKEET_URL=http://parakeet:8002
+SEARXNG_URL=http://searxng:8080
+DATABASE_URL=postgresql://hirehub:hirehub_password@localhost:5433/hirehub
 ```
 
 ## Architecture
@@ -176,13 +192,21 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
    - **AI Gap Analysis:** Use Gemini to identify gaps, strengths, and application viability
    - **Output:** Overall score (0-100), category breakdowns, detailed gaps, strengths
 
-3. **Phase 4: Smart Questions (RAG-Enhanced)**
+3. **Phase 4: Adaptive Questions (LangGraph Workflow)**
    - Generate 5-11 personalized questions based on gaps
+   - **Intelligent Flow:** Users select experience level (Yes/No/Willing to Learn)
+     - **Yes** → Deep-dive prompts to extract details
+     - **No** → Skip question
+     - **Willing to Learn** → SearXNG search for learning resources, generate learning plan
+   - **LangGraph State Machine:** Orchestrates multi-step workflow with branching logic
+   - **Quality Evaluation:** AI scores answer quality (0-10) and provides improvement suggestions
+   - **Iterative Refinement:** Up to 2 refinement cycles to improve low-quality answers
    - Use Qdrant vector DB to find similar past experiences (RAG)
-   - Support text or voice answers (Whisper transcription)
+   - Support text or voice answers (Parakeet/Whisper transcription)
    - Extract "hidden experience" not in original CV
+   - Save learning plans to PostgreSQL for future reference
 
-4. **Phase 5: Resume Rewriting**
+5. **Phase 5: Resume Rewriting**
    - Incorporate insights from user answers
    - Optimize for ATS keywords from job description
    - Generate both sample.json format (HTML, camelCase) and parsed format (plain text, snake_case)
@@ -191,27 +215,52 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 ### Backend Architecture
 
 **Core API Endpoints (`Backend/app/main.py`):**
+
+*Document Processing:*
 - `POST /api/parse` - Parse job description (Phase 1)
 - `POST /api/parse-cv` - Parse resume/CV (Phase 2)
 - `POST /api/calculate-score` - Calculate compatibility score (Phase 3)
+
+*Adaptive Questions Workflow (LangGraph):*
+- `POST /api/adaptive-questions/start` - Start adaptive question flow (select Yes/No/Willing to Learn)
+- `POST /api/adaptive-questions/submit-inputs` - Submit deep-dive answers or refinement data
+- `POST /api/adaptive-questions/refine-answer` - Refine answer based on quality feedback
+- `POST /api/adaptive-questions/get-learning-resources` - Get learning resources from SearXNG
+- `POST /api/adaptive-questions/save-learning-plan` - Save learning plan to PostgreSQL
+- `POST /api/adaptive-questions/get-learning-plans` - Retrieve saved learning plans
+
+*Legacy Question Flow (being phased out):*
 - `POST /api/generate-questions` - Generate personalized questions (Phase 4)
-- `POST /api/transcribe-audio` - Transcribe voice answers (uses Parakeet or Whisper)
 - `POST /api/submit-answers` - Analyze answers and update CV (Phase 4)
+
+*Audio & Resume Generation:*
+- `POST /api/transcribe-audio` - Transcribe voice answers (uses Parakeet or Whisper)
 - `POST /api/rewrite-resume` - Generate optimized resume (Phase 5)
+
+*Additional Features:*
 - `POST /api/find-domain` - Find career domains based on CV/interests
 - `POST /api/generate-cover-letter` - Generate cover letter from CV + job
 - `POST /api/generate-job-search-queries` - Generate job search queries
+
+*Monitoring:*
 - `GET /api/cache/stats` - Get embedding cache statistics
 - `GET /api/prompt-cache/stats` - Get prompt cache statistics (Gemini)
 
 **Key Modules:**
 - `app/main.py` - FastAPI application with all endpoints
 - `app/config.py` - Centralized prompt templates for all phases
+- `core/adaptive_question_graph.py` - LangGraph workflow for adaptive questions (state machine)
+- `core/answer_flow_nodes.py` - LangGraph nodes (deep-dive, search, evaluate, refine)
+- `core/answer_flow_state.py` - LangGraph state definition
+- `core/searxng_client.py` - SearXNG search client for learning resources
+- `core/search_query_builder.py` - Intelligent search query generation
+- `core/resource_matcher.py` - Learning resource matching and ranking
 - `core/embeddings.py` - Semantic similarity with caching (2-tier: in-memory + Redis)
 - `core/cache.py` - Embedding cache management (Redis or in-memory)
 - `core/gemini_cache.py` - Gemini prompt caching (context caching for repeated prompts)
 - `core/vector_store.py` - RAG vector database (Qdrant) for question generation
 - `core/text_processing.py` - Text normalization utilities
+- `core/langchain_config.py` - LangChain/LangGraph configuration
 - `formats/toon.py` - TOON format conversion for 40-50% token reduction
 - `parakeet-service/` - Self-hosted GPU speech-to-text microservice
 
@@ -227,6 +276,13 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 
 ### Frontend Architecture (Nuxt 3)
 
+**State Management:**
+- **Pinia Store** (`stores/useQuestionsStore.ts`) - Centralized state for questions workflow
+  - Manages all question answers, evaluations, refinement data
+  - Replaces Map-based local state with type-safe store
+  - 15 getters, 19 actions for comprehensive state management
+  - Supports both legacy and adaptive workflows
+
 **Pages:**
 - `pages/index.vue` - Landing page with job/CV input
 - `pages/analyze.vue` - Multi-phase analysis interface with sidebar navigation
@@ -236,10 +292,11 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 - `useJobParser.ts` - Job description parsing
 - `useCVParser.ts` - Resume/CV parsing
 - `useScoreCalculator.ts` - Compatibility scoring
-- `useQuestionGenerator.ts` - Question generation
+- `useAdaptiveQuestions.ts` - **NEW:** Adaptive questions workflow (LangGraph integration)
+- `useQuestionGenerator.ts` - Legacy question generation (being phased out)
 - `useVoiceRecorder.ts` - Audio recording for voice answers
 - `useAudioTranscriber.ts` - Audio transcription (Parakeet/Whisper)
-- `useAnswerSubmitter.ts` - Answer analysis
+- `useAnswerSubmitter.ts` - Legacy answer analysis (being phased out)
 - `useResumeRewriter.ts` - Resume rewriting
 - `useDomainFinder.ts` - Career domain finder
 - `useCoverLetterGenerator.ts` - Cover letter generation
@@ -248,6 +305,7 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 
 **Components:**
 - Results display: `JobParsingResult.vue`, `CVParsingResult.vue`, `ScoreResult.vue`, `QuestionsResult.vue`, `ResumeRewriteResult.vue`, `CoverLetterResult.vue`, `DomainFinderResult.vue`
+- Adaptive Questions: `AdaptiveQuestionFlow.vue` - **NEW:** Main adaptive workflow UI, `AnswerQualityDisplay.vue` - **NEW:** Quality feedback display
 - UI elements: `ProgressIndicator.vue`, `LoadingSpinner.vue`, `WaitingMessage.vue`, `AnalysisSidebar.vue`
 - Input: `QuestionCard.vue`, `AnswerInput.vue` (with voice recording)
 - Modals: `JobSearchQueriesModal.vue`
@@ -257,10 +315,69 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 1. **User Input:** Job description + Resume (text or file upload)
 2. **Parsing:** Both documents parsed to structured JSON (multilingual support)
 3. **Scoring:** Hybrid approach (embeddings + rules + AI gaps)
-4. **Questions:** RAG-enhanced personalized questions based on gaps
-5. **Answers:** User provides text/voice answers
-6. **Analysis:** Extract hidden experience, update CV, recalculate score
-7. **Rewrite:** Generate optimized resume with ATS keywords
+4. **Adaptive Questions:** RAG-enhanced personalized questions based on gaps
+   - User selects experience level for each question (Yes/No/Willing to Learn)
+   - **LangGraph Workflow branches based on selection:**
+     - **Yes** → Generate deep-dive prompts → User provides answers → Evaluate quality → Refine if needed
+     - **No** → Skip to next question
+     - **Willing to Learn** → Search SearXNG for resources → Generate learning plan → Save to PostgreSQL
+5. **Analysis:** Extract hidden experience from answers, update CV, recalculate score
+6. **Rewrite:** Generate optimized resume with ATS keywords + learned skills
+
+### LangGraph Workflow Architecture
+
+The adaptive questions system uses **LangGraph** for stateful workflow orchestration:
+
+**State Machine Flow:**
+```
+START
+  ↓
+[Experience Check: Yes/No/Willing to Learn]
+  ↓
+  ┌────────────┬──────────────┬─────────────────┐
+  ↓            ↓              ↓
+YES          NO         WILLING_TO_LEARN
+  ↓            ↓              ↓
+DEEP_DIVE     END      SEARCH_RESOURCES
+  ↓                           ↓
+GENERATE_ANSWER      GENERATE_LEARNING_PLAN
+  ↓                           ↓
+EVALUATE_QUALITY           SAVE_PLAN
+  ↓                           ↓
+Quality >= 7?                END
+  ↓
+Yes → END
+No → REFINE (max 2 iterations) → EVALUATE
+```
+
+**Key Components:**
+- **State:** `AdaptiveAnswerState` - Tracks question, user inputs, quality scores, learning resources
+- **Nodes:** `generate_deep_dive_prompts_node`, `search_learning_resources_node`, `evaluate_quality_node`, `refine_answer_node`
+- **Routing:** Conditional edges based on experience level and quality score
+- **Persistence:** MemorySaver for state checkpointing
+
+**Benefits:**
+- ✅ Complex multi-step workflows with branching logic
+- ✅ State persistence across API calls
+- ✅ Easy to visualize and debug workflow
+- ✅ Supports human-in-the-loop interactions
+
+### Frontend Testing Setup
+
+The frontend uses **Vitest** for unit and integration testing:
+
+**Test Structure:**
+- `frontend/tests/unit/` - Composable unit tests
+- `frontend/tests/integration/` - Full workflow integration tests
+- `frontend/tests/setup.ts` - Test configuration and mocks
+
+**Key Test Scenarios:**
+1. **Refinement Flow** - Tests poor answer → quality evaluation → refinement → improved answer
+2. **Max Iterations** - Ensures max 2 refinement cycles
+3. **Context Preservation** - Verifies question context maintained across iterations
+4. **API Mocking** - Uses `vi.mocked($fetch)` for isolated testing
+
+See `frontend/TESTING_README.md` for detailed testing guide.
 
 ### Multi-language Support
 
@@ -329,14 +446,21 @@ The frontend uses composables for state management:
 ```
 Backend/
 ├── app/                    # Core FastAPI application
-│   ├── main.py            # API endpoints (all phases)
+│   ├── main.py            # API endpoints (all phases + adaptive questions)
 │   └── config.py          # Centralized prompt templates
 ├── core/                   # Business logic utilities
-│   ├── embeddings.py      # Semantic similarity with caching
-│   ├── cache.py           # Embedding cache (Redis/in-memory)
-│   ├── gemini_cache.py    # Gemini prompt caching
-│   ├── vector_store.py    # Qdrant RAG for questions
-│   └── text_processing.py # Text normalization
+│   ├── adaptive_question_graph.py  # LangGraph workflow orchestration
+│   ├── answer_flow_nodes.py       # LangGraph workflow nodes
+│   ├── answer_flow_state.py       # LangGraph state definition
+│   ├── searxng_client.py          # SearXNG search integration
+│   ├── search_query_builder.py    # Search query generation
+│   ├── resource_matcher.py        # Learning resource matching
+│   ├── langchain_config.py        # LangChain/LangGraph setup
+│   ├── embeddings.py              # Semantic similarity with caching
+│   ├── cache.py                   # Embedding cache (Redis/in-memory)
+│   ├── gemini_cache.py            # Gemini prompt caching
+│   ├── vector_store.py            # Qdrant RAG for questions
+│   └── text_processing.py         # Text normalization
 ├── formats/                # Data format handlers
 │   └── toon.py            # TOON format (token-optimized)
 ├── parakeet-service/       # GPU speech-to-text microservice
@@ -354,7 +478,7 @@ Backend/
 ├── data/
 │   ├── samples/           # Sample CVs and job descriptions
 │   └── outputs/           # Generated JSON outputs
-└── docker-compose.yml      # Multi-service orchestration
+└── docker-compose.yml      # Multi-service orchestration (DB, Qdrant, SearXNG, API, Parakeet)
 
 frontend/
 ├── pages/
@@ -362,7 +486,17 @@ frontend/
 │   ├── analyze.vue        # Main analysis interface
 │   └── domain-finder.vue  # Career domain finder
 ├── components/             # Vue components
+│   ├── AdaptiveQuestionFlow.vue    # NEW: Adaptive workflow UI
+│   └── AnswerQualityDisplay.vue    # NEW: Quality feedback UI
 ├── composables/            # Composition API composables
+│   ├── useAdaptiveQuestions.ts     # NEW: LangGraph workflow client
+│   └── ...                # Other composables
+├── tests/                  # NEW: Test suite
+│   ├── setup.ts           # Test configuration
+│   ├── unit/              # Composable unit tests
+│   └── integration/       # Workflow integration tests
+├── vitest.config.ts        # NEW: Vitest configuration
+├── TESTING_README.md       # NEW: Testing documentation
 └── utils/                  # Frontend utilities
 
 docs/                       # Documentation
@@ -403,6 +537,19 @@ nvidia-smi
 # or continuously: watch -n 1 nvidia-smi
 ```
 
+### SearXNG Service Health
+
+```bash
+# Check SearXNG status
+curl http://localhost:8888/healthz
+
+# View SearXNG logs
+docker-compose logs -f searxng
+
+# Test search functionality
+curl "http://localhost:8888/search?q=Python+tutorial&format=json"
+```
+
 ### Common Debugging Scenarios
 
 1. **Slow scoring/parsing:**
@@ -426,6 +573,19 @@ nvidia-smi
    - Verify `{skill,priority}` format in hard_skills arrays
    - See `docs/TOON_FORMAT_EXPLAINED.md` for format rules
 
+5. **Adaptive questions workflow issues:**
+   - Check LangGraph state persistence (workflow uses MemorySaver)
+   - Verify SearXNG is running for "Willing to Learn" flow
+   - Check PostgreSQL connection for learning plan storage
+   - Review quality evaluation thresholds (score >= 7 is acceptable)
+   - Max 2 refinement iterations before accepting answer
+
+6. **Frontend tests failing:**
+   - Run `npm run test:ui` to visually debug in browser
+   - Check mock responses in `frontend/tests/setup.ts`
+   - Verify API endpoint URLs match backend routes
+   - See `frontend/TESTING_README.md` for troubleshooting
+
 ## Important Notes
 
 - **Token Optimization:** Always use TOON format for CV/JD in prompts (see `formats/toon.py` and `docs/TOON_FORMAT_EXPLAINED.md`)
@@ -441,6 +601,22 @@ nvidia-smi
 - **Speech-to-Text:**
   - Parakeet (self-hosted GPU) is 10x faster and 95% cheaper
   - Automatically falls back to OpenAI Whisper if Parakeet unavailable
+- **LangGraph Workflow:**
+  - Adaptive questions use stateful workflows with branching logic
+  - State persisted via MemorySaver (in-memory checkpointing)
+  - Quality threshold: score >= 7 is acceptable, otherwise refine (max 2 iterations)
+  - "Willing to Learn" flow requires SearXNG and PostgreSQL
+- **Learning Resources:**
+  - SearXNG provides privacy-focused meta-search for learning resources
+  - PostgreSQL stores user learning plans for future reference
+  - Resources matched using semantic similarity and recency ranking
+- **Migration Path:**
+  - Legacy `/api/generate-questions` and `/api/submit-answers` being phased out
+  - New endpoints under `/api/adaptive-questions/*` use LangGraph workflow
+  - Both systems currently coexist for backward compatibility
+- **Testing:**
+  - Frontend tests use Vitest with mocked API calls
+  - Backend tests organized by type (unit/integration/debug)
+  - Root-level `test_*.py` files are for rapid prototyping
 - **Error Handling:** All API endpoints include try/except with HTTPException
 - **Validation:** Input validation on both frontend and backend (min 50 chars for job/CV)
-- **Test Files:** Root-level `test_*.py` files are for rapid prototyping; organized tests are in `Backend/tests/`

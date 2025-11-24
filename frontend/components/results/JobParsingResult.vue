@@ -218,7 +218,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ParsedJobResult } from '~/composables/useAnalysisState'
+import type { ParsedJobResult } from '~/composables/analysis/useAnalysisState'
 
 interface Props {
   data: ParsedJobResult

@@ -239,7 +239,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ScoreResponse } from '~/composables/useScoreCalculator'
+import type { ScoreResponse } from '~/composables/analysis/useScoreCalculator'
 
 interface Props {
   data: ScoreResponse

@@ -162,8 +162,8 @@
 </template>
 
 <script setup lang="ts">
-import { useVoiceRecorder } from '~/composables/useVoiceRecorder'
-import { useAudioTranscriber } from '~/composables/useAudioTranscriber'
+import { useVoiceRecorder } from '~/composables/audio/useVoiceRecorder'
+import { useAudioTranscriber } from '~/composables/audio/useAudioTranscriber'
 
 interface Props {
   modelValue?: string

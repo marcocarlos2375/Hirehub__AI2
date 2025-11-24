@@ -11,6 +11,13 @@ export const useAnswerSubmitter = () => {
     originalScore: number,
     language: string = 'english'
   ): Promise<SubmitAnswersResult | null> => {
+    // Deprecation warning
+    console.warn(
+      '[DEPRECATED] useAnswerSubmitter is being phased out. ' +
+      'Please use the new adaptive questions workflow with individual answer evaluation. ' +
+      'Toggle in settings or set useAdaptiveFlow = true in useAnalysisState'
+    )
+
     try {
       const data = await $fetch<SubmitAnswersResult>('/api/submit-answers', {
         method: 'POST',

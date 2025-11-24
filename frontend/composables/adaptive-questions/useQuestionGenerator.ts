@@ -9,6 +9,13 @@ export const useQuestionGenerator = () => {
     scoreResult: any,
     language: string = 'english'
   ): Promise<GenerateQuestionsResult | null> => {
+    // Deprecation warning
+    console.warn(
+      '[DEPRECATED] useQuestionGenerator is being phased out. ' +
+      'Please use the new adaptive questions workflow instead. ' +
+      'Toggle in settings or set useAdaptiveFlow = true in useAnalysisState'
+    )
+
     try {
       const data = await $fetch<GenerateQuestionsResult>('/api/generate-questions', {
         method: 'POST',

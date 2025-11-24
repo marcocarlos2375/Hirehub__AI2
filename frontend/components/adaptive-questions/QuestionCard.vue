@@ -66,6 +66,22 @@
               <span>{{ example }}</span>
             </li>
           </ul>
+
+          <!-- Zero Experience Button -->
+          <div class="mt-4 pt-3 border-t border-gray-200">
+            <button
+              @click="$emit('need-help')"
+              class="w-full px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              I have zero experience/projects with this skill
+            </button>
+            <p class="text-xs text-gray-500 text-center mt-2">
+              Get personalized learning resources and create a learning plan
+            </p>
+          </div>
         </div>
       </transition>
     </div>
@@ -78,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import type { QuestionItem } from '~/composables/useAnalysisState'
+import type { QuestionItem } from '~/composables/analysis/useAnalysisState'
 
 interface Props {
   question: QuestionItem

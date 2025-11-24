@@ -3,7 +3,16 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
-  modules: ['@nuxtjs/tailwindcss'],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
+
+  // Configure auto-imports to scan nested directories
+  imports: {
+    dirs: [
+      'composables/**',  // Scan all nested composable directories
+      'stores/**',       // Scan all nested store directories
+      'utils/**'         // Scan utils directory
+    ]
+  },
 
   runtimeConfig: {
     public: {

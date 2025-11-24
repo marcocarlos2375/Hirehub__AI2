@@ -207,10 +207,12 @@ interface Props {
   parsedCv: Record<string, any>
   parsedJd: Record<string, any>
   language?: string
+  initialExperienceLevel?: ExperienceLevel | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  language: 'english'
+  language: 'english',
+  initialExperienceLevel: null
 })
 
 const emit = defineEmits<{
@@ -221,7 +223,7 @@ const emit = defineEmits<{
 const { startAdaptiveQuestion, submitStructuredInputs, refineAnswer, saveLearningPlan } = useAdaptiveQuestions()
 
 // State
-const showExperienceModal = ref(true)
+const showExperienceModal = ref(!props.initialExperienceLevel)
 const showRefinementDialog = ref(false)
 const refinementData = ref<Record<string, any>>({
   duration_detail: '',
@@ -457,4 +459,11 @@ const resetFlow = () => {
     selectedResourceIds: []
   }
 }
+
+// Auto-start workflow if initialExperienceLevel is provided
+onMounted(() => {
+  if (props.initialExperienceLevel) {
+    handleExperienceSelection(props.initialExperienceLevel)
+  }
+})
 </script>
