@@ -10,7 +10,8 @@ This is an AI-powered job application optimization system (HireHubAI) that analy
 - Backend: Python, FastAPI, Google Gemini API, OpenAI API
 - Frontend: Nuxt 3 (Vue 3), TypeScript, Tailwind CSS
 - Vector DB: Qdrant (for RAG-based question generation)
-- Optimization: TOON format for token reduction, embedding caching
+- Speech-to-Text: NVIDIA Parakeet v3 (self-hosted GPU service) + OpenAI Whisper (fallback)
+- Optimization: TOON format for token reduction, embedding caching, prompt caching
 
 ## Development Commands
 
@@ -29,11 +30,47 @@ pip install -r requirements.txt
 # Run API server locally (development)
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-# Run with Docker Compose (includes Qdrant vector DB)
+# Run with Docker Compose (includes Qdrant vector DB + Parakeet)
 docker-compose up
+
+# Run specific services
+docker-compose up api          # Just the API (without Parakeet GPU service)
+docker-compose up parakeet     # Just the Parakeet speech-to-text service
 
 # API will be available at http://localhost:8001
 # Qdrant dashboard at http://localhost:6333/dashboard
+# Parakeet API at http://localhost:8002
+```
+
+### Parakeet Speech-to-Text Service (Optional GPU Service)
+
+The project includes a self-hosted NVIDIA Parakeet v3 speech-to-text service for 95% cost savings vs OpenAI Whisper API.
+
+**Requirements:**
+- NVIDIA GPU with 3+ GB VRAM
+- NVIDIA Container Runtime
+- CUDA 12.1+
+
+**Setup:**
+```bash
+# See Backend/parakeet-service/README.md for full setup instructions
+
+# Enable in Backend/.env
+USE_PARAKEET=true
+PARAKEET_URL=http://parakeet:8002
+
+# Start service
+cd Backend
+docker-compose up -d parakeet
+```
+
+**Features:**
+- 10x faster than Whisper API (0.12s for 2-min audio)
+- 25 language support (EN, FR, DE, ES, IT, PT, etc.)
+- Automatic language detection
+- Falls back to OpenAI Whisper if unavailable
+
+**Note:** If you don't have a GPU or don't start Parakeet, the system automatically uses OpenAI Whisper API as a fallback.
 ```
 
 ### Frontend (Nuxt 3 Application)
@@ -58,28 +95,69 @@ npm run preview
 
 ### Running Tests
 
+Tests are organized in `Backend/tests/` with unit, integration, and debug folders. Additional test scripts exist in the project root for quick prototyping.
+
 ```bash
+# Navigate to Backend directory
 cd Backend
 
-# Test complete pipeline
-python test_complete_pipeline.py
+# Integration tests (full pipeline)
+python tests/integration/test_complete_pipeline.py
+python tests/integration/test_good_match_scoring.py
+python tests/integration/test_detailed_gap_analysis.py
+python tests/integration/test_phase4.py
+python tests/integration/test_resume_rewrite_integration.py
 
-# Test scoring optimizations
-python test_optimizations.py
+# Unit tests (specific components)
+python tests/unit/test_optimizations.py
+python tests/unit/test_web_dev_matching.py
+python tests/unit/test_database_management_matching.py
+python tests/unit/test_multilanguage_soft_skills.py
+python tests/unit/test_cross_language_skills.py
+python tests/unit/test_resume_rewrite.py
 
-# Test specific features
-python test_good_match_scoring.py
-python test_detailed_gap_analysis.py
-python test_resume_rewrite.py
-python test_resume_rewrite_integration.py
+# Debug tests (for troubleshooting)
+python tests/debug/debug_scoring_details.py
+python tests/debug/debug_industry_matching.py
+python tests/debug/debug_embedding_similarity.py
+
+# Root-level test scripts (rapid prototyping)
+# These test specific features quickly without full test structure
+python test_sophia_healthtrack.py          # Test with specific resume
+python test_domain_finder.py               # Test domain finder feature
+python test_parsing_cache.py               # Test parsing cache
+python test_prompt_caching.py              # Test prompt caching
+python test_redis_cache_sharing.py         # Test Redis cache
+
+# Benchmark tests (via Docker)
+docker-compose run benchmark               # Benchmark TOON format
+docker-compose run benchmark-json          # Benchmark JSON format
 ```
 
 ## Environment Variables
 
 The project requires API keys in `Backend/.env`:
-- `GEMINI_API_KEY` - Google Gemini API key (required)
-- `OPENAI_API_KEY` - OpenAI API key (required for Whisper transcription)
-- `REDIS_URL` - Redis URL for embedding cache (optional, falls back to in-memory)
+
+**Required:**
+- `GEMINI_API_KEY` - Google Gemini API key (required for all LLM operations)
+- `OPENAI_API_KEY` - OpenAI API key (required for Whisper transcription fallback)
+
+**Optional:**
+- `REDIS_URL` - Redis URL for embedding cache (e.g., `redis://localhost:6379/0`)
+  - If not set, falls back to in-memory cache
+  - Redis enables cache sharing across multiple API instances
+- `USE_PARAKEET` - Enable self-hosted Parakeet speech-to-text (`true`/`false`)
+  - Defaults to `false` (uses OpenAI Whisper)
+- `PARAKEET_URL` - Parakeet service URL (default: `http://parakeet:8002`)
+
+**Example `.env` file:**
+```env
+GEMINI_API_KEY=your_gemini_key_here
+OPENAI_API_KEY=your_openai_key_here
+REDIS_URL=redis://localhost:6379/0
+USE_PARAKEET=false
+PARAKEET_URL=http://parakeet:8002
+```
 
 ## Architecture
 
@@ -113,30 +191,39 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 ### Backend Architecture
 
 **Core API Endpoints (`Backend/app/main.py`):**
-- `POST /api/parse` - Parse job description
-- `POST /api/parse-cv` - Parse resume/CV
+- `POST /api/parse` - Parse job description (Phase 1)
+- `POST /api/parse-cv` - Parse resume/CV (Phase 2)
 - `POST /api/calculate-score` - Calculate compatibility score (Phase 3)
 - `POST /api/generate-questions` - Generate personalized questions (Phase 4)
-- `POST /api/transcribe-audio` - Transcribe voice answers (Whisper)
-- `POST /api/submit-answers` - Analyze answers and update CV
+- `POST /api/transcribe-audio` - Transcribe voice answers (uses Parakeet or Whisper)
+- `POST /api/submit-answers` - Analyze answers and update CV (Phase 4)
 - `POST /api/rewrite-resume` - Generate optimized resume (Phase 5)
+- `POST /api/find-domain` - Find career domains based on CV/interests
+- `POST /api/generate-cover-letter` - Generate cover letter from CV + job
+- `POST /api/generate-job-search-queries` - Generate job search queries
+- `GET /api/cache/stats` - Get embedding cache statistics
+- `GET /api/prompt-cache/stats` - Get prompt cache statistics (Gemini)
 
 **Key Modules:**
 - `app/main.py` - FastAPI application with all endpoints
 - `app/config.py` - Centralized prompt templates for all phases
 - `core/embeddings.py` - Semantic similarity with caching (2-tier: in-memory + Redis)
-- `core/cache.py` - Embedding cache management
-- `core/vector_store.py` - RAG vector database for question generation
+- `core/cache.py` - Embedding cache management (Redis or in-memory)
+- `core/gemini_cache.py` - Gemini prompt caching (context caching for repeated prompts)
+- `core/vector_store.py` - RAG vector database (Qdrant) for question generation
 - `core/text_processing.py` - Text normalization utilities
 - `formats/toon.py` - TOON format conversion for 40-50% token reduction
+- `parakeet-service/` - Self-hosted GPU speech-to-text microservice
 
 **Performance Optimizations:**
-1. **TOON Format:** Custom compressed format reducing tokens by 40-50% vs JSON
+1. **TOON Format:** Custom compressed format reducing tokens by 40-50% vs JSON (see `docs/TOON_FORMAT_EXPLAINED.md`)
 2. **Hybrid Scoring:** Category scores calculated via embeddings/rules (instant) rather than asking Gemini (~4s saved)
 3. **Embedding Cache:** Two-tier caching (in-memory + Redis) for 90%+ speedup on cache hits
-4. **Batch Embeddings:** Parallel embedding generation (3-4x faster)
-5. **HTTP/2:** Persistent HTTP/2 client with connection pooling (30-50% faster API calls)
-6. **Compressed Prompts:** Minimal prompts for Gemini (~60% smaller for gap analysis)
+4. **Prompt Cache:** Gemini context caching for repeated system prompts (50% cost reduction, faster responses)
+5. **Batch Embeddings:** Parallel embedding generation (3-4x faster)
+6. **HTTP/2:** Persistent HTTP/2 client with connection pooling (30-50% faster API calls)
+7. **Compressed Prompts:** Minimal prompts for Gemini (~60% smaller for gap analysis)
+8. **Parakeet STT:** Self-hosted GPU transcription (10x faster, 95% cheaper than Whisper API)
 
 ### Frontend Architecture (Nuxt 3)
 
@@ -151,14 +238,19 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 - `useScoreCalculator.ts` - Compatibility scoring
 - `useQuestionGenerator.ts` - Question generation
 - `useVoiceRecorder.ts` - Audio recording for voice answers
-- `useAudioTranscriber.ts` - Whisper transcription
+- `useAudioTranscriber.ts` - Audio transcription (Parakeet/Whisper)
 - `useAnswerSubmitter.ts` - Answer analysis
 - `useResumeRewriter.ts` - Resume rewriting
+- `useDomainFinder.ts` - Career domain finder
+- `useCoverLetterGenerator.ts` - Cover letter generation
+- `useJobSearchQueryGenerator.ts` - Job search query generation
+- `useSampleResumes.ts` - Sample resume data
 
 **Components:**
-- Results display: `JobParsingResult.vue`, `CVParsingResult.vue`, `ScoreResult.vue`, `QuestionsResult.vue`, `ResumeRewriteResult.vue`
+- Results display: `JobParsingResult.vue`, `CVParsingResult.vue`, `ScoreResult.vue`, `QuestionsResult.vue`, `ResumeRewriteResult.vue`, `CoverLetterResult.vue`, `DomainFinderResult.vue`
 - UI elements: `ProgressIndicator.vue`, `LoadingSpinner.vue`, `WaitingMessage.vue`, `AnalysisSidebar.vue`
 - Input: `QuestionCard.vue`, `AnswerInput.vue` (with voice recording)
+- Modals: `JobSearchQueriesModal.vue`
 
 ### Data Flow
 
@@ -208,11 +300,12 @@ All prompts live in `Backend/app/config.py`. Follow existing patterns:
 
 ### Testing Scoring Changes
 
-When modifying scoring logic:
-1. Run `python tests/integration/test_good_match_scoring.py` to verify good matches score 65%+
-2. Run `python tests/unit/test_web_dev_matching.py` for domain-specific tests
-3. Run `python tests/integration/test_complete_pipeline.py` for end-to-end validation
-4. Check `python tests/unit/test_optimizations.py` to ensure performance improvements maintained
+When modifying scoring logic, run these tests to ensure quality:
+1. **Good Match Validation:** `python tests/integration/test_good_match_scoring.py` - Verifies good matches score 65%+
+2. **Domain-Specific Tests:** `python tests/unit/test_web_dev_matching.py`, `test_database_management_matching.py` - Tests specific skill domains
+3. **End-to-End Pipeline:** `python tests/integration/test_complete_pipeline.py` - Full pipeline validation
+4. **Performance Check:** `python tests/unit/test_optimizations.py` - Ensures optimizations are maintained
+5. **Multi-language:** `python tests/unit/test_multilanguage_soft_skills.py`, `test_cross_language_skills.py` - Tests language support
 
 ### Frontend State Management
 
@@ -236,32 +329,118 @@ The frontend uses composables for state management:
 ```
 Backend/
 ├── app/                    # Core FastAPI application
-│   ├── main.py            # API endpoints
-│   └── config.py          # Prompt templates
+│   ├── main.py            # API endpoints (all phases)
+│   └── config.py          # Centralized prompt templates
 ├── core/                   # Business logic utilities
-│   ├── embeddings.py      # Semantic similarity
-│   ├── cache.py           # Embedding cache
-│   ├── vector_store.py    # Qdrant RAG
-│   └── text_processing.py # Text utilities
+│   ├── embeddings.py      # Semantic similarity with caching
+│   ├── cache.py           # Embedding cache (Redis/in-memory)
+│   ├── gemini_cache.py    # Gemini prompt caching
+│   ├── vector_store.py    # Qdrant RAG for questions
+│   └── text_processing.py # Text normalization
 ├── formats/                # Data format handlers
-│   └── toon.py            # TOON format
-├── tests/
-│   ├── integration/       # Integration tests
-│   ├── unit/              # Unit tests
-│   └── debug/             # Debug scripts
-├── scripts/                # Benchmarks
-│   ├── benchmark_toon.py
-│   └── benchmark_json.py
-└── data/
-    ├── samples/           # Sample data
-    └── outputs/           # JSON outputs
+│   └── toon.py            # TOON format (token-optimized)
+├── parakeet-service/       # GPU speech-to-text microservice
+│   ├── app.py             # Flask API for Parakeet
+│   ├── Dockerfile         # GPU-enabled container
+│   ├── requirements.txt   # Python dependencies
+│   └── README.md          # Setup and usage guide
+├── tests/                  # Test suite
+│   ├── integration/       # Full pipeline tests
+│   ├── unit/              # Component tests
+│   └── debug/             # Debug/troubleshooting scripts
+├── scripts/                # Benchmarking tools
+│   ├── benchmark_toon.py  # TOON format benchmark
+│   └── benchmark_json.py  # JSON format comparison
+├── data/
+│   ├── samples/           # Sample CVs and job descriptions
+│   └── outputs/           # Generated JSON outputs
+└── docker-compose.yml      # Multi-service orchestration
+
+frontend/
+├── pages/
+│   ├── index.vue          # Landing page
+│   ├── analyze.vue        # Main analysis interface
+│   └── domain-finder.vue  # Career domain finder
+├── components/             # Vue components
+├── composables/            # Composition API composables
+└── utils/                  # Frontend utilities
+
+docs/                       # Documentation
+├── pipeline.md            # Full pipeline example with data
+├── TOON_FORMAT_EXPLAINED.md  # TOON format guide
+└── TOON_IMPROVEMENTS.md   # TOON optimization notes
+
+Root-level test scripts:   # Quick prototyping tests
+├── test_*.py              # Various feature tests
+└── debug_*.py             # Debug scripts
 ```
+
+## Debugging and Monitoring
+
+### Cache Statistics
+
+Monitor cache performance to optimize system efficiency:
+
+```bash
+# Embedding cache stats (Redis or in-memory)
+curl http://localhost:8001/api/cache/stats
+
+# Gemini prompt cache stats
+curl http://localhost:8001/api/prompt-cache/stats
+```
+
+### Parakeet Service Health
+
+```bash
+# Check Parakeet service status
+curl http://localhost:8002/health
+
+# View Parakeet logs
+docker-compose logs -f parakeet
+
+# Monitor GPU usage
+nvidia-smi
+# or continuously: watch -n 1 nvidia-smi
+```
+
+### Common Debugging Scenarios
+
+1. **Slow scoring/parsing:**
+   - Check cache hit rates via `/api/cache/stats`
+   - Verify Redis connection if configured
+   - Check Gemini prompt cache usage
+
+2. **Transcription issues:**
+   - Check Parakeet health: `curl http://localhost:8002/health`
+   - View logs: `docker-compose logs parakeet`
+   - Verify GPU availability: `nvidia-smi`
+   - System falls back to OpenAI Whisper if Parakeet fails
+
+3. **Inconsistent scoring:**
+   - Use debug tests in `Backend/tests/debug/`
+   - Run `debug_scoring_details.py` to see score breakdowns
+   - Check `debug_embedding_similarity.py` for similarity issues
+
+4. **TOON parsing errors:**
+   - Check LLM array count validation (parser auto-fixes common errors)
+   - Verify `{skill,priority}` format in hard_skills arrays
+   - See `docs/TOON_FORMAT_EXPLAINED.md` for format rules
 
 ## Important Notes
 
-- **Token Optimization:** Always use TOON format for CV/JD in prompts (see `formats/toon.py`)
-- **Caching:** Embeddings are cached - clear cache when testing similarity changes
-- **RAG Context:** Questions improve over time as more users submit answers (stored in Qdrant)
-- **Gemini Models:** Use `gemini-2.5-flash-lite` for speed, `gemini-2.0-flash-exp` for quality
+- **Token Optimization:** Always use TOON format for CV/JD in prompts (see `formats/toon.py` and `docs/TOON_FORMAT_EXPLAINED.md`)
+  - TOON reduces tokens by 40-50% vs JSON
+  - Parser automatically fixes LLM counting errors in array brackets
+- **Caching Strategy:**
+  - **Embedding Cache:** Two-tier (in-memory + Redis optional) - clear when testing similarity changes
+  - **Prompt Cache:** Gemini context caching for repeated system prompts - check stats via `/api/prompt-cache/stats`
+- **RAG Context:** Questions improve over time as users submit answers (stored in Qdrant vector DB)
+- **Gemini Models:**
+  - Use `gemini-2.5-flash-lite` for speed (parsing, questions)
+  - Use `gemini-2.0-flash-exp` for quality (gap analysis, rewriting)
+- **Speech-to-Text:**
+  - Parakeet (self-hosted GPU) is 10x faster and 95% cheaper
+  - Automatically falls back to OpenAI Whisper if Parakeet unavailable
 - **Error Handling:** All API endpoints include try/except with HTTPException
 - **Validation:** Input validation on both frontend and backend (min 50 chars for job/CV)
+- **Test Files:** Root-level `test_*.py` files are for rapid prototyping; organized tests are in `Backend/tests/`

@@ -41,10 +41,16 @@ export interface ApplicationViability {
   key_blockers: string[]
 }
 
+export interface ScoreMessage {
+  title: string
+  subtitle: string
+}
+
 export interface ScoreResponse {
   success: boolean
   overall_score: number
-  overall_status: string  // NEW: "STRONG FIT" | "MODERATE FIT" | "WEAK FIT" | "POOR FIT"
+  overall_status: string  // "Excellent" | "Good" | "Moderate" | "Needs Work"
+  score_message: ScoreMessage  // AI-generated encouraging message
   category_scores: Record<string, CategoryScore>  // NEW: Detailed with weights and status
   gaps: CategorizedGaps  // NEW: Categorized gaps
   strengths: StrengthItem[]  // NEW: Structured strengths

@@ -178,15 +178,17 @@ class EmbeddingCache:
         }
 
     def clear(self):
-        """Clear all caches."""
+        """Clear all caches (embeddings, domains, parsing, scoring, etc.)."""
         if hasattr(self, '_l1_cache'):
             self._l1_cache.clear()
 
         if self.redis_client:
             try:
-                # Clear all embedding keys
-                for key in self.redis_client.scan_iter("emb:*"):
-                    self.redis_client.delete(key)
+                # Clear all cache key patterns
+                patterns = ["emb:*", "domains:*", "parse:*", "score:*", "ind:*", "role:*"]
+                for pattern in patterns:
+                    for key in self.redis_client.scan_iter(pattern):
+                        self.redis_client.delete(key)
             except Exception as e:
                 print(f"Redis clear error: {e}")
 

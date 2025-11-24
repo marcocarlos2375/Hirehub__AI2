@@ -735,6 +735,20 @@ GAP COUNT REQUIREMENTS (Score >70% = GOOD FIT):
 
 {gap_guidance}
 
+⚠️  CRITICAL INSTRUCTION - DOMAIN EXPERTISE ASSESSMENT:
+When evaluating domain expertise and industry experience, you MUST consider ALL of the following from the CV:
+1. **Work Experience**: Job roles and companies in the target industry
+2. **Personal Projects**: Side projects, portfolio work, and hobby projects demonstrating domain knowledge
+3. **Certifications**: Industry-specific certifications and training
+4. **Education**: Relevant coursework, minors, or specializations
+
+EXAMPLE: If the JD requires "Healthcare Technology" experience and the CV shows:
+- A personal project called "HealthTrack App - health tracking mobile app with WCAG compliance"
+- This DOES demonstrate Healthcare domain interest and knowledge
+- Do NOT say "No experience in Healthcare" - acknowledge the project as valid domain exposure
+
+PROJECTS and CERTIFICATIONS count as domain expertise, especially for career changers and junior candidates!
+
 CV (TOON):
 {cv_toon}
 
@@ -863,6 +877,17 @@ JOB DESCRIPTION (TOON):
 IDENTIFIED GAPS FROM PHASE 3:
 {gaps_summary}
 {rag_examples}
+
+⚠️  CRITICAL INSTRUCTION - CONSIDER EXISTING PROJECTS & CERTIFICATIONS:
+Before asking questions, FIRST check if the candidate already has relevant experience in their CV that addresses the gaps:
+1. **Personal Projects**: Check the CV's "projects" section - they may have side projects demonstrating skills/domain knowledge
+2. **Certifications**: Check "certifications" - they may have completed relevant training or courses
+3. **Education**: Check coursework, minors, thesis projects that relate to the gaps
+
+If the CV already shows relevant projects or certifications that partially address a gap:
+- DON'T ask if they have experience with that technology/domain - they already listed it!
+- INSTEAD, ask deeper questions about that existing project/certification to uncover MORE detail
+- Example: If CV shows "HealthTrack App" (healthcare project), ask about HIPAA compliance considerations, not "Do you have healthcare experience?"
 
 TASK: Generate 5-11 personalized questions to uncover hidden experience that might close these gaps.
 
@@ -1215,3 +1240,207 @@ IMPORTANT - DO NOT INVENT INFORMATION:
 - All skills from answers MUST appear in the output
 
 Return ONLY the JSON object, no markdown formatting."""
+
+
+def get_domain_finder_prompt(resume_text: str, language: str = "english") -> str:
+    """
+    Generate prompt for domain/career path finder based on resume.
+    Suggests 8-10 domains ranked by fit and provides skill gap analysis for each.
+
+    Args:
+        resume_text: The resume/CV text to analyze
+        language: Language for the output (english, french, german, spanish)
+
+    Returns:
+        Formatted prompt string for domain finder
+    """
+
+    language_instructions = {
+        "english": {
+            "instruction": "Analyze this resume and suggest 8-10 career domains/industries where this candidate could apply for jobs.",
+            "note": "All text values must be in ENGLISH"
+        },
+        "french": {
+            "instruction": "Analysez ce CV et suggérez 8-10 domaines de carrière/industries où ce candidat pourrait postuler.",
+            "note": "Toutes les valeurs textuelles doivent être en FRANÇAIS"
+        },
+        "german": {
+            "instruction": "Analysieren Sie diesen Lebenslauf und schlagen Sie 8-10 Karrieredomänen/Branchen vor, in denen sich dieser Kandidat bewerben könnte.",
+            "note": "Alle Textwerte müssen auf DEUTSCH sein"
+        },
+        "spanish": {
+            "instruction": "Analice este currículum y sugiera 8-10 dominios de carrera/industrias donde este candidato podría solicitar empleos.",
+            "note": "Todos los valores de texto deben estar en ESPAÑOL"
+        }
+    }
+
+    lang = language.lower()
+    if lang not in language_instructions:
+        lang = "english"
+
+    lang_data = language_instructions[lang]
+
+    return f"""{lang_data["instruction"]} Suggest specific ROLE + INDUSTRY combinations.
+
+CRITICAL REQUIREMENTS:
+- Return ONLY valid JSON (no markdown, no commentary)
+- {lang_data["note"]}
+- Suggest 8-10 SPECIFIC role+industry combinations (e.g., "Backend Developer - Gaming", not just "Backend Engineering")
+- Each suggestion must be a TECHNICAL ROLE paired with a SPECIFIC INDUSTRY
+- Analyze resume work experience AND hobbies/projects to determine industry interests
+- Match technical role specificity to experience level (Junior: broad, Senior: specific)
+
+STEP 1: ANALYZE RESUME FOR INDUSTRIES
+Extract industry signals from:
+1. **Work Experience**: Which industries did they work in? (Gaming, Finance, Healthcare, etc.)
+2. **Personal Projects/Hobbies**: Side projects, hackathons, portfolio items (e.g., "built a game" → Gaming interest)
+3. **Technical Skills**: Skills that hint at industries (Unity/Unreal → Gaming, payment APIs → FinTech, HIPAA → Healthcare)
+
+STEP 2: DETERMINE EXPERIENCE LEVEL & ROLE SPECIFICITY
+- **Junior/Mid (0-5 years)**: Use broad roles
+  Examples: "Backend Developer", "Frontend Engineer", "Full-Stack Developer"
+- **Senior (5-10 years)**: Use specific roles
+  Examples: "Senior Backend Engineer", "Lead Frontend Developer", "Principal Full-Stack Engineer"
+- **Staff/Principal (10+ years)**: Use architect/leadership roles
+  Examples: "Staff Engineer", "Solutions Architect", "Engineering Manager"
+
+STEP 3: TECHNICAL ROLES (choose based on skills)
+- Backend Developer/Engineer (APIs, databases, server-side)
+- Frontend Developer/Engineer (UI, React, Vue, mobile apps)
+- Full-Stack Developer/Engineer (both frontend + backend)
+- DevOps Engineer (CI/CD, cloud infrastructure, containers)
+- Data Engineer (data pipelines, ETL, warehousing)
+- Data Scientist (ML, analytics, statistics)
+- ML/AI Engineer (machine learning, deep learning)
+- Mobile Developer (iOS, Android, React Native, Flutter)
+- QA/Test Engineer (automation, testing frameworks)
+- Security Engineer (cybersecurity, penetration testing)
+- Site Reliability Engineer (SRE) (monitoring, uptime, scalability)
+- Cloud Architect (cloud design, multi-cloud strategies)
+- Solutions Architect (enterprise architecture)
+- Technical Product Manager (technical leadership + product)
+
+STEP 4: INDUSTRIES (match to resume)
+- **Gaming**: Game engines (Unity, Unreal), multiplayer, game physics
+- **FinTech/Finance**: Payment processing, trading, banking, crypto, fraud detection
+- **HealthTech/Healthcare**: Electronic health records, HIPAA, telemedicine, medical devices
+- **EdTech/Education**: Learning management systems, online courses, educational apps
+- **E-commerce/Retail**: Shopping carts, inventory, logistics, marketplaces
+- **Media & Entertainment**: Streaming, content delivery, social media, music/video platforms
+- **Enterprise SaaS**: B2B software, productivity tools, CRM, HR systems
+- **Cybersecurity**: Threat detection, encryption, penetration testing, compliance
+- **IoT/Hardware**: Embedded systems, sensors, device management, firmware
+- **Transportation/Mobility**: Ride-sharing, logistics, autonomous vehicles, fleet management
+- **Real Estate/PropTech**: Property management, rental platforms, real estate marketplaces
+- **Social Impact/Non-Profit**: Civic tech, sustainability, climate tech, accessibility
+- **Advertising/MarTech**: Ad tech, marketing automation, analytics platforms
+- **Travel/Hospitality**: Booking platforms, hotel management, travel planning
+- **Food & Delivery**: Restaurant tech, food delivery, kitchen automation
+
+JSON SCHEMA:
+{{
+  "domains": [
+    {{
+      "domain_name": "Technical Role - Industry (e.g., 'Backend Developer - Gaming')",
+      "technical_role": "string (e.g., 'Backend Developer', 'Senior API Engineer')",
+      "industry": "string (e.g., 'Gaming', 'FinTech', 'HealthTech')",
+      "fit_score": 0-100,
+      "rank": 1-10,
+      "matching_skills": ["Combined list of role skills + industry skills they already have"],
+      "skills_to_learn": ["REQUIRED: Combined list of ALL skills to learn (merge role_skills_to_learn + industry_skills_to_learn)"],
+      "role_skills_to_learn": ["Technical skills needed for the ROLE (Node.js, Docker, Kubernetes, etc.)"],
+      "industry_skills_to_learn": ["Domain knowledge needed for the INDUSTRY (Unity backend, payment APIs, HIPAA, etc.)"],
+      "learning_priority": "HIGH|MEDIUM|LOW",
+      "time_to_ready": "string (e.g., '2-3 months', '6-12 months')",
+      "reasoning": "1-2 sentences why this ROLE fits their skills",
+      "industry_rationale": "1-2 sentences why this INDUSTRY matches (based on work experience, projects, or hobbies)"
+    }}
+  ]
+}}
+
+ANALYSIS GUIDELINES:
+
+1. **COMBINING ROLE + INDUSTRY**:
+   - Match technical skills to role (Backend, Frontend, DevOps, etc.)
+   - Match work history/projects/hobbies to industry (Gaming, FinTech, etc.)
+   - Create combinations that are both technically feasible AND aligned with interests
+   - Example: "Built Unity games" + "Node.js backend skills" = "Backend Developer - Gaming"
+
+2. **FIT SCORE (0-100)**:
+   - Consider BOTH role skills AND industry knowledge
+   - 85-100: Perfect match (strong role skills + relevant industry experience/interest)
+   - 70-84: Good match (strong role skills + some industry connection)
+   - 55-69: Moderate match (adequate role skills + tangential industry interest)
+   - 40-54: Weak match (some transferable skills + new industry)
+
+3. **MATCHING SKILLS** (5-12 items):
+   - Include BOTH technical role skills AND industry-specific skills
+   - Example for "Backend Developer - Gaming":
+     - Role: Node.js, PostgreSQL, Redis, Docker, REST APIs
+     - Industry: Unity backend integration, WebSockets, real-time networking
+
+4. **SKILLS TO LEARN** - Provide THREE lists:
+
+   **skills_to_learn** (6-12 items): REQUIRED - Merge role_skills_to_learn + industry_skills_to_learn into one combined list
+
+   **role_skills_to_learn** (3-6 items): Technical skills needed for the ROLE
+   - Example for Backend Developer: gRPC, Kubernetes, Microservices, Service Mesh
+
+   **industry_skills_to_learn** (3-6 items): Domain knowledge for the INDUSTRY
+   - Example for Gaming: Unity multiplayer backend, Game server architecture, Player matchmaking, Anti-cheat systems
+   - Example for FinTech: Payment gateway APIs, PCI compliance, Fraud detection, KYC/AML regulations
+   - Example for HealthTech: HIPAA compliance, HL7/FHIR standards, Medical data security, EHR integration
+
+   **IMPORTANT**: skills_to_learn must equal role_skills_to_learn + industry_skills_to_learn combined
+
+5. **LEARNING PRIORITY**:
+   - HIGH: Missing critical skills for EITHER role OR industry
+   - MEDIUM: Missing important skills but can compensate
+   - LOW: Minor gaps, easy to learn
+
+6. **TIME TO READY**:
+   - "0-1 months": Perfect match, ready now
+   - "1-2 months": Minor gaps to close
+   - "2-3 months": Some focused learning needed
+   - "3-6 months": Moderate reskilling required
+   - "6-12 months": Significant learning needed
+   - "1-2 years": Major career pivot
+
+7. **REASONING** (for the ROLE):
+   - Explain why their technical skills match this role
+   - Reference specific technologies/experiences
+   - Example: "Your Node.js, PostgreSQL, and Docker experience aligns perfectly with backend engineering requirements"
+
+8. **INDUSTRY_RATIONALE** (for the INDUSTRY):
+   - Explain why this industry matches based on:
+     - Work experience in similar industry
+     - Personal projects/hobbies (e.g., "Based on your Unity game project")
+     - Interest signals (e.g., "Your experience with payment APIs suggests FinTech interest")
+   - If no direct connection, explain transferable domain knowledge
+   - Example: "Your Unity side project and game networking hobby indicate strong interest in gaming industry"
+
+RANKING STRATEGY:
+- Prioritize combinations where:
+  1. Strong role skills match (they can do the job)
+  2. Clear industry interest (work experience, projects, or hobbies)
+  3. Realistic path to entry (not too many gaps)
+
+VALIDATION CHECKLIST:
+✓ Exactly 8-10 ROLE + INDUSTRY combinations
+✓ Each domain_name format: "Role - Industry"
+✓ All have technical_role and industry fields filled
+✓ Both role_skills_to_learn AND industry_skills_to_learn present
+✓ industry_rationale explains why THIS industry (not just the role)
+✓ Mix of industries (don't suggest all gaming or all fintech)
+
+IMPORTANT:
+- Be specific with role names based on experience level
+- Prioritize industries where they have work experience or personal projects
+- Include diverse industries to give them options
+- Split skills clearly: ROLE skills vs INDUSTRY domain knowledge
+- Industry rationale must be evidence-based (cite projects, work history, hobbies)
+
+RESUME TEXT:
+{resume_text}
+
+Return ONLY the JSON object, no additional text."""

@@ -14,7 +14,7 @@ from google import genai
 from openai import OpenAI
 from dotenv import load_dotenv
 from formats.toon import to_toon, from_toon
-from app.config import get_toon_prompt, get_json_prompt, get_cv_prompt, get_detailed_gap_analysis_prompt, get_compressed_gap_analysis_prompt, get_question_generation_prompt, get_answer_analysis_prompt, get_resume_rewrite_prompt
+from app.config import get_toon_prompt, get_json_prompt, get_cv_prompt, get_detailed_gap_analysis_prompt, get_compressed_gap_analysis_prompt, get_question_generation_prompt, get_answer_analysis_prompt, get_resume_rewrite_prompt, get_domain_finder_prompt
 from core.embeddings import calculate_overall_compatibility
 from core.vector_store import get_qdrant_manager
 from core.cache import get_cache
@@ -516,6 +516,156 @@ async def parse_cv(request: CVParseRequest):
             detail=f"Internal server error: {str(e)}"
         )
 
+
+# Domain Finder endpoint
+class DomainMatch(BaseModel):
+    domain_name: str  # Format: "Role - Industry"
+    technical_role: str  # e.g., "Backend Developer", "Senior API Engineer"
+    industry: str  # e.g., "Gaming", "FinTech", "HealthTech"
+    fit_score: int
+    rank: int
+    matching_skills: list[str]  # Combined role + industry skills
+    skills_to_learn: list[str]  # Combined list (for backwards compatibility)
+    role_skills_to_learn: list[str]  # Technical skills needed for role
+    industry_skills_to_learn: list[str]  # Domain knowledge for industry
+    learning_priority: str
+    time_to_ready: str
+    reasoning: str  # Why this ROLE fits
+    industry_rationale: str  # Why this INDUSTRY matches
+
+class DomainFinderRequest(BaseModel):
+    resume_text: str
+    language: str = "english"
+
+class DomainFinderResponse(BaseModel):
+    success: bool
+    domains: list[DomainMatch] | None = None
+    total_suggested: int
+    error: str | None = None
+    time_seconds: float
+    model: str
+    language: str
+
+@app.post("/api/find-domains", response_model=DomainFinderResponse)
+async def find_domains(request: DomainFinderRequest, bypass_cache: bool = False):
+    """
+    Analyze resume and suggest 8-10 career domains/industries ranked by fit.
+    For each domain, provides skill gap analysis and time-to-ready estimate.
+    Supports multiple languages: english, french, german, spanish
+
+    Args:
+        request: DomainFinderRequest with resume_text and language
+        bypass_cache: If True, skip cache lookup and force fresh analysis (useful for testing/updates)
+    """
+    try:
+        # Validate input
+        if not request.resume_text or len(request.resume_text.strip()) < 50:
+            raise HTTPException(
+                status_code=400,
+                detail="Resume text must be at least 50 characters"
+            )
+
+        # Auto-truncate if over 6200 characters
+        resume_text = request.resume_text[:6200] if len(request.resume_text) > 6200 else request.resume_text
+
+        # Validate language
+        supported_languages = ["english", "french", "german", "spanish"]
+        language = request.language.lower()
+        if language not in supported_languages:
+            language = "english"
+
+        # CACHE: Check if this domain analysis is cached (skip if bypass_cache=True)
+        resume_hash = hashlib.md5(resume_text.encode()).hexdigest()
+        cache_key = f"domains:{resume_hash}:{language}"
+
+        if not bypass_cache:
+            cached_result = cache.get(cache_key)
+            if cached_result:
+                result_dict = json.loads(cached_result)
+                return DomainFinderResponse(**result_dict)
+
+        # Generate domain finder prompt
+        prompt = get_domain_finder_prompt(resume_text, language)
+
+        # Call Gemini 2.5 Flash-Lite
+        start_time = time.time()
+        model_name = "gemini-2.5-flash-lite"
+
+        response = gemini_client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config={"temperature": 0.3}
+        )
+
+        response_text = response.text
+        elapsed_time = time.time() - start_time
+
+        # Parse JSON response
+        try:
+            # Remove markdown code blocks if present
+            cleaned_text = response_text.strip()
+
+            if cleaned_text.startswith("```"):
+                lines = cleaned_text.split("\n")
+                if len(lines) > 1:
+                    lines = lines[1:]
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                elif lines and lines[-1].strip().endswith("```"):
+                    lines[-1] = lines[-1].replace("```", "").strip()
+                cleaned_text = "\n".join(lines).strip()
+
+            # Parse JSON
+            parsed_data = json.loads(cleaned_text)
+
+            # Validate domains array
+            if "domains" in parsed_data and isinstance(parsed_data["domains"], list) and len(parsed_data["domains"]) >= 8:
+                domains = [DomainMatch(**domain) for domain in parsed_data["domains"]]
+
+                result = DomainFinderResponse(
+                    success=True,
+                    domains=domains,
+                    total_suggested=len(domains),
+                    time_seconds=round(elapsed_time, 3),
+                    model=model_name,
+                    language=language
+                )
+
+                # CACHE: Store successful result (1 hour TTL for easier testing/updates)
+                cache.set(cache_key, json.dumps(result.dict()), ttl=3600)
+
+                return result
+            else:
+                return DomainFinderResponse(
+                    success=False,
+                    domains=None,
+                    total_suggested=0,
+                    error="Failed to generate sufficient domain suggestions (expected 8-10)",
+                    time_seconds=round(elapsed_time, 3),
+                    model=model_name,
+                    language=language
+                )
+
+        except Exception as parse_error:
+            return DomainFinderResponse(
+                success=False,
+                domains=None,
+                total_suggested=0,
+                error=f"Parse error: {str(parse_error)}. Raw response: {response_text[:200]}",
+                time_seconds=round(elapsed_time, 3),
+                model=model_name,
+                language=language
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
 # Compatibility Score Calculation endpoint (Hybrid approach)
 
 # New detailed models for pipeline.md aligned gap analysis
@@ -556,15 +706,36 @@ class ScoreRequest(BaseModel):
     parsed_jd: dict
     language: str = "english"
 
+class ScoreMessage(BaseModel):
+    title: str
+    subtitle: str
+
 class ScoreResponse(BaseModel):
     success: bool
     overall_score: int
     overall_status: str  # NEW: STRONG FIT, MODERATE FIT, etc.
+    score_message: ScoreMessage  # NEW: AI-generated encouraging messages
     category_scores: dict[str, CategoryScore]  # NEW: Detailed with weights and status
     gaps: CategorizedGaps  # NEW: Categorized gaps
     strengths: list[StrengthItem]  # NEW: Structured strengths
     application_viability: ApplicationViability  # NEW: Viability assessment
     similarity_metrics: dict  # Keep for backward compatibility
+    time_seconds: float
+    model: str
+
+
+# ===== COVER LETTER GENERATION MODELS =====
+
+class CoverLetterRequest(BaseModel):
+    parsed_resume: dict  # The parsed/rewritten resume in structured format
+    parsed_jd: dict  # Parsed job description
+    score_data: dict = None  # Optional: gaps and strengths from score analysis
+    language: str = "english"
+
+class CoverLetterResponse(BaseModel):
+    success: bool
+    cover_letter: str  # The generated cover letter text
+    word_count: int
     time_seconds: float
     model: str
 
@@ -907,9 +1078,9 @@ def calculate_logistics_match(cv: dict, jd: dict) -> int:
     """Calculate location/logistics compatibility score"""
     score = 50  # Start neutral (changed from 100)
 
-    cv_location = cv.get('personal_info', {}).get('location', '').lower()
-    jd_location = jd.get('location', '').lower()
-    jd_work_mode = jd.get('work_mode', '').lower()
+    cv_location = (cv.get('personal_info', {}).get('location') or '').lower()
+    jd_location = (jd.get('location') or '').lower()
+    jd_work_mode = (jd.get('work_mode') or '').lower()
 
     # Location match
     if cv_location and jd_location:
@@ -1134,6 +1305,78 @@ def calculate_industry_match(cv: dict, jd: dict) -> int:
             for industries_list in results:
                 cv_industries.update(industries_list)
 
+    # OPTIMIZATION: Extract CV industries from PROJECTS (personal/portfolio/side projects)
+    # Projects demonstrate domain interest and practical knowledge, especially for career changers
+    projects = cv.get('projects', [])
+
+    # DEBUG: Log projects found
+    print(f"[DEBUG] Found {len(projects) if isinstance(projects, list) else 0} projects in CV")
+
+    if isinstance(projects, list) and projects:
+        project_tasks = []
+
+        for proj in projects:
+            if isinstance(proj, dict):
+                # Extract industries from project name (e.g., "HealthTrack App" → Healthcare)
+                if 'name' in proj:
+                    project_tasks.append(str(proj['name']))
+
+                # Extract industries from project description (e.g., "health tracking mobile app" → HealthTech)
+                if 'description' in proj:
+                    project_tasks.append(str(proj['description']))
+
+                # Extract from technologies/tech stack (e.g., "WCAG accessibility" → Healthcare signal)
+                if 'technologies' in proj and isinstance(proj['technologies'], list):
+                    tech_text = ' '.join(str(t) for t in proj['technologies'][:5])  # Limit to first 5 to avoid noise
+                    if tech_text.strip():
+                        project_tasks.append(tech_text)
+
+        # PARALLEL EXECUTION: Run all project extractions concurrently
+        if project_tasks:
+            with ThreadPoolExecutor(max_workers=min(len(project_tasks), 8)) as executor:
+                results = list(executor.map(extract_industries_with_ai, project_tasks))
+
+            # Aggregate project industry results
+            for industries_list in results:
+                cv_industries.update(industries_list)
+
+            # DEBUG: Log extracted industries from projects
+            print(f"[DEBUG] Extracted {len(cv_industries)} industries from projects: {cv_industries}")
+
+    # OPTIMIZATION: Extract CV industries from CERTIFICATIONS
+    # Certifications demonstrate formal domain knowledge and commitment to industry
+    certifications = cv.get('certifications', [])
+
+    if isinstance(certifications, list) and certifications:
+        cert_tasks = []
+
+        for cert in certifications:
+            if isinstance(cert, dict):
+                # Extract industries from certification name (e.g., "AWS Certified Solutions Architect" → Cloud)
+                if 'name' in cert:
+                    cert_tasks.append(str(cert['name']))
+
+                # Extract from issuing organization (e.g., "Project Management Institute" → Project Management)
+                if 'issuer' in cert:
+                    cert_tasks.append(str(cert['issuer']))
+
+                # Extract from certification description if available
+                if 'description' in cert:
+                    cert_tasks.append(str(cert['description']))
+
+            elif isinstance(cert, str):
+                # Handle simple string certifications
+                cert_tasks.append(cert)
+
+        # PARALLEL EXECUTION: Run all certification extractions concurrently
+        if cert_tasks:
+            with ThreadPoolExecutor(max_workers=min(len(cert_tasks), 8)) as executor:
+                results = list(executor.map(extract_industries_with_ai, cert_tasks))
+
+            # Aggregate certification industry results
+            for industries_list in results:
+                cv_industries.update(industries_list)
+
     # Calculate overlap using semantic embeddings
     if not cv_industries:
         return 0  # No industry experience found
@@ -1332,19 +1575,433 @@ def calculate_weighted_score(category_scores: dict[str, CategoryScore]) -> int:
 
 
 def get_overall_status(score: int) -> str:
-    """Map overall score to status label"""
+    """Map overall score to user-friendly status label"""
     if score >= 75:
-        return "STRONG FIT"
+        return "Excellent"
     elif score >= 60:
-        return "MODERATE FIT"
+        return "Good"
     elif score >= 40:
-        return "WEAK FIT"
+        return "Moderate"
     else:
-        return "POOR FIT"
+        return "Needs Work"
+
+
+def generate_score_message(overall_score: int, gaps: dict, strengths: list, overall_status: str) -> dict:
+    """
+    Generate encouraging, personalized messages for the compatibility score using Gemini.
+
+    Args:
+        overall_score: The numeric score (0-100)
+        gaps: Categorized gaps from analysis
+        strengths: List of candidate strengths
+        overall_status: The status label (STRONG FIT, MODERATE FIT, etc.)
+
+    Returns:
+        dict with 'title' and 'subtitle' keys
+    """
+    # Summarize strengths (max 3) WITH EVIDENCE (project/company names)
+    strengths_summary = ""
+    if strengths and len(strengths) > 0:
+        top_strengths = strengths[:3]
+        strengths_summary = "\n".join([
+            f"- {s.get('title', 'Unknown')}: {s.get('description', '')[:80]}\n  Evidence: {s.get('evidence', 'N/A')[:100]}"
+            for s in top_strengths
+        ])
+    else:
+        strengths_summary = "- (No specific strengths identified yet)"
+
+    # Summarize critical gaps (max 3) WITH CURRENT vs REQUIRED
+    critical_gaps = gaps.get('critical', [])
+    critical_gaps_summary = ""
+    if critical_gaps:
+        top_gaps = critical_gaps[:3]
+        critical_gaps_summary = "\n".join([
+            f"- {g.get('title', 'Unknown')}\n  Current: '{g.get('current', 'None')}' → Required: '{g.get('required', 'Unknown')}'\n  Impact: {g.get('impact', 'N/A')}"
+            for g in top_gaps
+        ])
+    else:
+        critical_gaps_summary = "- (No critical gaps identified)"
+
+    # Guidance based on score range - BE SPECIFIC AND HONEST
+    score_guidance = ""
+    if overall_score >= 75:
+        score_guidance = "Strong match - reference SPECIFIC projects/companies that align with job requirements"
+    elif overall_score >= 60:
+        score_guidance = "Solid foundation - acknowledge specific strengths, be clear about specific gaps to address"
+    elif overall_score >= 40:
+        score_guidance = "Significant gaps - be honest about major missing skills, reference any relevant projects"
+    else:
+        score_guidance = "Major mismatch - use phrases like 'significant mismatch' or 'substantial gaps', list specific missing requirements"
+
+    prompt = f"""You are a career advisor providing SPECIFIC, HONEST feedback about job compatibility.
+
+CRITICAL INSTRUCTION: You MUST copy exact company names, project names, numbers, and technologies from the Evidence field below. DO NOT generalize. DO NOT say "your experience" - say "your work at [Company]" or "your [Project] project".
+
+SCORE: {overall_score}%
+STATUS: {overall_status}
+
+CANDIDATE STRENGTHS (USE EXACT NAMES FROM EVIDENCE):
+{strengths_summary}
+
+KEY GAPS TO ADDRESS (USE EXACT REQUIRED SKILLS):
+{critical_gaps_summary}
+
+TASK: Generate a title and subtitle that references SPECIFIC evidence from above.
+
+TONE REQUIREMENTS:
+- Encouraging & growth-focused: Emphasize potential and learning opportunities
+- Honest & realistic: Acknowledge challenges without sugar-coating
+- Action-oriented: Suggest next steps or focus areas
+- Achievement-focused: Highlight existing strengths and experience
+
+SCORE RANGE GUIDANCE ({overall_score}%):
+{score_guidance}
+
+CRITICAL PERSONALIZATION REQUIREMENTS (MANDATORY - DO NOT SKIP):
+1. **COPY company names from Evidence**: e.g., "TechStartup Inc.", "Digital Solutions", "HealthTrack App"
+2. **COPY numbers from Evidence**: e.g., "1M+ users", "25% improvement", "5 years"
+3. **COPY exact missing skills**: e.g., "GraphQL", "FinTech domain", "Kubernetes"
+4. **Use format**: "Your [specific thing] from [company/project] is strong, but you need [exact gap list]"
+5. **For scores <40%**: Say "significant mismatch" or "major gaps" - be BRUTALLY honest
+
+EXAMPLES (SPECIFIC, NOT GENERIC):
+
+For 78% - Backend role, strong Python + microservices:
+{{
+  "title": "Strong Match for Backend Engineering",
+  "subtitle": "Your microservices work at TechStartup (1M+ users) and AWS experience align well—minor gaps in Kubernetes can be addressed"
+}}
+
+For 52% - Full stack role, has Python but missing GraphQL:
+{{
+  "title": "Solid Backend Skills, Frontend Gaps",
+  "subtitle": "Your Python and PostgreSQL expertise from Digital Solutions is valuable, but you'll need to learn GraphQL and TypeScript"
+}}
+
+For 28% - FinTech role, has projects but no domain knowledge:
+{{
+  "title": "Technical Skills Present, Domain Gap",
+  "subtitle": "Your HealthTrack App project shows product sense, but you lack the required FinTech domain knowledge and compliance experience"
+}}
+
+For 15% - Senior role, junior experience:
+{{
+  "title": "Significant Experience Mismatch",
+  "subtitle": "Your 2 years of experience doesn't meet the 5+ year requirement—focus on similar roles at mid-level first"
+}}
+
+IMPORTANT:
+- Title: 3-8 words, engaging but HONEST (use "mismatch" for low scores)
+- Subtitle: 15-30 words, SPECIFIC (mention projects/companies/skills by name)
+- Use format: "Your [specific thing from evidence] is good for [X], but you need [specific gaps]"
+- For low scores: Be direct about mismatches, don't sugarcoat
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "title": "Your engaging title here",
+  "subtitle": "Your specific, actionable subtitle here"
+}}"""
+
+    try:
+        # Use gemini-2.5-flash-lite with JSON response mode
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+            config={
+                "temperature": 0.7,  # Slightly creative for varied messages
+                "response_mime_type": "application/json"
+            }
+        )
+
+        result = json.loads(response.text)
+
+        # Validate response has required fields
+        if "title" in result and "subtitle" in result:
+            return {
+                "title": result["title"],
+                "subtitle": result["subtitle"]
+            }
+        else:
+            # Fallback if AI doesn't return proper format
+            return get_fallback_message(overall_score)
+
+    except Exception as e:
+        print(f"Error generating score message: {e}")
+        return get_fallback_message(overall_score)
+
+
+def get_fallback_message(score: int) -> dict:
+    """Fallback messages if AI generation fails"""
+    if score >= 75:
+        return {
+            "title": "Excellent Match for This Role",
+            "subtitle": "Your experience and skills align strongly with the position requirements"
+        }
+    elif score >= 60:
+        return {
+            "title": "Strong Potential Candidate",
+            "subtitle": "You have a solid foundation—let's identify areas to strengthen your application"
+        }
+    elif score >= 40:
+        return {
+            "title": "Promising Foundation to Build On",
+            "subtitle": "Your relevant experience provides a starting point—answering questions may reveal more strengths"
+        }
+    else:
+        return {
+            "title": "Growth Opportunity Identified",
+            "subtitle": "This role presents a chance to expand your skillset—let's explore your transferable experience"
+        }
+
+
+# ===== COVER LETTER GENERATION =====
+
+def convert_parsed_resume_to_text(parsed_resume: dict) -> str:
+    """
+    Convert structured parsed resume to plain text format for AI processing.
+    Extracts all 12 sections from the parsed resume.
+    """
+    personal_info = parsed_resume.get('personal_info', {})
+
+    text = f"{personal_info.get('name', '')}\n"
+    if personal_info.get('email'): text += f"{personal_info['email']} | "
+    if personal_info.get('phone'): text += f"{personal_info['phone']} | "
+    if personal_info.get('location'): text += personal_info['location']
+    text += '\n'
+
+    # Social Links
+    if personal_info.get('linkedin'): text += f"LinkedIn: {personal_info['linkedin']}\n"
+    if personal_info.get('github'): text += f"GitHub: {personal_info['github']}\n"
+    if personal_info.get('portfolio'): text += f"Portfolio: {personal_info['portfolio']}\n"
+    text += '\n'
+
+    # Professional Summary
+    if parsed_resume.get('professional_summary'):
+        text += f"PROFESSIONAL SUMMARY\n{parsed_resume['professional_summary']}\n\n"
+
+    # Work Experience
+    if parsed_resume.get('experience') and len(parsed_resume['experience']) > 0:
+        text += "WORK EXPERIENCE\n"
+        for job in parsed_resume['experience']:
+            text += f"{job.get('position') or job.get('role')} at {job.get('company')}\n"
+            if job.get('location'): text += f"{job['location']}\n"
+            text += f"{job.get('start_date')} - {job.get('end_date', 'Present')} ({job.get('duration', '')})\n"
+            if job.get('achievements'):
+                for achievement in job['achievements']:
+                    text += f"• {achievement}\n"
+            text += '\n'
+
+    # Projects
+    if parsed_resume.get('projects') and len(parsed_resume['projects']) > 0:
+        text += "PROJECTS\n"
+        for project in parsed_resume['projects']:
+            text += f"{project.get('name') or project.get('title')}\n"
+            text += f"{project.get('description')}\n"
+            if project.get('technologies'):
+                text += f"Technologies: {', '.join(project['technologies'])}\n"
+            if project.get('link'): text += f"Link: {project['link']}\n"
+            text += '\n'
+
+    # Technical Skills
+    if parsed_resume.get('technical_skills') and len(parsed_resume['technical_skills']) > 0:
+        text += f"TECHNICAL SKILLS\n{', '.join(parsed_resume['technical_skills'])}\n\n"
+
+    # Tools
+    if parsed_resume.get('tools') and len(parsed_resume['tools']) > 0:
+        text += f"TOOLS & PLATFORMS\n{', '.join(parsed_resume['tools'])}\n\n"
+
+    # Soft Skills
+    if parsed_resume.get('soft_skills') and len(parsed_resume['soft_skills']) > 0:
+        text += f"SOFT SKILLS\n{', '.join(parsed_resume['soft_skills'])}\n\n"
+
+    # Skills (from skills object if structured differently)
+    if parsed_resume.get('skills'):
+        skills = parsed_resume['skills']
+        if skills.get('hard_skills') and len(skills['hard_skills']) > 0:
+            text += "HARD SKILLS\n"
+            text += ', '.join([s.get('skill') for s in skills['hard_skills']]) + '\n\n'
+
+    # Education
+    if parsed_resume.get('education') and len(parsed_resume['education']) > 0:
+        text += "EDUCATION\n"
+        for edu in parsed_resume['education']:
+            text += f"{edu.get('degree')} - {edu.get('institution')}\n"
+            if edu.get('location'): text += f"{edu['location']}\n"
+            if edu.get('graduation_date'): text += f"Graduated: {edu['graduation_date']}\n"
+            if edu.get('gpa'): text += f"GPA: {edu['gpa']}\n"
+            if edu.get('honors'): text += f"{edu['honors']}\n"
+            text += '\n'
+
+    # Certifications
+    if parsed_resume.get('certifications') and len(parsed_resume['certifications']) > 0:
+        text += "CERTIFICATIONS\n"
+        for cert in parsed_resume['certifications']:
+            text += f"• {cert}\n"
+        text += '\n'
+
+    # Languages
+    if parsed_resume.get('languages') and len(parsed_resume['languages']) > 0:
+        text += "LANGUAGES\n"
+        for lang in parsed_resume['languages']:
+            text += f"• {lang.get('language')} - {lang.get('proficiency')}\n"
+        text += '\n'
+
+    # Internships
+    if parsed_resume.get('internships') and len(parsed_resume['internships']) > 0:
+        text += "INTERNSHIPS\n"
+        for internship in parsed_resume['internships']:
+            text += f"{internship.get('role')} at {internship.get('company')}\n"
+            text += f"Duration: {internship.get('duration')}\n"
+            text += f"{internship.get('description')}\n\n"
+
+    # Publications
+    if parsed_resume.get('publications') and len(parsed_resume['publications']) > 0:
+        text += "PUBLICATIONS\n"
+        for pub in parsed_resume['publications']:
+            text += f"\"{pub.get('title')}\" - {pub.get('publication')}\n"
+            if pub.get('date'): text += f"Published: {pub['date']}\n"
+            if pub.get('link'): text += f"Link: {pub['link']}\n"
+            text += '\n'
+
+    return text
+
+
+def generate_cover_letter(
+    parsed_resume: dict,
+    parsed_jd: dict,
+    score_data: dict = None
+) -> str:
+    """
+    Generate a personalized cover letter using Gemini AI.
+
+    Args:
+        parsed_resume: The parsed/rewritten resume in structured format
+        parsed_jd: Parsed job description
+        score_data: Optional score analysis data (gaps and strengths)
+
+    Returns:
+        str: Generated cover letter (300-400 words, 4 paragraphs)
+    """
+    # Convert parsed resume to text
+    rewritten_resume = convert_parsed_resume_to_text(parsed_resume)
+
+    # Extract key information from JD
+    company_name = parsed_jd.get('company', 'the company')
+    job_title = parsed_jd.get('job_title', 'this position')
+
+    # Build context from score data if available
+    strengths_context = ""
+    gaps_context = ""
+
+    if score_data:
+        # Get top 2 strengths
+        strengths = score_data.get('strengths', [])[:2]
+        if strengths:
+            strengths_context = "TOP STRENGTHS:\n" + "\n".join([
+                f"- {s.get('title')}: {s.get('description')[:80]}\n  Evidence: {s.get('evidence', 'N/A')[:100]}"
+                for s in strengths
+            ])
+
+        # Get top 2 gaps to address
+        critical_gaps = score_data.get('gaps', {}).get('critical', [])[:2]
+        if critical_gaps:
+            gaps_context = "KEY GAPS TO ADDRESS:\n" + "\n".join([
+                f"- {g.get('title')}: {g.get('description', '')[:80]}"
+                for g in critical_gaps
+            ])
+
+    prompt = f"""You are a professional career writer creating a compelling cover letter.
+
+TASK: Write a personalized 300-400 word cover letter with EXACTLY 4 paragraphs.
+
+INPUTS:
+COMPANY: {company_name}
+ROLE: {job_title}
+
+REWRITTEN RESUME:
+{rewritten_resume[:1500]}
+
+{strengths_context}
+
+{gaps_context}
+
+CRITICAL REQUIREMENTS:
+1. **Tone**: Professional, enthusiastic, and confident
+2. **Length**: 300-400 words, EXACTLY 4 paragraphs
+3. **Personalization**: Use SPECIFIC details from the resume (company names, projects, numbers, achievements)
+4. **Structure**:
+   - Paragraph 1: Professional opening expressing genuine interest in the role and company
+   - Paragraph 2: Highlight 2-3 most relevant experiences/achievements with specific examples
+   - Paragraph 3: Address how you meet key requirements OR show growth mindset for any gaps
+   - Paragraph 4: Confident closing with enthusiasm and call to action
+
+5. **Content Focus**:
+   - Reference specific job requirements
+   - Tell a brief professional story
+   - Highlight strengths with evidence
+   - Show awareness of any gaps with growth mindset
+   - Use active, achievement-focused language
+
+6. **Formatting**: Return ONLY the cover letter text, no extra fields. Use professional business letter formatting.
+
+EXAMPLE STRUCTURE (adapt to this candidate):
+
+Dear Hiring Manager,
+
+I am writing to express my strong interest in the [Job Title] position at [Company]. With [X years] of experience in [field] and a proven track record of [specific achievement], I am excited about the opportunity to contribute to [company's mission/goal].
+
+In my recent role at [Company], I [specific achievement with numbers]. For example, [concrete example from resume]. Additionally, my work on [project name] resulted in [measurable outcome], demonstrating my ability to [relevant skill for job].
+
+I am particularly drawn to this role because [reason related to job requirements]. While I am actively developing my expertise in [gap area if any], my strong foundation in [strength areas] and quick learning ability position me well to excel. I am committed to [growth statement].
+
+I would welcome the opportunity to discuss how my background in [key areas] aligns with [Company]'s needs. Thank you for considering my application. I look forward to speaking with you soon.
+
+Sincerely,
+[Candidate Name]
+
+NOW GENERATE THE COVER LETTER:"""
+
+    try:
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+            config={
+                "temperature": 0.7,
+                "response_mime_type": "text/plain"
+            }
+        )
+
+        cover_letter = response.text.strip()
+
+        # Validate it's not empty
+        if cover_letter and len(cover_letter) > 100:
+            return cover_letter
+        else:
+            return get_fallback_cover_letter(company_name, job_title)
+
+    except Exception as e:
+        print(f"Error generating cover letter: {e}")
+        return get_fallback_cover_letter(company_name, job_title)
+
+
+def get_fallback_cover_letter(company_name: str, job_title: str) -> str:
+    """Fallback cover letter template if AI generation fails"""
+    return f"""Dear Hiring Manager,
+
+I am writing to express my strong interest in the {job_title} position at {company_name}. After reviewing the role requirements and learning about your organization, I am excited about the opportunity to contribute my skills and experience to your team.
+
+Throughout my career, I have developed a comprehensive skill set that aligns well with the requirements of this position. My experience has equipped me with the technical expertise and professional capabilities necessary to make meaningful contributions from day one. I have consistently delivered results in fast-paced environments and am passionate about continuous learning and growth.
+
+I am particularly drawn to this opportunity because it represents an excellent match between my background and your needs. I am confident that my combination of technical skills, problem-solving abilities, and collaborative approach would enable me to add value to your team while continuing to develop professionally.
+
+I would welcome the opportunity to discuss how my qualifications align with {company_name}'s objectives. Thank you for considering my application. I look forward to the possibility of speaking with you soon.
+
+Sincerely,
+[Your Name]"""
 
 
 @app.post("/api/calculate-score", response_model=ScoreResponse)
-async def calculate_score(request: ScoreRequest):
+async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
     """
     Calculate compatibility score between CV and JD using hybrid approach:
     - Vector embeddings for quantitative similarity
@@ -1361,14 +2018,15 @@ async def calculate_score(request: ScoreRequest):
         jd_hash = hashlib.md5(json.dumps(request.parsed_jd, sort_keys=True).encode()).hexdigest()
         cache_key = f"score:{cv_hash}:{jd_hash}:{request.language}"
 
-        # Check cache
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            # Deserialize cached result
-            result_dict = json.loads(cached_result) if isinstance(cached_result, str) else cached_result
-            # Update time to show it was instant
-            result_dict['time_seconds'] = round(time.time() - start_time, 3)
-            return ScoreResponse(**result_dict)
+        # Check cache (skip if bypass_cache=True)
+        if not bypass_cache:
+            cached_result = cache.get(cache_key)
+            if cached_result:
+                # Deserialize cached result
+                result_dict = json.loads(cached_result) if isinstance(cached_result, str) else cached_result
+                # Update time to show it was instant
+                result_dict['time_seconds'] = round(time.time() - start_time, 3)
+                return ScoreResponse(**result_dict)
 
         # Phase 1: Calculate embedding-based similarity (fast - ~1-2s)
         similarity_metrics = calculate_overall_compatibility(
@@ -1441,11 +2099,21 @@ async def calculate_score(request: ScoreRequest):
         viability_data = analysis_result.get("application_viability", {})
         application_viability = ApplicationViability(**viability_data)
 
+        # Generate AI-powered encouraging message for the score
+        score_message_dict = generate_score_message(
+            overall_score=overall_score,
+            gaps=gaps_data,
+            strengths=strengths_data,
+            overall_status=overall_status
+        )
+        score_message = ScoreMessage(**score_message_dict)
+
         # Build response
         response = ScoreResponse(
             success=True,
             overall_score=overall_score,  # From hybrid calculation
             overall_status=overall_status,  # From hybrid calculation
+            score_message=score_message,  # AI-generated encouraging message
             category_scores=category_scores,  # From hybrid calculation
             gaps=categorized_gaps,  # From Gemini
             strengths=strengths,  # From Gemini
@@ -2023,6 +2691,53 @@ async def rewrite_resume(request: RewriteResumeRequest):
         )
 
 
+@app.post("/api/generate-cover-letter", response_model=CoverLetterResponse)
+async def generate_cover_letter_endpoint(request: CoverLetterRequest):
+    """
+    Generate a personalized cover letter based on rewritten resume and job description.
+
+    This endpoint should be called after resume rewrite is complete.
+    """
+    try:
+        start_time = time.time()
+
+        # Validate inputs
+        if not request.parsed_resume or not request.parsed_jd:
+            raise HTTPException(
+                status_code=400,
+                detail="Both parsed_resume and parsed_jd are required"
+            )
+
+        # Generate cover letter
+        cover_letter_text = generate_cover_letter(
+            parsed_resume=request.parsed_resume,
+            parsed_jd=request.parsed_jd,
+            score_data=request.score_data
+        )
+
+        # Count words
+        word_count = len(cover_letter_text.split())
+
+        elapsed_time = time.time() - start_time
+
+        return CoverLetterResponse(
+            success=True,
+            cover_letter=cover_letter_text,
+            word_count=word_count,
+            time_seconds=round(elapsed_time, 3),
+            model="gemini-2.5-flash-lite"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating cover letter: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating cover letter: {str(e)}"
+        )
+
+
 @app.post("/benchmark/gemini")
 async def benchmark_gemini(job: JobDescription):
     """Benchmark Gemini 2.0 Flash Lite model with TOON format"""
@@ -2266,6 +2981,41 @@ async def get_cache_stats():
     return {
         **app_cache_stats,
         "prompt_caching": prompt_cache_stats
+    }
+
+@app.post("/api/cache/clear-domains")
+async def clear_domains_cache():
+    """
+    Clear all domain finder cache entries.
+    Useful for invalidating stale cache after prompt updates.
+    """
+    cleared_count = 0
+
+    # Clear from L1 (in-memory) cache
+    if hasattr(cache, '_l1_cache'):
+        domain_keys = [k for k in list(cache._l1_cache.keys()) if k.startswith('domains:')]
+        for key in domain_keys:
+            del cache._l1_cache[key]
+            cleared_count += 1
+
+    # Clear from L2 (Redis) cache
+    if cache.redis_client:
+        try:
+            for key in cache.redis_client.scan_iter("domains:*"):
+                cache.redis_client.delete(key)
+                cleared_count += 1
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Redis error: {str(e)}",
+                "l1_cleared": cleared_count
+            }
+
+    return {
+        "success": True,
+        "message": f"Cleared {cleared_count} domain finder cache entries",
+        "entries_cleared": cleared_count,
+        "cache_type": "domains"
     }
 
 @app.on_event("startup")

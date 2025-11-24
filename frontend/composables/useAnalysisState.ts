@@ -137,6 +137,15 @@ export interface ResumeRewriteResult {
   model: string
 }
 
+// Phase 6: Cover Letter Generation
+export interface CoverLetterResult {
+  success: boolean
+  cover_letter: string
+  word_count: number
+  time_seconds: number
+  model: string
+}
+
 export const useAnalysisState = () => {
   // Input data
   const inputJD = useState<string>('inputJD', () => '')
@@ -156,6 +165,9 @@ export const useAnalysisState = () => {
   // Phase 5: Resume Rewrite
   const rewrittenResume = useState<ResumeRewriteResult | null>('rewrittenResume', () => null)
 
+  // Phase 6: Cover Letter
+  const coverLetter = useState<CoverLetterResult | null>('coverLetter', () => null)
+
   // Processing times
   const jdParseTime = useState<number | null>('jdParseTime', () => null)
   const cvParseTime = useState<number | null>('cvParseTime', () => null)
@@ -169,7 +181,8 @@ export const useAnalysisState = () => {
     { id: 'cv-parsing', label: 'Resume Parsing', status: 'pending', progress: 0 },
     { id: 'score-calc', label: 'Score Calculating', status: 'pending', progress: 0 },
     { id: 'smart-questions', label: 'Smart Questions', status: 'pending', progress: 0 },
-    { id: 'resume-rewrite', label: 'Resume Rewrite', status: 'pending', progress: 0 }
+    { id: 'resume-rewrite', label: 'Resume Rewrite', status: 'pending', progress: 0 },
+    { id: 'cover-letter', label: 'Cover Letter', status: 'pending', progress: 0 }
   ])
 
   // Currently selected step
@@ -227,6 +240,10 @@ export const useAnalysisState = () => {
     rewrittenResume.value = data
   }
 
+  const setCoverLetter = (data: CoverLetterResult) => {
+    coverLetter.value = data
+  }
+
   const updateStepProgress = (stepId: string, progress: number, status: AnalysisStep['status'], error?: string) => {
     const stepIndex = steps.value.findIndex(s => s.id === stepId)
     if (stepIndex !== -1) {
@@ -254,6 +271,7 @@ export const useAnalysisState = () => {
     answers.value = []
     answersResult.value = null
     rewrittenResume.value = null
+    coverLetter.value = null
     jdParseTime.value = null
     cvParseTime.value = null
     scoreCalcTime.value = null
@@ -264,7 +282,8 @@ export const useAnalysisState = () => {
       { id: 'cv-parsing', label: 'Resume Parsing', status: 'pending', progress: 0 },
       { id: 'score-calc', label: 'Score Calculating', status: 'pending', progress: 0 },
       { id: 'smart-questions', label: 'Smart Questions', status: 'pending', progress: 0 },
-      { id: 'resume-rewrite', label: 'Resume Rewrite', status: 'pending', progress: 0 }
+      { id: 'resume-rewrite', label: 'Resume Rewrite', status: 'pending', progress: 0 },
+      { id: 'cover-letter', label: 'Cover Letter', status: 'pending', progress: 0 }
     ]
     selectedStepId.value = 'job-parsing'
   }
@@ -281,6 +300,7 @@ export const useAnalysisState = () => {
     answers: readonly(answers),
     answersResult: readonly(answersResult),
     rewrittenResume: readonly(rewrittenResume),
+    coverLetter: readonly(coverLetter),
     jdParseTime: readonly(jdParseTime),
     cvParseTime: readonly(cvParseTime),
     scoreCalcTime: readonly(scoreCalcTime),
@@ -298,6 +318,7 @@ export const useAnalysisState = () => {
     setAnswer,
     setAnswersResult,
     setRewrittenResume,
+    setCoverLetter,
     updateStepProgress,
     reset
   }

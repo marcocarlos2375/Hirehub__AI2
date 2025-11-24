@@ -166,6 +166,34 @@
               message="Your resume will be rewritten once you complete all questions."
             />
           </div>
+
+          <!-- Cover Letter Content -->
+          <div v-if="selectedStepId === 'cover-letter'">
+            <CoverLetterResult
+              v-if="coverLetter"
+              :cover-letter="coverLetter.cover_letter"
+              :word-count="coverLetter.word_count"
+              :time-seconds="coverLetter.time_seconds"
+            />
+            <WaitingMessage
+              v-else-if="getStep('cover-letter')?.status === 'loading'"
+              type="loading"
+              title="Generating Cover Letter"
+              message="Creating a personalized cover letter based on your rewritten resume..."
+            />
+            <WaitingMessage
+              v-else-if="getStep('cover-letter')?.status === 'error'"
+              type="error"
+              title="Cover Letter Generation Failed"
+              :message="getStep('cover-letter')?.error || 'An error occurred while generating the cover letter'"
+            />
+            <WaitingMessage
+              v-else
+              type="pending"
+              title="Waiting for Resume Rewrite"
+              message="Cover letter will be generated once your resume is rewritten."
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -186,6 +214,7 @@ const {
   questionsResult,
   answersResult,
   rewrittenResume,
+  coverLetter,
   jdParseTime,
   cvParseTime,
   scoreCalcTime,
@@ -198,6 +227,7 @@ const {
   setQuestions,
   setAnswersResult,
   setRewrittenResume,
+  setCoverLetter,
   updateStepProgress,
   reset
 } = useAnalysisState()
@@ -207,6 +237,7 @@ const { parseCV } = useCVParser()
 const { calculateScore } = useScoreCalculator()
 const { generateQuestions } = useQuestionGenerator()
 const { rewriteResume } = useResumeRewriter()
+const { generateCoverLetter } = useCoverLetterGenerator()
 
 // Redirect if no input
 onMounted(() => {
@@ -394,10 +425,37 @@ const triggerResumeRewrite = async (updatedCV: any, answers: any) => {
     if (result) {
       setRewrittenResume(result)
       updateStepProgress('resume-rewrite', 100, 'complete')
+
+      // Automatically trigger cover letter generation (Phase 6)
+      await triggerCoverLetterGeneration(result)
     }
   } catch (error) {
     console.error('Failed to rewrite resume:', error)
     updateStepProgress('resume-rewrite', 0, 'error', 'Failed to rewrite resume')
+  }
+}
+
+const triggerCoverLetterGeneration = async (rewriteResult: any) => {
+  try {
+    // Update step status
+    updateStepProgress('cover-letter', 0, 'loading')
+    selectedStepId.value = 'cover-letter'
+
+    // Pass parsed_format directly to backend - no text conversion needed in frontend!
+    const result = await generateCoverLetter(
+      rewriteResult.parsed_format,
+      parsedJD.value!,
+      scoreResult.value || undefined,
+      selectedLanguage.value
+    )
+
+    if (result) {
+      setCoverLetter(result)
+      updateStepProgress('cover-letter', 100, 'complete')
+    }
+  } catch (error) {
+    console.error('Failed to generate cover letter:', error)
+    updateStepProgress('cover-letter', 0, 'error', 'Failed to generate cover letter')
   }
 }
 </script>

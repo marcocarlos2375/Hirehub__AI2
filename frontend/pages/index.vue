@@ -7,6 +7,19 @@
         <p class="text-lg text-gray-600">Powered by Gemini 2.5 Flash-Lite & Advanced Embeddings</p>
       </div>
 
+      <!-- Navigation Links -->
+      <div class="mb-6 flex justify-center gap-4">
+        <NuxtLink
+          to="/domain-finder"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          Discover Career Domains
+        </NuxtLink>
+      </div>
+
       <!-- Input Card -->
       <div class="bg-white rounded-xl shadow-xl p-8">
         <!-- Language Selector -->

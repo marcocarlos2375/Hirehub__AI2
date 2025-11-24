@@ -1,14 +1,23 @@
 <template>
   <div class="space-y-8">
-    <!-- Overall Score Header -->
+    <!-- Overall Score Header - AI-Generated Encouraging Message -->
     <div class="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-8 border border-indigo-100">
       <div class="text-center">
-        <div class="text-6xl font-bold mb-2" :class="getScoreColorClass(data.overall_score)">
-          {{ data.overall_score }}
-        </div>
-        <div class="text-2xl font-semibold text-gray-900 mb-1">
+        <!-- Status Label (Excellent/Good/Moderate/Needs Work) -->
+        <div class="text-xl font-semibold mb-3" :class="getStatusColorClass(data.overall_score)">
           {{ data.overall_status }}
         </div>
+
+        <!-- AI-Generated Title -->
+        <div class="text-3xl font-bold mb-3 text-gray-900">
+          {{ data.score_message.title }}
+        </div>
+
+        <!-- AI-Generated Subtitle -->
+        <div class="text-lg text-gray-700 mb-4 max-w-3xl mx-auto">
+          {{ data.score_message.subtitle }}
+        </div>
+
         <div v-if="timeSeconds" class="text-sm text-gray-600">
           Analysis completed in <span class="font-medium">{{ timeSeconds }}s</span>
         </div>
@@ -239,18 +248,25 @@ interface Props {
 
 defineProps<Props>()
 
+const getStatusColorClass = (score: number) => {
+  if (score >= 75) return 'text-green-600'
+  if (score >= 60) return 'text-blue-600'
+  if (score >= 40) return 'text-yellow-600'
+  return 'text-red-600'  // Red for low scores
+}
+
 const getScoreColorClass = (score: number) => {
   if (score >= 75) return 'text-green-600'
   if (score >= 60) return 'text-blue-600'
   if (score >= 40) return 'text-amber-600'
-  return 'text-red-600'
+  return 'text-red-600'  // Red for low scores
 }
 
 const getScoreBarClass = (score: number) => {
   if (score >= 75) return 'bg-green-500'
   if (score >= 60) return 'bg-blue-500'
   if (score >= 40) return 'bg-amber-500'
-  return 'bg-red-500'
+  return 'bg-red-500'  // Red for low scores
 }
 
 const getCategoryBadgeClass = (status: string) => {
