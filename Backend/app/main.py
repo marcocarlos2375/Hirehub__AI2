@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 from google import genai
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -3017,6 +3018,468 @@ async def clear_domains_cache():
         "entries_cleared": cleared_count,
         "cache_type": "domains"
     }
+
+
+# ========================================
+# Adaptive Question Flow Endpoints
+# ========================================
+
+class StartAdaptiveQuestionRequest(BaseModel):
+    question_id: str
+    question_text: str
+    question_data: dict
+    gap_info: dict
+    user_id: str
+    parsed_cv: dict
+    parsed_jd: dict
+    experience_check_response: str  # "yes", "no", or "willing_to_learn"
+    language: str = "english"
+
+class DeepDivePromptItem(BaseModel):
+    id: str
+    type: str  # "text", "textarea", "select", "multiselect", "number"
+    question: str
+    placeholder: Optional[str] = None
+    options: Optional[list[str]] = None
+    required: bool = True
+    help_text: Optional[str] = None
+
+class LearningResourceItem(BaseModel):
+    id: str
+    title: str
+    description: str
+    type: str  # "course", "project", "certification"
+    provider: str
+    url: str
+    duration_days: int
+    difficulty: str  # "beginner", "intermediate", "advanced"
+    cost: str  # "free", "paid", "freemium"
+    skills_covered: list[str]
+    rating: Optional[float] = None
+    score: Optional[int] = None  # Relevance score (0-100)
+
+class AdaptiveQuestionResponse(BaseModel):
+    question_id: str
+    current_step: str
+    deep_dive_prompts: list[DeepDivePromptItem] = []
+    suggested_resources: list[LearningResourceItem] = []
+    resume_addition: Optional[str] = None
+    error: Optional[str] = None
+
+
+@app.post("/api/adaptive-questions/start", response_model=AdaptiveQuestionResponse)
+async def start_adaptive_question(request: StartAdaptiveQuestionRequest):
+    """
+    Start adaptive question flow.
+
+    Based on experience_check_response:
+    - "yes" → Returns deep_dive_prompts for detailed questioning
+    - "no" or "willing_to_learn" → Returns suggested_resources
+    """
+    try:
+        from core.adaptive_question_graph import AdaptiveQuestionWorkflow, create_initial_state
+
+        # Create initial state
+        initial_state = create_initial_state(
+            question_id=request.question_id,
+            question_text=request.question_text,
+            question_data=request.question_data,
+            gap_info=request.gap_info,
+            user_id=request.user_id,
+            parsed_cv=request.parsed_cv,
+            parsed_jd=request.parsed_jd,
+            experience_check_response=request.experience_check_response,
+            language=request.language
+        )
+
+        # Run workflow
+        workflow = AdaptiveQuestionWorkflow()
+        final_state = workflow.run_sync(initial_state)
+
+        # Build response based on path taken
+        response_data = {
+            "question_id": request.question_id,
+            "current_step": final_state.get("current_step", "unknown"),
+            "error": final_state.get("error")
+        }
+
+        # If deep dive path
+        if final_state.get("structured_inputs", {}).get("prompts"):
+            # Ensure prompts have required fields with defaults
+            validated_prompts = []
+            for i, prompt in enumerate(final_state["structured_inputs"]["prompts"]):
+                try:
+                    # Ensure required fields exist
+                    validated_prompt = {
+                        "id": prompt.get("id", f"prompt_{i}"),
+                        "type": prompt.get("type", "text"),
+                        "question": prompt.get("question", ""),
+                        "placeholder": prompt.get("placeholder"),
+                        "options": prompt.get("options"),
+                        "required": prompt.get("required", True),
+                        "help_text": prompt.get("help_text")
+                    }
+                    validated_prompts.append(DeepDivePromptItem(**validated_prompt))
+                except Exception as e:
+                    print(f"Warning: Skipping invalid prompt {i}: {str(e)}")
+                    continue
+            response_data["deep_dive_prompts"] = validated_prompts
+
+        # If learning resources path
+        if final_state.get("suggested_resources"):
+            # Ensure resources have required fields with defaults
+            validated_resources = []
+            for i, resource in enumerate(final_state["suggested_resources"]):
+                try:
+                    # Ensure required fields exist
+                    validated_resource = {
+                        "id": resource.get("id", f"resource_{i}"),
+                        "title": resource.get("title", ""),
+                        "description": resource.get("description", ""),
+                        "type": resource.get("type", "course"),
+                        "provider": resource.get("provider", "Unknown"),
+                        "url": resource.get("url", ""),
+                        "duration_days": resource.get("duration_days", 0),
+                        "difficulty": resource.get("difficulty", "beginner"),
+                        "cost": resource.get("cost", "free"),
+                        "skills_covered": resource.get("skills_covered", []),
+                        "rating": resource.get("rating"),
+                        "score": resource.get("score")
+                    }
+                    validated_resources.append(LearningResourceItem(**validated_resource))
+                except Exception as e:
+                    print(f"Warning: Skipping invalid resource {i}: {str(e)}")
+                    continue
+            response_data["suggested_resources"] = validated_resources
+            response_data["resume_addition"] = final_state.get("resume_addition")
+
+        return AdaptiveQuestionResponse(**response_data)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Workflow error: {str(e)}")
+
+
+class SubmitStructuredInputsRequest(BaseModel):
+    question_id: str
+    structured_data: dict  # User's responses to deep dive prompts
+
+
+class SubmitStructuredInputsResponse(BaseModel):
+    question_id: str
+    generated_answer: str
+    quality_score: int = None
+    quality_issues: list[str] = None
+    quality_strengths: list[str] = None
+    improvement_suggestions: list[dict] = None
+    final_answer: str = None  # Set if quality is acceptable
+    current_step: str
+    error: str = None
+
+
+@app.post("/api/adaptive-questions/submit-inputs", response_model=SubmitStructuredInputsResponse)
+async def submit_structured_inputs(request: SubmitStructuredInputsRequest):
+    """
+    Submit structured inputs (deep dive answers) and get generated professional answer.
+
+    Returns quality evaluation and either:
+    - final_answer (if quality >= 7/10)
+    - improvement_suggestions (if quality < 7/10)
+    """
+    try:
+        from core.adaptive_question_graph import AdaptiveQuestionWorkflow, add_structured_inputs_to_state
+        from core.answer_flow_state import AdaptiveAnswerState
+
+        # TODO: Retrieve workflow state from session/database by question_id
+        # For now, we'll create a simplified flow
+        # In production, you'd store state in Redis or database
+
+        # Create workflow and process from generate_answer node
+        workflow = AdaptiveQuestionWorkflow()
+
+        # Simplified state for continuation (in production, load from storage)
+        state: AdaptiveAnswerState = {
+            "question_id": request.question_id,
+            "structured_inputs": request.structured_data,
+            "current_step": "generate_answer",
+            "gap_info": {},  # Would be loaded from storage
+            "question_text": "",  # Would be loaded from storage
+        }
+
+        # Run from generate_answer node
+        from core.answer_flow_nodes import generate_answer_from_inputs_node, evaluate_quality_node
+
+        # Generate answer
+        state = generate_answer_from_inputs_node(state)
+
+        # Evaluate quality
+        state = evaluate_quality_node(state)
+
+        return SubmitStructuredInputsResponse(
+            question_id=request.question_id,
+            generated_answer=state.get("generated_answer", ""),
+            quality_score=state.get("quality_score"),
+            quality_issues=state.get("quality_issues", []),
+            quality_strengths=state.get("quality_strengths", []),
+            improvement_suggestions=state.get("improvement_suggestions", []),
+            final_answer=state.get("final_answer"),
+            current_step=state.get("current_step", "unknown"),
+            error=state.get("error")
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Answer generation error: {str(e)}")
+
+
+class SubmitRefinementDataRequest(BaseModel):
+    question_id: str
+    additional_data: dict  # Additional data from user
+
+
+class SubmitRefinementDataResponse(BaseModel):
+    question_id: str
+    refined_answer: str
+    quality_score: int = None
+    final_answer: str = None
+    current_step: str
+    iteration: int
+    error: str = None
+
+
+@app.post("/api/adaptive-questions/refine-answer", response_model=SubmitRefinementDataResponse)
+async def refine_answer(request: SubmitRefinementDataRequest):
+    """
+    Submit refinement data to improve answer quality.
+
+    Max 2 refinement iterations. After that, accepts current answer.
+    """
+    try:
+        from core.answer_flow_nodes import refine_answer_node, evaluate_quality_node
+        from core.answer_flow_state import AdaptiveAnswerState
+
+        # TODO: Load state from storage
+        state: AdaptiveAnswerState = {
+            "question_id": request.question_id,
+            "refinement_data": request.additional_data,
+            "current_step": "refinement",
+            "refinement_iteration": 0,  # Would be loaded from storage
+            "generated_answer": "",  # Would be loaded from storage
+            "quality_issues": [],  # Would be loaded from storage
+        }
+
+        # Refine answer
+        state = refine_answer_node(state)
+
+        # Re-evaluate quality
+        state = evaluate_quality_node(state)
+
+        return SubmitRefinementDataResponse(
+            question_id=request.question_id,
+            refined_answer=state.get("refined_answer", ""),
+            quality_score=state.get("quality_score"),
+            final_answer=state.get("final_answer"),
+            current_step=state.get("current_step", "unknown"),
+            iteration=state.get("refinement_iteration", 0),
+            error=state.get("error")
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Refinement error: {str(e)}")
+
+
+class GetLearningResourcesRequest(BaseModel):
+    gap: dict  # Gap information
+    user_level: str = "intermediate"  # "beginner", "intermediate", "advanced"
+    max_days: int = 10
+    cost_preference: str = "any"  # "free", "paid", "any"
+    limit: int = 5
+    search_mode: str = "hybrid"  # "local_only", "web_only", "hybrid"
+
+
+class LearningPathStep(BaseModel):
+    resource_id: str
+    resource_title: str
+    type: str
+    start_day: int
+    end_day: int
+    duration_days: int
+
+
+class LearningPath(BaseModel):
+    timeline: list[LearningPathStep]
+    total_days: int
+    estimated_completion: str
+    resources_in_path: int
+
+
+class GetLearningResourcesResponse(BaseModel):
+    resources: list[LearningResourceItem]
+    timeline: list  # Flattened from learning_path.timeline
+    total_resources: int
+    total_duration_days: int
+    estimated_completion: str
+    error: str = None
+
+
+@app.post("/api/adaptive-questions/get-learning-resources", response_model=GetLearningResourcesResponse)
+async def get_learning_resources(request: GetLearningResourcesRequest):
+    """
+    Get learning resources for a specific gap using semantic search.
+
+    Returns:
+    - Ranked resources (courses, projects, certifications)
+    - Learning path timeline
+    - Estimated completion date
+    """
+    try:
+        from core.resource_matcher import get_resource_matcher
+
+        matcher = get_resource_matcher()
+
+        # Use hybrid search if search_mode is hybrid or web_only
+        if request.search_mode in ["hybrid", "web_only"]:
+            result = matcher.find_resources_with_web_search(
+                gap=request.gap,
+                user_level=request.user_level,
+                max_days=request.max_days,
+                cost_preference=request.cost_preference,
+                limit=request.limit,
+                search_mode=request.search_mode
+            )
+        else:
+            result = matcher.find_resources(
+                gap=request.gap,
+                user_level=request.user_level,
+                max_days=request.max_days,
+                cost_preference=request.cost_preference,
+                limit=request.limit
+            )
+
+        if result.get("error"):
+            return GetLearningResourcesResponse(
+                resources=[],
+                timeline=[],
+                total_resources=0,
+                total_duration_days=0,
+                estimated_completion="",
+                error=result["error"]
+            )
+
+        return GetLearningResourcesResponse(
+            resources=[LearningResourceItem(**r) for r in result["resources"]],
+            timeline=result["learning_path"]["timeline"],
+            total_resources=result["total_resources"],
+            total_duration_days=result["total_duration_days"],
+            estimated_completion=result["estimated_completion"]
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Resource matching error: {str(e)}")
+
+
+class SaveLearningPlanRequest(BaseModel):
+    user_id: str
+    gap_info: dict
+    selected_resource_ids: list[str]
+    notes: str = None
+
+
+class SaveLearningPlanResponse(BaseModel):
+    plan_id: str
+    status: str  # "success" or "error"
+    error: str = None
+
+
+@app.post("/api/adaptive-questions/save-learning-plan", response_model=SaveLearningPlanResponse)
+async def save_learning_plan(request: SaveLearningPlanRequest):
+    """
+    Save a learning plan for the user.
+
+    Stores selected resources and gap information for later tracking.
+    """
+    try:
+        from core.resource_matcher import get_resource_matcher
+
+        matcher = get_resource_matcher()
+        plan_id = matcher.save_learning_plan(
+            user_id=request.user_id,
+            gap=request.gap_info,
+            resource_ids=request.selected_resource_ids,
+            notes=request.notes
+        )
+
+        return SaveLearningPlanResponse(
+            plan_id=plan_id,
+            status="success"
+        )
+
+    except Exception as e:
+        return SaveLearningPlanResponse(
+            plan_id="",
+            status="error",
+            error=f"Failed to save learning plan: {str(e)}"
+        )
+
+
+class GetLearningPlansRequest(BaseModel):
+    user_id: str
+    status: str = None  # Optional: "suggested", "in_progress", "completed", "abandoned"
+
+
+class LearningPlanItem(BaseModel):
+    id: str
+    gap_title: str
+    gap_description: str
+    resource_ids: list[str]
+    resources: list[dict] = []  # Full resource objects
+    status: str
+    created_at: str
+    notes: str = None
+
+
+class GetLearningPlansResponse(BaseModel):
+    plans: list[LearningPlanItem]
+    total: int
+
+
+@app.post("/api/adaptive-questions/get-learning-plans", response_model=GetLearningPlansResponse)
+async def get_learning_plans(request: GetLearningPlansRequest):
+    """
+    Get all learning plans for a user.
+
+    Optionally filter by status.
+    """
+    try:
+        from core.resource_matcher import get_resource_matcher
+
+        matcher = get_resource_matcher()
+        plans = matcher.get_user_learning_plans(
+            user_id=request.user_id,
+            status=request.status
+        )
+
+        return GetLearningPlansResponse(
+            plans=[
+                LearningPlanItem(
+                    id=str(p["id"]),
+                    gap_title=p["gap_title"],
+                    gap_description=p["gap_description"],
+                    resource_ids=p["resource_ids"],
+                    resources=p.get("resources", []),
+                    status=p["status"],
+                    created_at=(
+                        p["created_at"].isoformat() if hasattr(p.get("created_at"), "isoformat")
+                        else str(p.get("created_at", ""))
+                    ),
+                    notes=p.get("notes")
+                )
+                for p in plans
+            ],
+            total=len(plans)
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving learning plans: {str(e)}")
+
 
 @app.on_event("startup")
 async def startup_event():

@@ -1,4 +1,5 @@
 import type { ScoreResponse } from './useScoreCalculator'
+import type { AdaptiveQuestionState } from '~/types/adaptive-questions'
 
 export interface AnalysisStep {
   id: string
@@ -162,6 +163,10 @@ export const useAnalysisState = () => {
   const answers = useState<QuestionAnswer[]>('answers', () => [])
   const answersResult = useState<SubmitAnswersResult | null>('answersResult', () => null)
 
+  // Phase 4: Adaptive Questions (new intelligent flow)
+  const adaptiveQuestionStates = useState<Map<string, AdaptiveQuestionState>>('adaptiveQuestionStates', () => new Map())
+  const useAdaptiveFlow = useState<boolean>('useAdaptiveFlow', () => true) // Toggle between old and new flow
+
   // Phase 5: Resume Rewrite
   const rewrittenResume = useState<ResumeRewriteResult | null>('rewrittenResume', () => null)
 
@@ -236,6 +241,23 @@ export const useAnalysisState = () => {
     answersAnalysisTime.value = timeSeconds
   }
 
+  // Adaptive Question Management
+  const setAdaptiveQuestionState = (questionId: string, state: AdaptiveQuestionState) => {
+    adaptiveQuestionStates.value.set(questionId, state)
+  }
+
+  const getAdaptiveQuestionState = (questionId: string): AdaptiveQuestionState | undefined => {
+    return adaptiveQuestionStates.value.get(questionId)
+  }
+
+  const clearAdaptiveQuestionState = (questionId: string) => {
+    adaptiveQuestionStates.value.delete(questionId)
+  }
+
+  const clearAllAdaptiveQuestionStates = () => {
+    adaptiveQuestionStates.value.clear()
+  }
+
   const setRewrittenResume = (data: ResumeRewriteResult) => {
     rewrittenResume.value = data
   }
@@ -270,6 +292,7 @@ export const useAnalysisState = () => {
     questionsResult.value = null
     answers.value = []
     answersResult.value = null
+    adaptiveQuestionStates.value.clear()
     rewrittenResume.value = null
     coverLetter.value = null
     jdParseTime.value = null
@@ -299,6 +322,8 @@ export const useAnalysisState = () => {
     questionsResult: readonly(questionsResult),
     answers: readonly(answers),
     answersResult: readonly(answersResult),
+    adaptiveQuestionStates: readonly(adaptiveQuestionStates),
+    useAdaptiveFlow,
     rewrittenResume: readonly(rewrittenResume),
     coverLetter: readonly(coverLetter),
     jdParseTime: readonly(jdParseTime),
@@ -317,6 +342,10 @@ export const useAnalysisState = () => {
     setQuestions,
     setAnswer,
     setAnswersResult,
+    setAdaptiveQuestionState,
+    getAdaptiveQuestionState,
+    clearAdaptiveQuestionState,
+    clearAllAdaptiveQuestionStates,
     setRewrittenResume,
     setCoverLetter,
     updateStepProgress,

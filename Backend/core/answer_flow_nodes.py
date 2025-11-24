@@ -1,0 +1,469 @@
+"""
+Node implementations for LangGraph adaptive question workflow.
+Each node is a function that takes state and returns updated state.
+"""
+
+from typing import Dict, Any, List
+from datetime import datetime
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from pydantic import BaseModel, Field
+
+from core.langchain_config import get_llm, get_learning_resources_vectorstore
+from core.answer_flow_state import (
+    AdaptiveAnswerState,
+    DeepDivePrompt,
+    QualityFeedback,
+    MIN_ACCEPTABLE_QUALITY_SCORE,
+    MAX_REFINEMENT_ITERATIONS,
+    MAX_LEARNING_RESOURCES,
+    MAX_LEARNING_DAYS
+)
+
+
+# ========================================
+# Pydantic Models for Structured Outputs
+# ========================================
+
+class DeepDivePromptsOutput(BaseModel):
+    """Structured output for deep dive prompts."""
+    prompts: List[Dict[str, Any]] = Field(description="List of structured prompts")
+
+
+class QualityEvaluationOutput(BaseModel):
+    """Structured output for quality evaluation."""
+    quality_score: int = Field(description="Score from 1-10", ge=1, le=10)
+    issues: List[str] = Field(description="List of quality issues")
+    strengths: List[str] = Field(description="List of strengths")
+    suggestions: List[Dict[str, Any]] = Field(description="Improvement suggestions")
+    is_acceptable: bool = Field(description="True if score >= 7")
+
+
+class AnswerGenerationOutput(BaseModel):
+    """Structured output for answer generation."""
+    professional_answer: str = Field(description="Generated professional answer")
+    key_points: List[str] = Field(description="Key points included")
+
+
+class AnswerRefinementOutput(BaseModel):
+    """Structured output for answer refinement."""
+    refined_answer: str = Field(description="Improved answer")
+    improvements_made: List[str] = Field(description="What was improved")
+
+
+# ========================================
+# Node 1: Generate Deep Dive Prompts
+# ========================================
+
+def generate_deep_dive_prompts_node(state: AdaptiveAnswerState) -> AdaptiveAnswerState:
+    """
+    Generate structured prompts for deep-dive questioning.
+    Called when user has experience with the skill.
+
+    Returns prompts like:
+    - Where did you use this? (select: Work, Side Project, Course)
+    - How long? (text)
+    - Which specific tools? (multiselect)
+    - What did you achieve? (textarea)
+    """
+    llm = get_llm("fast")
+    parser = JsonOutputParser(pydantic_object=DeepDivePromptsOutput)
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", """You are an expert at generating structured interview questions.
+
+Given a gap/skill, generate 4-6 targeted prompts to extract detailed experience.
+
+Gap: {gap_title}
+Description: {gap_description}
+Question: {question_text}
+
+Generate prompts that:
+1. Identify WHERE they used it (work, side project, course, hackathon)
+2. Capture DURATION/TIMELINE
+3. List SPECIFIC TOOLS/TECHNOLOGIES used
+4. Extract ACHIEVEMENTS/RESULTS with metrics if possible
+5. Understand DEPTH of knowledge
+
+Return JSON:
+{{
+  "prompts": [
+    {{
+      "id": "context",
+      "type": "select",
+      "question": "Where did you gain this experience?",
+      "options": ["Work", "Side Project", "Online Course", "Hackathon", "Personal Learning"],
+      "required": true
+    }},
+    {{
+      "id": "duration",
+      "type": "text",
+      "question": "How long did you work with [skill]?",
+      "placeholder": "e.g., 6 months, 2 projects",
+      "required": true
+    }},
+    {{
+      "id": "tools",
+      "type": "multiselect",
+      "question": "Which specific tools/libraries did you use?",
+      "options": ["...", "..."],
+      "required": false
+    }},
+    {{
+      "id": "achievement",
+      "type": "textarea",
+      "question": "What specific project/achievement can you describe?",
+      "placeholder": "e.g., Built a chatbot that handles 100+ queries daily",
+      "required": true,
+      "help_text": "Include what you built and the outcome"
+    }},
+    {{
+      "id": "metrics",
+      "type": "text",
+      "question": "Any measurable impact or results?",
+      "placeholder": "e.g., Reduced response time by 60%",
+      "required": false
+    }}
+  ]
+}}
+
+{format_instructions}"""),
+        ("human", "Generate deep-dive prompts for this gap")
+    ])
+
+    chain = prompt | llm | parser
+
+    try:
+        result = chain.invoke({
+            "gap_title": state["gap_info"]["title"],
+            "gap_description": state["gap_info"].get("description", ""),
+            "question_text": state["question_text"],
+            "format_instructions": parser.get_format_instructions()
+        })
+
+        state["current_step"] = "deep_dive"
+        # Store prompts in state for frontend to render
+        state["structured_inputs"] = {"prompts": result["prompts"]}
+
+        return state
+    except Exception as e:
+        state["error"] = f"Failed to generate deep dive prompts: {str(e)}"
+        return state
+
+
+# ========================================
+# Node 2: Search Learning Resources
+# ========================================
+
+def search_learning_resources_node(state: AdaptiveAnswerState) -> AdaptiveAnswerState:
+    """
+    Search for relevant learning resources using semantic search.
+    Called when user doesn't have experience or is willing to learn.
+    """
+    try:
+        vectorstore = get_learning_resources_vectorstore()
+
+        # Build search query from gap
+        gap = state["gap_info"]
+        search_query = f"{gap['title']}: {gap.get('description', '')}"
+
+        # Semantic search without filters (do post-filtering in Python)
+        docs = vectorstore.similarity_search(
+            search_query,
+            k=MAX_LEARNING_RESOURCES * 2  # Get extra to allow filtering
+        )
+
+        # Convert to structured format with post-filtering
+        resources = []
+        for doc in docs:
+            metadata = doc.metadata
+            duration = metadata.get("duration_days", 0)
+
+            # Filter by duration in Python
+            if duration <= MAX_LEARNING_DAYS:
+                resources.append({
+                    "id": metadata.get("id"),
+                    "title": metadata.get("title"),
+                    "description": doc.page_content,
+                    "type": metadata.get("type"),
+                    "provider": metadata.get("provider"),
+                    "url": metadata.get("url"),
+                    "duration_days": duration,
+                    "difficulty": metadata.get("difficulty"),
+                    "cost": metadata.get("cost"),
+                    "skills_covered": metadata.get("skills_covered", []),
+                    "rating": metadata.get("rating"),
+                    "score": None  # Relevance score (not calculated here)
+                })
+
+                if len(resources) >= MAX_LEARNING_RESOURCES:
+                    break
+
+        state["suggested_resources"] = resources
+        state["current_step"] = "resources"
+
+        # Generate timeline suggestion
+        total_days = sum(r["duration_days"] for r in resources[:3])  # Top 3
+        state["resume_addition"] = f"Currently expanding {gap['title']} expertise through hands-on learning ({total_days}-day program)"
+
+        return state
+
+    except Exception as e:
+        state["error"] = f"Failed to search learning resources: {str(e)}"
+        # Fallback: suggest "willing to learn" message
+        state["resume_addition"] = f"Open to learning {state['gap_info']['title']}"
+        state["suggested_resources"] = []
+        return state
+
+
+# ========================================
+# Node 3: Generate Professional Answer
+# ========================================
+
+def generate_answer_from_inputs_node(state: AdaptiveAnswerState) -> AdaptiveAnswerState:
+    """
+    Generate professional answer from structured inputs.
+    Called after user completes deep-dive prompts.
+    """
+    llm = get_llm("creative")  # Slightly creative for better writing
+    parser = JsonOutputParser(pydantic_object=AnswerGenerationOutput)
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", """You are an expert resume writer creating professional experience descriptions.
+
+Given structured inputs about a candidate's experience, generate a compelling, professional answer.
+
+Gap: {gap_title}
+Structured Inputs: {structured_inputs}
+
+Requirements:
+- Use action verbs (Built, Implemented, Developed, Optimized)
+- Include specific technologies/tools
+- Add metrics/results if provided
+- Keep it concise (2-3 sentences max)
+- Professional tone
+
+Example:
+"Developed a customer support chatbot using OpenAI GPT-3.5 API and LangChain, reducing response time by 60% and handling 100+ queries daily with 85% accuracy in a 6-month side project."
+
+Return JSON:
+{{
+  "professional_answer": "...",
+  "key_points": ["Action verb used", "Specific tech mentioned", "Metrics included"]
+}}
+
+{format_instructions}"""),
+        ("human", "Generate professional answer")
+    ])
+
+    chain = prompt | llm | parser
+
+    try:
+        # Extract structured data
+        inputs = state.get("structured_inputs", {})
+
+        result = chain.invoke({
+            "gap_title": state["gap_info"]["title"],
+            "structured_inputs": inputs,
+            "format_instructions": parser.get_format_instructions()
+        })
+
+        state["generated_answer"] = result["professional_answer"]
+        state["current_step"] = "quality_eval"
+
+        return state
+
+    except Exception as e:
+        state["error"] = f"Failed to generate answer: {str(e)}"
+        # Fallback to raw answer if available
+        state["generated_answer"] = state.get("raw_answer", "")
+        return state
+
+
+# ========================================
+# Node 4: Evaluate Answer Quality
+# ========================================
+
+def evaluate_quality_node(state: AdaptiveAnswerState) -> AdaptiveAnswerState:
+    """
+    Evaluate answer quality and provide feedback.
+    Returns score (1-10) and improvement suggestions if needed.
+    """
+    llm = get_llm("quality")  # Use quality LLM for evaluation
+    parser = JsonOutputParser(pydantic_object=QualityEvaluationOutput)
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", """You are an expert evaluating resume content quality.
+
+Evaluate this answer for a professional resume:
+
+Question: {question_text}
+Answer: {answer}
+
+Criteria:
+1. Specificity (not vague, includes technologies/tools)
+2. Evidence (metrics, results, timeframes)
+3. Professional language (action verbs, clear)
+4. Relevance (addresses the question/gap)
+
+Score 1-10:
+- 1-3: Very weak (too vague, no details)
+- 4-6: Needs improvement (some details but missing key elements)
+- 7-8: Good (specific, professional)
+- 9-10: Excellent (detailed, with metrics, compelling)
+
+Return JSON:
+{{
+  "quality_score": 7,
+  "issues": ["Issue 1", "Issue 2"],
+  "strengths": ["Strength 1", "Strength 2"],
+  "suggestions": [
+    {{
+      "type": "text",
+      "prompt": "What specific achievement did you accomplish?",
+      "help_text": "Add a measurable result"
+    }}
+  ],
+  "is_acceptable": true
+}}
+
+{format_instructions}"""),
+        ("human", "Evaluate quality")
+    ])
+
+    chain = prompt | llm | parser
+
+    try:
+        answer = state.get("generated_answer") or state.get("raw_answer", "")
+
+        result = chain.invoke({
+            "question_text": state["question_text"],
+            "answer": answer,
+            "format_instructions": parser.get_format_instructions()
+        })
+
+        state["quality_score"] = result["quality_score"]
+        state["quality_issues"] = result["issues"]
+        state["quality_strengths"] = result["strengths"]
+        state["improvement_suggestions"] = result["suggestions"]
+
+        # Check if acceptable
+        if result["is_acceptable"] or state.get("refinement_iteration", 0) >= MAX_REFINEMENT_ITERATIONS:
+            state["final_answer"] = answer
+            state["current_step"] = "complete"
+        else:
+            state["current_step"] = "refinement"
+
+        return state
+
+    except Exception as e:
+        state["error"] = f"Failed to evaluate quality: {str(e)}"
+        # Accept answer on error
+        state["final_answer"] = state.get("generated_answer") or state.get("raw_answer", "")
+        state["current_step"] = "complete"
+        # Ensure quality_score is always set (default to 0 on error)
+        if "quality_score" not in state:
+            state["quality_score"] = 0
+        return state
+
+
+# ========================================
+# Node 5: Refine Answer
+# ========================================
+
+def refine_answer_node(state: AdaptiveAnswerState) -> AdaptiveAnswerState:
+    """
+    Refine answer based on quality feedback and user's additional input.
+    """
+    llm = get_llm("creative")
+    parser = JsonOutputParser(pydantic_object=AnswerRefinementOutput)
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", """You are an expert improving resume content.
+
+Original Answer: {original_answer}
+Quality Issues: {issues}
+Additional Input from User: {refinement_data}
+
+Improve the answer by:
+- Addressing all quality issues
+- Incorporating additional information
+- Keeping it professional and concise
+- Adding metrics if possible
+
+Return JSON:
+{{
+  "refined_answer": "...",
+  "improvements_made": ["Added metrics", "Made more specific"]
+}}
+
+{format_instructions}"""),
+        ("human", "Refine the answer")
+    ])
+
+    chain = prompt | llm | parser
+
+    try:
+        original = state.get("generated_answer") or state.get("raw_answer", "")
+        refinement_data = state.get("refinement_data", {})
+
+        result = chain.invoke({
+            "original_answer": original,
+            "issues": state.get("quality_issues", []),
+            "refinement_data": refinement_data,
+            "format_instructions": parser.get_format_instructions()
+        })
+
+        state["refined_answer"] = result["refined_answer"]
+        state["generated_answer"] = result["refined_answer"]  # Update for next evaluation
+        state["refinement_iteration"] = state.get("refinement_iteration", 0) + 1
+
+        # Go back to quality evaluation
+        state["current_step"] = "quality_eval"
+
+        return state
+
+    except Exception as e:
+        state["error"] = f"Failed to refine answer: {str(e)}"
+        # Accept current answer on error
+        state["final_answer"] = state.get("generated_answer") or state.get("raw_answer", "")
+        state["current_step"] = "complete"
+        return state
+
+
+# ========================================
+# Routing Functions
+# ========================================
+
+def route_after_experience_check(state: AdaptiveAnswerState) -> str:
+    """
+    Route after experience check based on user response.
+
+    Returns:
+        "deep_dive" if has experience
+        "learning_resources" if no experience or willing to learn
+    """
+    response = state.get("experience_check_response")
+
+    if response == "yes":
+        return "deep_dive"
+    else:
+        # Both "no" and "willing_to_learn" go to resources
+        return "learning_resources"
+
+
+def route_after_quality_eval(state: AdaptiveAnswerState) -> str:
+    """
+    Route after quality evaluation.
+
+    Returns:
+        "complete" if quality is good or max iterations reached
+        "refinement" if needs improvement
+    """
+    score = state.get("quality_score", 0)
+    iteration = state.get("refinement_iteration", 0)
+
+    if score >= MIN_ACCEPTABLE_QUALITY_SCORE or iteration >= MAX_REFINEMENT_ITERATIONS:
+        return "complete"
+    else:
+        return "refinement"

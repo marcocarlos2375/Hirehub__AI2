@@ -10,3 +10,17 @@ numpy
 redis
 qdrant-client
 python-multipart
+
+# LangChain and LangGraph for adaptive question workflows
+langchain==0.3.15
+langgraph==0.2.45
+langchain-google-genai==2.0.8
+langchain-qdrant==0.2.1
+langchain-openai==0.3.35
+langsmith<0.4,>=0.1.17
+
+# Database for learning resources
+sqlalchemy==2.0.36
+alembic==1.14.0
+psycopg2-binary==2.9.10
+pydantic==2.10.4

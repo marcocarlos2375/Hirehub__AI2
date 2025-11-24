@@ -3,17 +3,35 @@
     <!-- Header with Stats -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div class="flex items-center justify-between mb-4">
-        <div>
+        <div class="flex-1">
           <h2 class="text-2xl font-bold text-gray-900">Smart Questions</h2>
           <p class="text-sm text-gray-600 mt-1">
             Answer these questions to potentially improve your score by +15-20%
           </p>
         </div>
-        <div class="text-right">
-          <div class="text-3xl font-bold text-indigo-600">
-            {{ questionsData.total_questions }}
+
+        <!-- Mode Toggle -->
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2 mr-4">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                v-model="useAdaptiveMode"
+                class="sr-only peer"
+              />
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <span class="ml-3 text-sm font-medium text-gray-700">
+                {{ useAdaptiveMode ? 'Adaptive Mode' : 'Traditional Mode' }}
+              </span>
+            </label>
           </div>
-          <div class="text-sm text-gray-600">Questions</div>
+
+          <div class="text-right">
+            <div class="text-3xl font-bold text-indigo-600">
+              {{ questionsData.total_questions }}
+            </div>
+            <div class="text-sm text-gray-600">Questions</div>
+          </div>
         </div>
       </div>
 
@@ -55,10 +73,30 @@
       <div class="mt-3 text-xs text-gray-500 text-right">
         Generated in {{ timeSeconds }}s using {{ questionsData.model }}
       </div>
+
+      <!-- Adaptive Mode Info -->
+      <div v-if="useAdaptiveMode" class="mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+        <div class="flex items-start gap-3">
+          <svg class="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <div class="flex-1">
+            <h4 class="font-semibold text-indigo-900 mb-1">Adaptive Mode Active</h4>
+            <p class="text-sm text-indigo-800">
+              Each question adapts based on your experience level:
+            </p>
+            <ul class="text-sm text-indigo-700 mt-2 space-y-1 ml-4 list-disc">
+              <li><strong>Have experience:</strong> Answer deep-dive questions for a professional resume bullet</li>
+              <li><strong>No experience:</strong> Get personalized learning resources and roadmap</li>
+              <li><strong>Willing to learn:</strong> Create a learning plan with timeline</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Questions List -->
-    <div class="space-y-6">
+    <!-- Traditional Mode: Questions List -->
+    <div v-if="!useAdaptiveMode" class="space-y-6">
       <QuestionCard
         v-for="question in questionsData.questions"
         :key="question.id"
@@ -71,6 +109,48 @@
           @submit="(text, type, time) => handleAnswerSubmit(question.id, text, type, time)"
         />
       </QuestionCard>
+    </div>
+
+    <!-- Adaptive Mode: Adaptive Question Flows -->
+    <div v-else class="space-y-8">
+      <div
+        v-for="question in questionsData.questions"
+        :key="question.id"
+        class="bg-white border-2 border-indigo-200 rounded-lg p-6"
+      >
+        <!-- Question Header -->
+        <div class="mb-6">
+          <div class="flex items-center gap-3 mb-3">
+            <span
+              :class="[
+                'px-3 py-1 rounded-full text-xs font-bold uppercase',
+                question.priority === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                question.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                'bg-yellow-100 text-yellow-700'
+              ]"
+            >
+              {{ question.priority }}
+            </span>
+            <span class="text-sm font-medium text-gray-500">Impact: {{ question.impact }}</span>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-2">{{ question.title }}</h3>
+          <p class="text-sm text-gray-600">{{ question.context_why }}</p>
+        </div>
+
+        <!-- Adaptive Flow Component -->
+        <AdaptiveQuestionFlow
+          :question-id="question.id"
+          :question-text="question.question_text"
+          :question-data="question"
+          :gap-info="{ title: question.title, description: question.context_why }"
+          :user-id="getUserId()"
+          :parsed-cv="parsedCV"
+          :parsed-jd="parsedJD"
+          :language="language"
+          @complete="(state) => handleAdaptiveComplete(question.id, state)"
+          @cancel="() => {}"
+        />
+      </div>
     </div>
 
     <!-- Submit All Button -->
@@ -176,7 +256,9 @@
 
 <script setup lang="ts">
 import type { GenerateQuestionsResult, SubmitAnswersResult, QuestionAnswer } from '~/composables/useAnalysisState'
+import type { AdaptiveQuestionState } from '~/types/adaptive-questions'
 import { useAnswerSubmitter } from '~/composables/useAnswerSubmitter'
+import AdaptiveQuestionFlow from './AdaptiveQuestionFlow.vue'
 
 interface Props {
   questionsData: GenerateQuestionsResult
@@ -197,7 +279,16 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>()
 
+const { useAdaptiveFlow } = useAnalysisState()
+const useAdaptiveMode = ref(useAdaptiveFlow.value)
+
+// Watch for changes to global adaptive flow setting
+watch(useAdaptiveFlow, (newValue) => {
+  useAdaptiveMode.value = newValue
+})
+
 const answers = ref<Map<string, QuestionAnswer>>(new Map())
+const adaptiveResults = ref<Map<string, AdaptiveQuestionState>>(new Map())
 const isSubmitting = ref(false)
 const hasSubmitted = ref(false)
 const answersResult = ref<SubmitAnswersResult | null>(null)
@@ -205,13 +296,24 @@ const answersResult = ref<SubmitAnswersResult | null>(null)
 const { submitAnswers: submitAnswersAPI } = useAnswerSubmitter()
 
 const allQuestionsAnswered = computed(() => {
-  return answers.value.size === props.questionsData.questions.length
+  if (useAdaptiveMode.value) {
+    // In adaptive mode, check if all adaptive flows are complete
+    return adaptiveResults.value.size === props.questionsData.questions.length
+  } else {
+    // In traditional mode, check if all questions have answers
+    return answers.value.size === props.questionsData.questions.length
+  }
 })
 
 const getAnswerStatus = (questionId: string): string => {
   if (hasSubmitted.value) return 'Submitted'
   if (answers.value.has(questionId)) return 'Update Answer'
   return 'Submit Answer'
+}
+
+const getUserId = (): string => {
+  // Generate a session-based user ID
+  return `user-${Date.now()}`
 }
 
 const handleAnswerSubmit = (
@@ -228,6 +330,23 @@ const handleAnswerSubmit = (
   }
 
   answers.value.set(questionId, answer)
+}
+
+const handleAdaptiveComplete = (questionId: string, state: AdaptiveQuestionState) => {
+  // Store the completed adaptive state
+  adaptiveResults.value.set(questionId, state)
+
+  // Convert to traditional answer format for compatibility
+  if (state.finalAnswer) {
+    const answer: QuestionAnswer = {
+      question_id: questionId,
+      answer_text: state.finalAnswer,
+      answer_type: 'text'
+    }
+    answers.value.set(questionId, answer)
+  }
+
+  console.log(`Adaptive flow completed for question ${questionId}:`, state)
 }
 
 const submitAllAnswers = async () => {
