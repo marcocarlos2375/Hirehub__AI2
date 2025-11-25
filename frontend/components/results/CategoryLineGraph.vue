@@ -90,6 +90,14 @@ const chartOptions = {
   responsive: true,
   maintainAspectRatio: true,
   aspectRatio: 2,
+  layout: {
+    padding: {
+      top: 5,
+      bottom: 0,
+      left: 0,
+      right: 0
+    }
+  },
   plugins: {
     legend: {
       display: false // Hide legend
@@ -105,17 +113,20 @@ const chartOptions = {
     y: {
       display: true,
       min: 0,
-      max: 100,
+      max: 105,
+      afterBuildTicks: function(axis) {
+        axis.ticks = [0, 25, 50, 75, 100].map(v => ({ value: v }))
+      },
       ticks: {
-        stepSize: 25,
         color: '#9ca3af', // Gray color
         font: {
           size: 10
         }
       },
       grid: {
-        color: 'rgba(229, 231, 235, 0.5)', // Subtle gray grid lines
-        lineWidth: 1
+        color: 'rgba(229, 231, 235, 0.5)',
+        lineWidth: 1,
+        drawTicks: false
       },
       border: {
         display: false

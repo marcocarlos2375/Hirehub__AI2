@@ -1,12 +1,12 @@
 <template>
   <HbCard
-    :variant="cardVariant"
+    variant="default"
     shadow="none"
     padding="none"
     :bg-color="backgroundColor"
     role="article"
     :aria-label="`${variant} gap: ${gap.title}`"
-    class="gap-card"
+    class="gap-card gap-card--no-border"
   >
     <div class="gap-card__content">
       <!-- Title + Impact Header -->
@@ -127,17 +127,9 @@ type BadgeVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' |
 const VARIANT_TO_BADGE: Record<Props['variant'], BadgeVariant> = {
   'critical': 'danger',
   'important': 'warning',
-  'nice-to-have': 'info',
+  'nice-to-have': 'success',
   'logistical': 'gray'
 }
-
-// Variant to card variant mapping
-const VARIANT_TO_CARD = {
-  'critical': 'danger',
-  'important': 'warning',
-  'nice-to-have': 'success',
-  'logistical': 'default'
-} as const
 
 // Variant to background color mapping - subtle tints
 const VARIANT_TO_BG_COLOR: Record<Props['variant'], string> = {
@@ -146,11 +138,6 @@ const VARIANT_TO_BG_COLOR: Record<Props['variant'], string> = {
   'nice-to-have': '#f0fdfa',  // Very light teal
   'logistical': '#f9fafb'     // Very light gray
 }
-
-/**
- * Card variant for semantic HbCard styling
- */
-const cardVariant = computed(() => VARIANT_TO_CARD[props.variant])
 
 /**
  * Background color based on gap variant
@@ -208,11 +195,11 @@ $border-logistical: #d1d5db;   // gray-300
 // GAP CARD
 // ============================================================================
 .gap-card {
-  transition: all 0.2s ease-in-out;
-  
-  &:hover {
-    transform: translateY(-2px);
-  }
+  // No animations
+}
+
+.gap-card--no-border {
+  border: none !important;
 }
 
 .gap-card__content {

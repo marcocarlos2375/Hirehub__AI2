@@ -255,13 +255,14 @@ $radius-md: 0.75rem;
 
 // --- 2. Viability Strip ---
 .score-result__viability {
-  background: var(--primary-900);
-  color: white;
+  background: $c-surface;
+  color: $c-text-main;
   border-radius: $radius-md;
   padding: 0.75rem 1rem;
   display: flex;
   align-items: center;
   gap: 1rem;
+  border: 1px solid $c-border;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -280,20 +281,20 @@ $radius-md: 0.75rem;
 .score-result__viability-label {
   font-size: 0.65rem;
   text-transform: uppercase;
-  opacity: 0.8;
+  color: $c-text-muted;
   margin-bottom: 0.15rem;
   letter-spacing: 0.05em;
 }
 
 .score-result__viability-value {
-  font-size: 1rem;
+  font-size: 1.35rem;
   font-weight: 600;
 }
 
 .score-result__viability-divider {
   width: 1px;
   height: 30px;
-  background: rgba(255, 255, 255, 0.25);
+  background: $c-border;
 
   @media (max-width: 768px) {
     width: 100%;
@@ -316,10 +317,11 @@ $radius-md: 0.75rem;
 }
 
 .score-result__viability-blocker-tag {
-  background: rgba(255, 255, 255, 0.15);
+  background: $c-bg-page;
   padding: 0.2rem 0.6rem;
   border-radius: 4px;
   font-size: 0.75rem;
+  color: $c-text-main;
 }
 
 // --- 3. Categories ---
@@ -385,7 +387,12 @@ $radius-md: 0.75rem;
 }
 
 .score-result__stat-value {
-  background: linear-gradient(135deg, currentColor 0%, currentColor 60%, rgba(255, 255, 255, 0.3) 100%);
+  background: linear-gradient(
+    45deg,
+    color-mix(in srgb, currentColor 100%, black 10%) 0%,
+    color-mix(in srgb, currentColor 100%, white 40%) 50%,
+    color-mix(in srgb, currentColor 100%, black 10%) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -487,6 +494,16 @@ $radius-md: 0.75rem;
   gap: 1.5rem;
 }
 
+.score-result__gap-cluster {
+  :deep(.gap-card) {
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
 .score-result__gap-cluster--critical {
   color: $c-danger;
 }
@@ -509,14 +526,41 @@ $radius-md: 0.75rem;
 
 .score-result__cluster-title--critical {
   color: $c-danger;
+  background: linear-gradient(
+    45deg,
+    color-mix(in srgb, #{$c-danger} 100%, black 10%) 0%,
+    color-mix(in srgb, #{$c-danger} 100%, white 40%) 50%,
+    color-mix(in srgb, #{$c-danger} 100%, black 10%) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .score-result__cluster-title--important {
   color: darken($c-warning, 10%);
+  background: linear-gradient(
+    45deg,
+    color-mix(in srgb, #{$c-warning} 100%, black 10%) 0%,
+    color-mix(in srgb, #{$c-warning} 100%, white 40%) 50%,
+    color-mix(in srgb, #{$c-warning} 100%, black 10%) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .score-result__cluster-title--neutral {
   color: $c-text-muted;
+  background: linear-gradient(
+    45deg,
+    color-mix(in srgb, #{$c-text-muted} 100%, black 10%) 0%,
+    color-mix(in srgb, #{$c-text-muted} 100%, white 40%) 50%,
+    color-mix(in srgb, #{$c-text-muted} 100%, black 10%) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .score-result__empty-state {
@@ -584,6 +628,5 @@ $radius-md: 0.75rem;
   border-radius: 6px;
   font-size: 0.8rem;
   color: darken($c-text-muted, 10%);
-  border-left: 3px solid $c-success;
 }
 </style>
