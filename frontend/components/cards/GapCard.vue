@@ -3,7 +3,6 @@
     :variant="cardVariant"
     shadow="none"
     padding="none"
-    border
     :bg-color="backgroundColor"
     role="article"
     :aria-label="`${variant} gap: ${gap.title}`"

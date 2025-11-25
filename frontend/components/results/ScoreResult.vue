@@ -1,126 +1,124 @@
 <template>
-  <div class="dashboard-container">
-    <div class="dashboard-hero">
-      <div class="hero-content">
-        <div class="hero-badge" :class="`status-${getStatusLevel(data.overall_score)}`">
-          Evaluation
+  <div class="score-result">
+    <div class="score-result__hero">
+      <div class="score-result__hero-content">
+        <div class="score-result__hero-badge">
+          EVALUATION
         </div>
-        <h1 class="hero-title">{{ data.score_message.title }}</h1>
-        <p class="hero-subtitle">{{ data.score_message.subtitle }}</p>
-        
-        <div v-if="timeSeconds" class="analysis-meta">
-          <svg class="meta-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <h1 class="score-result__hero-title">{{ data.score_message.title }}</h1>
+        <p class="score-result__hero-subtitle">{{ data.score_message.subtitle }}</p>
+
+        <div v-if="timeSeconds" class="score-result__meta">
+          <svg class="score-result__meta-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           <span>Analysis time: <strong>{{ timeSeconds }}s</strong></span>
         </div>
       </div>
 
-      <div class="score-dial">
-        <div class="dial-ring" :style="getRingStyle(data.overall_score)">
-          <div class="dial-inner">
-            <span class="score-number"> {{ data.overall_status }}</span>
-          </div>
-        </div>
-      </div>
+      <CategoryLineGraph
+        :categoryScores="data.category_scores"
+        :label="`${data.overall_status} - Match`"
+        :overallScore="data.overall_score"
+      />
     </div>
 
-    <div class="viability-strip">
-      <div class="viability-metric">
-        <span class="label">Viability Likelihood</span>
-        <span class="value" :class="getViabilityColorClass(data.application_viability.current_likelihood)">
-          {{ data.application_viability.current_likelihood }}
-        </span>
-      </div>
-      <div class="viability-divider"></div>
-      <div class="viability-blockers">
-        <span class="label">Key Hurdles:</span>
-        <div class="blocker-tags">
-          <span v-for="(blocker, idx) in data.application_viability.key_blockers" :key="idx" class="blocker-tag">
-            {{ blocker }}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <section class="dashboard-section">
-      <h2 class="section-header">Performance Categories</h2>
-      <div class="category-grid">
-        <div 
-          v-for="(category, key) in data.category_scores" 
+    <section class="score-result__section">
+      <h2 class="score-result__section-header">Performance Categories</h2>
+      <div class="score-result__category-grid">
+        <div
+          v-for="(category, key) in data.category_scores"
           :key="key"
-          class="stat-card"
+          class="score-result__stat-card"
         >
-          <div class="stat-card-header">
-            <h3 class="stat-name">{{ key.replace(/_/g, ' ') }}</h3>
-            <span class="weight-pill">Weight: {{ Math.round(category.weight * 100) }}%</span>
-          </div>
-          
-          <div class="stat-main">
-            <div class="stat-value" :class="`text-${getScoreLevel(category.score)}`">
-              {{ category.score }}
-            </div>
-            <div class="stat-status">{{ category.status }}</div>
+          <div class="score-result__stat-card-header">
+            <h3 class="score-result__stat-name">{{ key.replace(/_/g, ' ') }}</h3>
+            <span class="score-result__weight-pill">Weight: {{ Math.round(category.weight * 100) }}%</span>
           </div>
 
-          <div class="stat-progress-bg">
-            <div 
-              class="stat-progress-fill" 
+          <div class="score-result__stat-main">
+            <div class="score-result__stat-value-wrapper" :class="`text-${getScoreLevel(category.score)}`">
+              <span class="score-result__stat-value">{{ category.score }}</span><span class="score-result__stat-value-max">/100</span>
+            </div>
+            <div class="score-result__stat-status">{{ category.status }}</div>
+          </div>
+
+          <div class="score-result__stat-progress-bg">
+            <div
+              class="score-result__stat-progress-fill"
               :class="`bg-${getScoreLevel(category.score)}`"
-              :style="{ width: category.score + '%' }"
+              :style="{ '--target-width': category.score + '%' }"
             ></div>
           </div>
         </div>
       </div>
     </section>
 
-    <div class="details-grid">
-      
-      <section class="dashboard-section">
-        <h2 class="section-header">
+    <div class="score-result__details-grid">
+
+      <section class="score-result__section">
+        <h2 class="score-result__section-header">
           Identified Gaps
-          <span class="count-badge" v-if="totalGaps > 0">{{ totalGaps }}</span>
+          <span class="score-result__count-badge" v-if="totalGaps > 0">{{ totalGaps }}</span>
         </h2>
-        
-        <div class="gaps-container">
-          <div v-if="data.gaps.critical.length" class="gap-cluster cluster-critical">
-            <h4 class="cluster-title text-critical">Critical Attention Needed</h4>
+
+        <div class="score-result__gaps-container">
+          <div v-if="data.gaps.critical.length" class="score-result__gap-cluster score-result__gap-cluster--critical">
+            <h4 class="score-result__cluster-title score-result__cluster-title--critical">Critical Attention Needed</h4>
             <GapCard v-for="gap in data.gaps.critical" :key="gap.id" variant="critical" :gap="gap" />
           </div>
 
-          <div v-if="data.gaps.important.length" class="gap-cluster cluster-important">
-            <h4 class="cluster-title text-important">Important Factors</h4>
+          <div v-if="data.gaps.important.length" class="score-result__gap-cluster score-result__gap-cluster--important">
+            <h4 class="score-result__cluster-title score-result__cluster-title--important">Important Factors</h4>
             <GapCard v-for="gap in data.gaps.important" :key="gap.id" variant="important" :gap="gap" />
           </div>
 
-           <div v-if="data.gaps.nice_to_have.length || data.gaps.logistical.length" class="gap-cluster cluster-minor">
-            <h4 class="cluster-title text-neutral">Minor & Logistical</h4>
+           <div v-if="data.gaps.nice_to_have.length || data.gaps.logistical.length" class="score-result__gap-cluster score-result__gap-cluster--minor">
+            <h4 class="score-result__cluster-title score-result__cluster-title--neutral">Minor & Logistical</h4>
             <GapCard v-for="gap in data.gaps.nice_to_have" :key="gap.id" variant="nice-to-have" :gap="gap" />
             <GapCard v-for="gap in data.gaps.logistical" :key="gap.id" variant="logistical" :gap="gap" />
           </div>
 
-          <div v-if="totalGaps === 0" class="empty-state">
-            <div class="empty-icon">✨</div>
+          <div v-if="totalGaps === 0" class="score-result__empty-state">
+            <div class="score-result__empty-icon">✨</div>
             <p>No gaps identified. Perfect match!</p>
           </div>
         </div>
       </section>
 
-      <section class="dashboard-section">
-        <h2 class="section-header">Core Strengths</h2>
-        <div class="strengths-list">
-          <div v-for="(strength, index) in data.strengths" :key="index" class="strength-item">
-            <div class="strength-icon-box">
+      <section class="score-result__section">
+        <h2 class="score-result__section-header">Core Strengths</h2>
+        <div class="score-result__strengths-list">
+          <div v-for="(strength, index) in data.strengths" :key="index" class="score-result__strength-item">
+            <div class="score-result__strength-icon">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
             </div>
-            <div class="strength-content">
-              <h3 class="strength-title">{{ strength.title }}</h3>
-              <p class="strength-desc">{{ strength.description }}</p>
-              <div class="evidence-box">
+            <div class="score-result__strength-content">
+              <h3 class="score-result__strength-title">{{ strength.title }}</h3>
+              <p class="score-result__strength-desc">{{ strength.description }}</p>
+              <div class="score-result__evidence-box">
                 <strong>Evidence:</strong> {{ strength.evidence }}
               </div>
             </div>
           </div>
         </div>
       </section>
+    </div>
+
+    <div class="score-result__viability">
+      <div class="score-result__viability-metric">
+        <span class="score-result__viability-label">Viability Likelihood</span>
+        <span class="score-result__viability-value" :class="getViabilityColorClass(data.application_viability.current_likelihood)">
+          {{ data.application_viability.current_likelihood }}
+        </span>
+      </div>
+      <div class="score-result__viability-divider"></div>
+      <div class="score-result__viability-blockers">
+        <span class="score-result__viability-label">Key Hurdles:</span>
+        <div class="score-result__viability-blocker-tags">
+          <span v-for="(blocker, idx) in data.application_viability.key_blockers" :key="idx" class="score-result__viability-blocker-tag">
+            {{ blocker }}
+          </span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -129,6 +127,7 @@
 import { computed } from 'vue'
 import type { ScoreResponse } from '~/composables/analysis/useScoreCalculator'
 import GapCard from '~/components/cards/GapCard.vue'
+import CategoryLineGraph from '~/components/results/CategoryLineGraph.vue'
 
 interface Props {
   data: ScoreResponse
@@ -140,27 +139,11 @@ const props = defineProps<Props>()
 // -- Logic Helpers --
 
 const totalGaps = computed(() => {
-  return props.data.gaps.critical.length + 
-         props.data.gaps.important.length + 
-         props.data.gaps.nice_to_have.length + 
+  return props.data.gaps.critical.length +
+         props.data.gaps.important.length +
+         props.data.gaps.nice_to_have.length +
          props.data.gaps.logistical.length
 })
-
-// Returns a Conic Gradient string for the ring chart
-const getRingStyle = (score: number) => {
-  const color = score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444'
-  const percent = score * 3.6 // 360 degrees
-  return {
-    background: `conic-gradient(${color} ${percent}deg, #e5e7eb 0deg)`
-  }
-}
-
-const getStatusLevel = (score: number): string => {
-  if (score >= 75) return 'excellent'
-  if (score >= 60) return 'good'
-  if (score >= 40) return 'moderate'
-  return 'low'
-}
 
 const getScoreLevel = (score: number): string => {
   if (score >= 75) return 'high'
@@ -197,9 +180,8 @@ $radius-lg: 1rem;
 $radius-md: 0.75rem;
 
 // --- Layout ---
-.dashboard-container {
+.score-result {
   color: $c-text-main;
- 
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -207,185 +189,145 @@ $radius-md: 0.75rem;
 }
 
 // --- 1. Hero Section ---
-.dashboard-hero {
+.score-result__hero {
   background: $c-surface;
   border-radius: $radius-lg;
-  padding: 2.5rem;
+  padding: 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: relative;
   overflow: hidden;
-  
- 
+
   @media (max-width: 768px) {
     flex-direction: column-reverse;
     text-align: center;
-    gap: 2rem;
+    gap: 1rem;
+    padding: 0.75rem;
   }
 }
 
-.hero-content {
+.score-result__hero-content {
   flex: 1;
   max-width: 600px;
 }
 
-.hero-badge {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  border-radius: 2rem;
-  font-size: 0.8rem;
+.score-result__hero-badge {
+  color: var(--primary-400);
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 1rem;
-  
+  margin-bottom: 0.5rem;
 }
 
-.hero-title {
-  font-size: 2.25rem;
-  font-weight: 800;
-  line-height: 1.2;
-  margin-bottom: 0.75rem;
+.score-result__hero-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
   color: $c-text-main;
 }
 
-.hero-subtitle {
-  font-size: 1.1rem;
-  line-height: 1.6;
+.score-result__hero-subtitle {
+  font-size: 0.95rem;
+  line-height: 1.5;
   color: $c-text-muted;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
-.analysis-meta {
+.score-result__meta {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: lighten($c-text-muted, 10%);
-  
-  .meta-icon { width: 16px; height: 16px; }
-  
+
   @media (max-width: 768px) {
     justify-content: center;
   }
 }
 
-// --- Ring Chart ---
-.score-dial {
-  position: relative;
-  width: 160px;
-  height: 160px;
-  flex-shrink: 0;
-  margin-left: 2rem;
-  
-  @media (max-width: 768px) {
-    margin-left: 0;
-  }
-}
-
-.dial-ring {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  // Background set via JS inline style
-  position: relative;
-  
-  &::before {
-    content: ''; // Inner shadow helper
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-  }
-}
-
-.dial-inner {
-  width: 80%; // Thickness of ring
-  height: 80%;
-  background: $c-surface;
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-}
-
-.score-number {
-  font-size: 3rem;
-  font-weight: 800;
-  line-height: 1;
-  color: $c-text-main;
-}
-
-.score-label {
-  font-size: 0.875rem;
-  color: $c-text-muted;
-  font-weight: 500;
+.score-result__meta-icon {
+  width: 16px;
+  height: 16px;
 }
 
 // --- 2. Viability Strip ---
-.viability-strip {
-  background: $c-text-main; // Dark theme for contrast
+.score-result__viability {
+  background: var(--primary-900);
   color: white;
   border-radius: $radius-md;
-  padding: 1.5rem;
+  padding: 0.75rem 1rem;
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1rem;
 
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
   }
 }
 
-.viability-metric {
+.score-result__viability-metric {
   display: flex;
   flex-direction: column;
-  min-width: 140px;
-  
-  .label { font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 0.25rem; letter-spacing: 0.05em; }
-  .value { font-size: 1.5rem; font-weight: 700; }
-  
-  .text-high { color: $c-success; }
-  .text-medium { color: $c-warning; }
-  .text-low { color: $c-danger; }
+  min-width: 120px;
 }
 
-.viability-divider {
+.score-result__viability-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  opacity: 0.8;
+  margin-bottom: 0.15rem;
+  letter-spacing: 0.05em;
+}
+
+.score-result__viability-value {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.score-result__viability-divider {
   width: 1px;
-  height: 40px;
-  background: rgba(255,255,255,0.2);
-  
+  height: 30px;
+  background: rgba(255, 255, 255, 0.25);
+
   @media (max-width: 768px) {
-    width: 100%; height: 1px;
+    width: 100%;
+    height: 1px;
   }
 }
 
-.viability-blockers {
+.score-result__viability-blockers {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
-
-  .label { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
 }
 
-.blocker-tag {
-  background: rgba(255,255,255,0.15);
-  padding: 0.25rem 0.75rem;
+.score-result__viability-blocker-tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.score-result__viability-blocker-tag {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.2rem 0.6rem;
   border-radius: 4px;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 }
 
 // --- 3. Categories ---
-.section-header {
+.score-result__section {
+  // Shared section styles
+}
+
+.score-result__section-header {
   font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
@@ -394,86 +336,144 @@ $radius-md: 0.75rem;
   gap: 0.5rem;
 }
 
-.category-grid {
+.score-result__category-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
+  gap: 0.75rem;
 }
 
-.stat-card {
+.score-result__stat-card {
   background: $c-surface;
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: $radius-md;
-  border: 1px solid $c-border;
-  
-  &:hover {
-    transform: translateY(-2px);
-  }
 }
 
-.stat-card-header {
+.score-result__stat-card-header {
   display: flex;
   justify-content: space-between;
   margin-bottom: 1rem;
-  
-  .stat-name { font-size: 0.9rem; font-weight: 600; color: $c-text-muted; text-transform: capitalize; }
-  .weight-pill { font-size: 0.7rem; background: $c-bg-page; padding: 2px 8px; border-radius: 10px; color: $c-text-muted; height: fit-content; }
 }
 
-.stat-main {
+.score-result__stat-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: $c-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+}
+
+.score-result__weight-pill {
+  font-size: 0.7rem;
+  background: $c-bg-page;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: $c-text-muted;
+  height: fit-content;
+}
+
+.score-result__stat-main {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
 
-.stat-value {
+.score-result__stat-value-wrapper {
   font-size: 2.5rem;
   font-weight: 700;
   line-height: 1;
 }
 
-.stat-status {
+.score-result__stat-value {
+  background: linear-gradient(135deg, currentColor 0%, currentColor 60%, rgba(255, 255, 255, 0.3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.score-result__stat-value-max {
+  font-size: 0.3em;
+  color: currentColor;
+  opacity: 0.7;
+}
+
+.score-result__stat-status {
   font-size: 0.85rem;
   font-weight: 500;
   color: $c-text-muted;
 }
 
-.stat-progress-bg {
-  height: 8px;
+.score-result__stat-progress-bg {
+  height: 4px;
   background: $c-bg-page;
-  border-radius: 4px;
   overflow: hidden;
 }
 
-.stat-progress-fill {
+.score-result__stat-progress-fill {
   height: 100%;
-  border-radius: 4px;
-  transition: width 1s ease-out;
-}
+  width: 0;
+  animation: fillProgress 1.5s ease-out forwards;
+  position: relative;
+  overflow: hidden;
 
-// Colors for Stats
-.text-high { color: $c-success; }
-.bg-high { background-color: $c-success; }
-.text-good { color: darken($c-success, 10%); }
-.bg-good { background-color: darken($c-success, 10%); }
-.text-medium { color: $c-warning; }
-.bg-medium { background-color: $c-warning; }
-.text-low { color: $c-danger; }
-.bg-low { background-color: $c-danger; }
-
-// --- 4. Split Grid (Gaps/Strengths) ---
-.details-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
   }
 }
 
-.count-badge {
+@keyframes fillProgress {
+  from {
+    width: 0;
+  }
+  to {
+    width: var(--target-width);
+  }
+}
+
+// Colors for Stats
+.text-high {
+  color: var(--secondary-500);
+}
+.bg-high {
+  background-color: var(--secondary-500);
+}
+.text-good {
+  color: var(--secondary-600);
+}
+.bg-good {
+  background-color: var(--secondary-600);
+}
+.text-medium {
+  color: $c-warning;
+}
+.bg-medium {
+  background-color: $c-warning;
+}
+.text-low {
+  color: $c-danger;
+}
+.bg-low {
+  background-color: $c-danger;
+}
+
+// --- 4. Split Grid (Gaps/Strengths) ---
+.score-result__details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.score-result__count-badge {
   background: $c-danger-light;
   color: $c-danger;
   font-size: 0.75rem;
@@ -481,78 +481,104 @@ $radius-md: 0.75rem;
   border-radius: 1rem;
 }
 
-.gaps-container {
+.score-result__gaps-container {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.gap-cluster {
-  .cluster-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.75rem;
-    padding-left: 0.5rem;
-    border-left: 3px solid currentColor;
-  }
-  
-  &.cluster-critical { color: $c-danger; }
-  &.cluster-important { color: $c-warning; }
-  &.cluster-minor { color: $c-text-muted; }
-  
-  .text-critical { color: $c-danger; }
-  .text-important { color: darken($c-warning, 10%); }
-  .text-neutral { color: $c-text-muted; }
+.score-result__gap-cluster--critical {
+  color: $c-danger;
 }
 
-.empty-state {
+.score-result__gap-cluster--important {
+  color: $c-warning;
+}
+
+.score-result__gap-cluster--minor {
+  color: $c-text-muted;
+}
+
+.score-result__cluster-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.score-result__cluster-title--critical {
+  color: $c-danger;
+}
+
+.score-result__cluster-title--important {
+  color: darken($c-warning, 10%);
+}
+
+.score-result__cluster-title--neutral {
+  color: $c-text-muted;
+}
+
+.score-result__empty-state {
   text-align: center;
   padding: 3rem;
   background: $c-surface;
   border-radius: $radius-md;
   border: 2px dashed $c-border;
   color: $c-text-muted;
-  
-  .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+}
+
+.score-result__empty-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
 }
 
 // Strengths
-.strengths-list {
+.score-result__strengths-list {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.strength-item {
+.score-result__strength-item {
   background: $c-surface;
   padding: 1.25rem;
   border-radius: $radius-md;
   border: 1px solid $c-border;
   display: flex;
   gap: 1rem;
-  
-  .strength-icon-box {
-    width: 2rem; height: 2rem;
-    background: $c-success-light;
-    color: darken($c-success, 10%);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
 }
 
-.strength-content {
+.score-result__strength-icon {
+  width: 2rem;
+  height: 2rem;
+  background: $c-success-light;
+  color: darken($c-success, 10%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.score-result__strength-content {
   flex: 1;
-  
-  .strength-title { font-weight: 700; color: $c-text-main; margin-bottom: 0.25rem; }
-  .strength-desc { font-size: 0.9rem; color: $c-text-muted; margin-bottom: 0.75rem; line-height: 1.5; }
 }
 
-.evidence-box {
+.score-result__strength-title {
+  font-weight: 700;
+  color: $c-text-main;
+  margin-bottom: 0.25rem;
+}
+
+.score-result__strength-desc {
+  font-size: 0.9rem;
+  color: $c-text-muted;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.score-result__evidence-box {
   background: $c-bg-page;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
