@@ -34,83 +34,61 @@
         </p>
 
         <!-- Text Input -->
-        <input
+        <HbInput
           v-if="prompt.type === 'text'"
           :id="prompt.id"
           v-model="formData[prompt.id]"
           type="text"
           :placeholder="prompt.placeholder"
           :required="prompt.required"
-          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          :class="{ 'border-red-300 focus:ring-red-500': errors[prompt.id] }"
+          :class="{ 'border-red-300': errors[prompt.id] }"
           @input="clearError(prompt.id)"
         />
 
         <!-- Textarea Input -->
-        <textarea
+        <HbInput
           v-else-if="prompt.type === 'textarea'"
           :id="prompt.id"
           v-model="formData[prompt.id]"
-          rows="4"
+          type="textarea"
+          :rows="4"
           :placeholder="prompt.placeholder"
           :required="prompt.required"
-          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-          :class="{ 'border-red-300 focus:ring-red-500': errors[prompt.id] }"
+          :class="{ 'border-red-300': errors[prompt.id] }"
           @input="clearError(prompt.id)"
         />
 
         <!-- Number Input -->
-        <input
+        <HbInput
           v-else-if="prompt.type === 'number'"
           :id="prompt.id"
           v-model.number="formData[prompt.id]"
           type="number"
           :placeholder="prompt.placeholder"
           :required="prompt.required"
-          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          :class="{ 'border-red-300 focus:ring-red-500': errors[prompt.id] }"
+          :class="{ 'border-red-300': errors[prompt.id] }"
           @input="clearError(prompt.id)"
         />
 
         <!-- Select Input -->
-        <select
+        <HbSelect
           v-else-if="prompt.type === 'select'"
           :id="prompt.id"
           v-model="formData[prompt.id]"
+          :options="getSelectOptions(prompt)"
           :required="prompt.required"
-          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          :class="{ 'border-red-300 focus:ring-red-500': errors[prompt.id] }"
+          :class="{ 'border-red-300': errors[prompt.id] }"
           @change="clearError(prompt.id)"
-        >
-          <option value="" disabled selected>{{ prompt.placeholder || 'Select an option' }}</option>
-          <option v-for="option in prompt.options" :key="option" :value="option">
-            {{ option }}
-          </option>
-        </select>
+        />
 
         <!-- Multiselect Input -->
-        <div v-else-if="prompt.type === 'multiselect'" class="space-y-2">
-          <div class="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2"
-               :class="{ 'border-red-300': errors[prompt.id] }">
-            <label
-              v-for="option in prompt.options"
-              :key="option"
-              class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                :value="option"
-                v-model="formData[prompt.id]"
-                class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                @change="clearError(prompt.id)"
-              />
-              <span class="text-sm text-gray-700">{{ option }}</span>
-            </label>
-          </div>
-          <p v-if="Array.isArray(formData[prompt.id]) && formData[prompt.id].length > 0" class="text-xs text-gray-500">
-            {{ formData[prompt.id].length }} selected
-          </p>
-        </div>
+        <HbCheckbox
+          v-else-if="prompt.type === 'multiselect'"
+          v-model="formData[prompt.id]"
+          :options="prompt.options || []"
+          :error="errors[prompt.id]"
+          @update:modelValue="clearError(prompt.id)"
+        />
 
         <!-- Validation Error -->
         <p v-if="errors[prompt.id]" class="text-sm text-red-600 mt-2">
@@ -120,32 +98,30 @@
 
       <!-- Form Actions -->
       <div class="flex items-center justify-between pt-4 border-t border-gray-200">
-        <button
+        <HbButton
           type="button"
           @click="resetForm"
-          class="px-6 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+          variant="outline"
         >
           Reset Form
-        </button>
+        </HbButton>
 
-        <button
+        <HbButton
           type="submit"
           :disabled="loading"
-          class="px-8 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          :loading="loading"
+          variant="primary"
+          size="lg"
         >
-          <svg v-if="loading" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
           <span v-if="loading">Generating Answer...</span>
           <span v-else>Generate Professional Answer</span>
-        </button>
+        </HbButton>
       </div>
 
       <!-- Progress Indicator -->
       <div v-if="loading" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div class="flex items-center gap-3">
-          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+          <HbSpinner size="sm" />
           <div class="text-sm text-blue-900">
             <p class="font-medium">AI is analyzing your responses...</p>
             <p class="text-blue-700 text-xs mt-1">This may take 3-5 seconds</p>
@@ -202,6 +178,23 @@ onMounted(() => {
 watch(() => props.prompts, () => {
   initializeFormData()
 }, { deep: true })
+
+// Transform select options to HbSelect format
+const getSelectOptions = (prompt: DeepDivePrompt) => {
+  if (!prompt.options || !Array.isArray(prompt.options)) return []
+
+  // Add placeholder as first option
+  const options = [
+    { value: '', label: prompt.placeholder || 'Select an option' }
+  ]
+
+  // Convert array of strings to {value, label} format
+  prompt.options.forEach(option => {
+    options.push({ value: option, label: option })
+  })
+
+  return options
+}
 
 const clearError = (fieldId: string) => {
   if (errors.value[fieldId]) {

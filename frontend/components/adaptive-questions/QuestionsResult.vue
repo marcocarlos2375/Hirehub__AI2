@@ -194,20 +194,21 @@
                   </div>
 
                   <div class="flex gap-3 pt-4">
-                    <button
+                    <HbButton
                       @click="submitRefinement(question.id)"
                       :disabled="evaluatingQuestionId === question.id"
-                      class="flex-1 px-6 py-3 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                      :loading="evaluatingQuestionId === question.id"
+                      variant="secondary"
+                      size="lg"
+                      class="flex-1"
                     >
-                      <svg v-if="evaluatingQuestionId === question.id" class="animate-spin h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                      <template #leading-icon>
+                        <svg v-if="!evaluatingQuestionId" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </template>
                       {{ evaluatingQuestionId === question.id ? 'Submitting Improvements...' : 'Submit Improvements' }}
-                    </button>
+                    </HbButton>
                   </div>
                 </div>
               </div>
@@ -219,12 +220,7 @@
           <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
             <!-- Main Loading Message -->
             <div class="flex items-center gap-3 mb-4">
-              <div class="relative">
-                <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600"></div>
-                <div class="absolute inset-0 flex items-center justify-center">
-                  <div class="h-3 w-3 bg-blue-600 rounded-full animate-pulse"></div>
-                </div>
-              </div>
+              <HbSpinner size="lg" />
               <div class="flex-1">
                 <h4 class="font-semibold text-gray-900 flex items-center gap-2">
                   <span>Evaluating Your Answer</span>
@@ -314,17 +310,16 @@
               Ready to analyze your answers and update your score
             </p>
           </div>
-          <button
+          <HbButton
             @click="submitAllAnswers"
             :disabled="isSubmitting"
-            class="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            :loading="isSubmitting"
+            variant="primary"
+            size="lg"
           >
             <span v-if="!isSubmitting">Submit All Answers</span>
-            <span v-else class="flex items-center gap-2">
-              <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Analyzing...
-            </span>
-          </button>
+            <span v-else>Analyzing...</span>
+          </HbButton>
         </div>
       </div>
     </div>
@@ -334,24 +329,24 @@
       <!-- Score Improvement Banner -->
       <div :class="[
         'rounded-lg shadow-lg p-8 text-center',
-        answersResult.score_improvement > 0
+        answersResult.score_improvement.absolute_change > 0
           ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
           : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
       ]">
         <div class="mb-4">
           <div class="text-6xl font-bold mb-2">
-            {{ answersResult.updated_score }}
+            {{ answersResult.score_improvement.after }}
           </div>
           <div class="text-xl font-medium opacity-90">
             New Compatibility Score
           </div>
         </div>
 
-        <div v-if="answersResult.score_improvement > 0" class="flex items-center justify-center gap-2 text-2xl font-semibold">
+        <div v-if="answersResult.score_improvement.absolute_change > 0" class="flex items-center justify-center gap-2 text-2xl font-semibold">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
           </svg>
-          <span>+{{ answersResult.score_improvement }} points!</span>
+          <span>+{{ answersResult.score_improvement.absolute_change }} points!</span>
         </div>
         <div v-else class="text-xl">
           No change detected
@@ -359,7 +354,7 @@
       </div>
 
       <!-- Uncovered Experiences -->
-      <div v-if="answersResult.uncovered_experiences.length > 0" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div v-if="answersResult.uncovered_experiences && answersResult.uncovered_experiences.length > 0" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -404,18 +399,18 @@
 </template>
 
 <script setup lang="ts">
-import type { GenerateQuestionsResult, SubmitAnswersResult, QuestionAnswer, QuestionItem } from '~/composables/analysis/useAnalysisState'
+import type { GenerateQuestionsResult, QuestionAnswer, QuestionItem } from '~/composables/analysis/useAnalysisState'
 import type { AdaptiveQuestionState, ExperienceLevel } from '~/types/adaptive-questions'
 import { useAnswerSubmitter } from '~/composables/adaptive-questions/useAnswerSubmitter'
 import { useQuestionsStore } from '~/stores/questions/useQuestionsStore'
-import ExperienceCheckModal from './ExperienceCheckModal.vue'
+import ExperienceCheckModal from '../modals/ExperienceCheckModal.vue'
 import AdaptiveQuestionFlow from './AdaptiveQuestionFlow.vue'
 import AnswerQualityDisplay from './AnswerQualityDisplay.vue'
 import AnswerInput from './AnswerInput.vue'
 import QuestionCard from './QuestionCard.vue'
 
-// Re-export AnswerEvaluation type from store for consistency
-import type { AnswerEvaluation } from '~/stores/questions/useQuestionsStore'
+// Import types from store for consistency
+import type { AnswerEvaluation, SubmitAnswersResult } from '~/stores/questions/useQuestionsStore'
 
 interface Props {
   questionsData: GenerateQuestionsResult
@@ -782,9 +777,30 @@ const submitAllAnswers = async () => {
     )
 
     if (result) {
+      // Transform result to match store's expected structure
+      const transformedResult: SubmitAnswersResult = {
+        success: result.success,
+        score_improvement: {
+          before: props.originalScore,
+          after: result.updated_score,
+          absolute_change: result.score_improvement,
+          percentage_change: (result.score_improvement / props.originalScore) * 100
+        },
+        category_improvements: Object.entries(result.category_improvements || {}).map(([category, change]) => ({
+          category,
+          before: 0, // Not available in old format
+          after: 0,  // Not available in old format
+          change: change as number
+        })),
+        uncovered_experiences: result.uncovered_experiences,
+        updated_cv: result.updated_cv,
+        time_seconds: result.time_seconds,
+        model: result.model
+      }
+
       // Store results using store action
-      questionsStore.setAnswersResult(result)
-      emit('answers-submitted', result, answersArray, result.updated_cv)
+      questionsStore.setAnswersResult(transformedResult)
+      emit('answers-submitted', transformedResult, answersArray, result.updated_cv)
     }
   } catch (error: any) {
     alert(error.message || 'Failed to submit answers')

@@ -1,4 +1,4 @@
-import type { GenerateQuestionsResult } from './useAnalysisState'
+import type { GenerateQuestionsResult } from '~/composables/analysis/useAnalysisState'
 
 export const useQuestionGenerator = () => {
   const config = useRuntimeConfig()

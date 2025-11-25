@@ -18,36 +18,7 @@
 
     <!-- Tabbed Interface -->
     <div class="tabs-container">
-      <div class="tabs-header">
-        <button
-          class="tab-button"
-          :class="{ active: activeTab === 'edit' }"
-          @click="activeTab = 'edit'"
-        >
-          ✏️ Edit Resume
-        </button>
-        <button
-          class="tab-button"
-          :class="{ active: activeTab === 'preview' }"
-          @click="activeTab = 'preview'"
-        >
-          📄 Preview
-        </button>
-        <button
-          class="tab-button"
-          :class="{ active: activeTab === 'sample' }"
-          @click="activeTab = 'sample'"
-        >
-          💻 Sample JSON
-        </button>
-        <button
-          class="tab-button"
-          :class="{ active: activeTab === 'parsed' }"
-          @click="activeTab = 'parsed'"
-        >
-          📋 Parsed JSON
-        </button>
-      </div>
+      <HbTabs v-model="activeTabIndex" :tabs="tabsConfig" variant="underline">
 
       <div class="tabs-content">
         <!-- Edit Resume Tab -->
@@ -56,12 +27,12 @@
           <div v-if="hasChanges" class="edit-controls">
             <p class="changes-indicator">✏️ You have unsaved changes</p>
             <div class="control-buttons">
-              <button class="save-button" @click="saveEditedResume">
+              <HbButton variant="primary" @click="saveEditedResume">
                 💾 Save Edited Resume
-              </button>
-              <button class="reset-button" @click="resetChanges">
+              </HbButton>
+              <HbButton variant="outline" @click="resetChanges">
                 ↺ Reset Changes
-              </button>
+              </HbButton>
             </div>
           </div>
 
@@ -71,13 +42,13 @@
               <h3 class="edit-section-title">Professional Summary</h3>
               <div class="edit-field">
                 <label class="edit-label">Summary Text</label>
-                <textarea
+                <HbInput
                   v-model="editableContent.content.professionalSummary"
                   @input="hasChanges = true"
-                  class="edit-input-textarea"
-                  rows="4"
+                  type="textarea"
+                  :rows="4"
                   placeholder="Write your professional summary..."
-                ></textarea>
+                />
               </div>
             </div>
 
@@ -91,13 +62,13 @@
                 </div>
                 <div class="edit-field">
                   <label class="edit-label">Description (supports HTML)</label>
-                  <textarea
+                  <HbInput
                     v-model="editableContent.content.employmentHistory[index].description"
                     @input="hasChanges = true"
-                    class="edit-input-textarea"
-                    rows="6"
+                    type="textarea"
+                    :rows="6"
                     placeholder="Describe your responsibilities and achievements..."
-                  ></textarea>
+                  />
                   <p class="edit-hint">💡 This description has been enhanced with ATS keywords. Feel free to adjust the wording.</p>
                 </div>
               </div>
@@ -113,13 +84,13 @@
 
                 <div class="edit-field">
                   <label class="edit-label">Description</label>
-                  <textarea
+                  <HbInput
                     v-model="editableContent.content.projects[index].description"
                     @input="hasChanges = true"
-                    class="edit-input-textarea"
-                    rows="4"
+                    type="textarea"
+                    :rows="4"
                     placeholder="Describe the project..."
-                  ></textarea>
+                  />
                 </div>
 
                 <!-- Technologies -->
@@ -214,12 +185,12 @@
           <div v-if="hasChanges" class="edit-controls">
             <p class="changes-indicator">✏️ You have unsaved changes</p>
             <div class="control-buttons">
-              <button class="save-button" @click="saveEditedResume">
+              <HbButton variant="primary" @click="saveEditedResume">
                 💾 Save Edited Resume
-              </button>
-              <button class="reset-button" @click="resetChanges">
+              </HbButton>
+              <HbButton variant="outline" @click="resetChanges">
                 ↺ Reset Changes
-              </button>
+              </HbButton>
             </div>
           </div>
 
@@ -430,13 +401,14 @@
         <div v-if="activeTab === 'parsed'" class="tab-pane">
           <div class="tab-pane-header">
             <h4>Backend-Compatible Format (snake_case, plain text)</h4>
-            <button class="copy-button" @click="copyToClipboard(parsedFormat, 'parsed')">
+            <HbButton variant="secondary" size="sm" @click="copyToClipboard(parsedFormat, 'parsed')">
               {{ copiedTab === 'parsed' ? '✓ Copied!' : '📋 Copy JSON' }}
-            </button>
+            </HbButton>
           </div>
           <pre class="json-viewer"><code>{{ JSON.stringify(parsedFormat, null, 2) }}</code></pre>
         </div>
       </div>
+      </HbTabs>
     </div>
   </div>
 </template>
@@ -453,7 +425,21 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const activeTab = ref<'edit' | 'preview' | 'sample' | 'parsed'>('edit')
+// Tabs configuration for HbTabs
+const activeTabIndex = ref(0)
+const tabsConfig = [
+  { label: '✏️ Edit Resume' },
+  { label: '📄 Preview' },
+  { label: '💻 Sample JSON' },
+  { label: '📋 Parsed JSON' }
+]
+
+// Computed property to map tab index to tab name
+const activeTab = computed(() => {
+  const tabMap = ['edit', 'preview', 'sample', 'parsed']
+  return tabMap[activeTabIndex.value] as 'edit' | 'preview' | 'sample' | 'parsed'
+})
+
 const copiedTab = ref<string | null>(null)
 
 // Editable content state

@@ -15,14 +15,16 @@
               </h2>
               <p class="text-purple-100 text-sm mt-1">{{ querySets.length }} domains × 10 queries each = {{ querySets.length * 10 }} total</p>
             </div>
-            <button
+            <HbButton
               @click="$emit('close')"
-              class="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
+              variant="link"
+              size="sm"
+              class="text-white hover:bg-white/20"
             >
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </HbButton>
           </div>
         </div>
 
@@ -31,34 +33,36 @@
           <div class="flex items-center justify-between">
             <div class="flex-1 mr-4">
               <label class="block text-sm font-medium text-gray-700 mb-2">Select Domain</label>
-              <select
+              <HbSelect
                 v-model="selectedDomainIndex"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option v-for="(querySet, index) in querySets" :key="index" :value="index">
-                  {{ querySet.domainName }}
-                </option>
-              </select>
+                :options="domainOptions"
+              />
             </div>
             <div class="flex gap-2">
-              <button
+              <HbButton
                 @click="copyAllForCurrentDomain"
-                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium flex items-center gap-2"
+                variant="outline"
+                size="sm"
               >
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
+                <template #leading-icon>
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </template>
                 Copy All (10)
-              </button>
-              <button
+              </HbButton>
+              <HbButton
                 @click="downloadAllQueries"
-                class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium flex items-center gap-2"
+                variant="primary"
+                size="sm"
               >
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
+                <template #leading-icon>
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </template>
                 Download All
-              </button>
+              </HbButton>
             </div>
           </div>
         </div>
@@ -95,15 +99,18 @@
                       <h4 class="font-medium text-gray-900">{{ query.description }}</h4>
                     </div>
                   </div>
-                  <button
+                  <HbButton
                     @click="copyQuery(query.query)"
-                    class="px-3 py-1.5 text-sm bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors flex items-center gap-2"
+                    variant="secondary"
+                    size="sm"
                   >
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
+                    <template #leading-icon>
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </template>
                     Copy
-                  </button>
+                  </HbButton>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4 font-mono text-sm text-gray-800 break-all">
                   {{ query.query }}
@@ -171,6 +178,14 @@ onMounted(() => {
 
 const selectedQuerySet = computed(() => {
   return querySets.value[selectedDomainIndex.value]
+})
+
+// Domain options for HbSelect
+const domainOptions = computed(() => {
+  return querySets.value.map((querySet, index) => ({
+    value: index,
+    label: querySet.domainName
+  }))
 })
 
 const copyQuery = async (query: string) => {

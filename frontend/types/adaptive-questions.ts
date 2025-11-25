@@ -6,7 +6,7 @@
 export type ExperienceLevel = 'yes' | 'no' | 'willing_to_learn'
 
 // Workflow steps
-export type WorkflowStep = 'check' | 'deep_dive' | 'resources' | 'answer_generation' | 'quality_evaluation' | 'complete'
+export type WorkflowStep = 'check' | 'deep_dive' | 'resources' | 'answer_generation' | 'quality_evaluation' | 'quality_eval' | 'complete'
 
 // Deep dive prompt types
 export type PromptType = 'text' | 'textarea' | 'select' | 'multiselect' | 'number'
@@ -72,6 +72,15 @@ export interface AdaptiveQuestionState {
   deepDiveData?: Record<string, any>
   generatedAnswer?: string
   qualityEvaluation?: QualityEvaluation
+  // Flattened quality evaluation properties (for backward compatibility)
+  qualityScore?: number
+  qualityIssues?: string[]
+  qualityStrengths?: string[]
+  improvementSuggestions?: Array<{
+    issue: string
+    suggestion: string
+    priority: string
+  }>
   finalAnswer?: string
 
   // Learning resources path
@@ -142,6 +151,14 @@ export interface RefineAnswerResponse {
   question_id: string
   refined_answer: string
   quality_score: number
+  quality_issues?: string[]
+  quality_strengths?: string[]
+  improvement_suggestions?: Array<{
+    issue: string
+    suggestion: string
+    priority: string
+  }>
+  is_acceptable: boolean
   final_answer?: string
   current_step: string
   iteration: number

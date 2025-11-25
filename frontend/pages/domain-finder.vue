@@ -10,30 +10,26 @@
 
       <!-- Navigation Links -->
       <div class="mb-6 flex justify-center gap-4">
-        <NuxtLink
-          to="/"
-          class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2"
-        >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Job Matcher
+        <NuxtLink to="/">
+          <HbButton variant="link" size="sm">
+            <template #leading-icon>
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </template>
+            Back to Job Matcher
+          </HbButton>
         </NuxtLink>
       </div>
 
       <!-- Input Card -->
-      <div class="bg-white rounded-xl shadow-xl p-8 mb-8">
+      <HbCard class="mb-8">
         <!-- Language Selector -->
         <div class="mb-6 flex justify-end">
-          <select
+          <HbSelect
             v-model="selectedLanguage"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          >
-            <option value="english">🇬🇧 English</option>
-            <option value="french">🇫🇷 Français</option>
-            <option value="german">🇩🇪 Deutsch</option>
-            <option value="spanish">🇪🇸 Español</option>
-          </select>
+            :options="languageOptions"
+          />
         </div>
 
         <!-- Resume Input -->
@@ -43,36 +39,27 @@
               Your Resume / CV
             </label>
             <div class="flex items-center gap-2">
-              <select
+              <HbSelect
                 v-model="selectedSampleProfile"
-                class="text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <optgroup label="Technical Careers">
-                  <option value="fullstack">Full-Stack Engineer (5 yrs)</option>
-                  <option value="intern">Student Seeking Internship</option>
-                  <option value="uxdesigner">Junior UX Designer (1-2 yrs)</option>
-                </optgroup>
-                <optgroup label="Career Transitions to Tech">
-                  <option value="logistics">Logistics Coordinator (3-4 yrs)</option>
-                  <option value="healthcare">Medical Professional (2-3 yrs)</option>
-                  <option value="lawyer">Lawyer (3-5 yrs)</option>
-                </optgroup>
-              </select>
-              <button
+                :options="sampleProfileOptions"
+                class="text-sm"
+              />
+              <HbButton
                 @click="loadSampleResume"
-                class="text-sm text-green-600 hover:text-green-800 font-medium whitespace-nowrap"
+                variant="link"
+                size="sm"
               >
                 Load Sample
-              </button>
+              </HbButton>
             </div>
           </div>
 
-          <textarea
+          <HbInput
             v-model="resumeText"
-            rows="15"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+            type="textarea"
+            :rows="15"
             placeholder="Paste your resume here (minimum 50 characters)..."
-          ></textarea>
+          />
 
           <div class="flex justify-between items-center mt-2">
             <span class="text-sm" :class="resumeText.length > 6200 ? 'text-amber-600' : 'text-gray-500'">
@@ -86,20 +73,18 @@
 
         <!-- Analyze Button -->
         <div class="mt-6 flex justify-center">
-          <button
+          <HbButton
             @click="analyzeDomains"
             :disabled="isLoading || resumeText.length < 50"
-            class="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            :loading="isLoading"
+            variant="primary"
+            size="lg"
           >
-            <svg v-if="isLoading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
             <span v-if="!isLoading">Analyze My Career Domains</span>
             <span v-else>Analyzing...</span>
-          </button>
+          </HbButton>
         </div>
-      </div>
+      </HbCard>
 
       <!-- Error Message -->
       <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -115,35 +100,43 @@
       </div>
 
       <!-- Loading State -->
-      <div v-if="isLoading" class="bg-white rounded-xl shadow-xl p-12">
+      <HbCard v-if="isLoading" class="p-12">
         <div class="flex flex-col items-center justify-center">
-          <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mb-4"></div>
-          <p class="text-lg font-medium text-gray-700">Analyzing your resume...</p>
+          <HbSpinner size="xl" />
+          <p class="text-lg font-medium text-gray-700 mt-4">Analyzing your resume...</p>
           <p class="text-sm text-gray-500 mt-2">This may take a few seconds</p>
         </div>
-      </div>
+      </HbCard>
 
       <!-- Results -->
-      <div v-if="result && result.success && result.domains" class="bg-white rounded-xl shadow-xl p-8">
+      <HbCard v-if="result && result.success && result.domains">
         <!-- Refresh Button -->
         <div class="mb-6 flex justify-end">
-          <button
+          <HbButton
             @click="refreshResults"
             :disabled="isLoading"
-            class="px-4 py-2 bg-white border-2 border-indigo-600 text-indigo-600 font-medium rounded-lg hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            variant="outline"
           >
-            <svg class="h-4 w-4" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+            <template #leading-icon>
+              <svg class="h-4 w-4" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </template>
             <span>{{ isLoading ? 'Refreshing...' : 'Refresh Results' }}</span>
-          </button>
+          </HbButton>
         </div>
 
         <DomainFinderResult
-          :domains="result.domains"
+          :domains="result.domains ? result.domains.map(d => ({
+            ...d,
+            matching_skills: [...d.matching_skills],
+            skills_to_learn: [...d.skills_to_learn],
+            role_skills_to_learn: [...d.role_skills_to_learn],
+            industry_skills_to_learn: [...d.industry_skills_to_learn]
+          })) : []"
           :time-seconds="result.time_seconds"
         />
-      </div>
+      </HbCard>
 
       <!-- No Results -->
       <div v-if="result && !result.success" class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
@@ -169,6 +162,34 @@ const { findDomains, isLoading, error, result } = useDomainFinder()
 const resumeText = ref('')
 const selectedLanguage = ref('english')
 const selectedSampleProfile = ref('fullstack')
+
+// Language options for HbSelect
+const languageOptions = [
+  { value: 'english', label: '🇬🇧 English' },
+  { value: 'french', label: '🇫🇷 Français' },
+  { value: 'german', label: '🇩🇪 Deutsch' },
+  { value: 'spanish', label: '🇪🇸 Español' }
+]
+
+// Sample profile options for HbSelect
+const sampleProfileOptions = [
+  {
+    label: 'Technical Careers',
+    options: [
+      { value: 'fullstack', label: 'Full-Stack Engineer (5 yrs)' },
+      { value: 'intern', label: 'Student Seeking Internship' },
+      { value: 'uxdesigner', label: 'Junior UX Designer (1-2 yrs)' }
+    ]
+  },
+  {
+    label: 'Career Transitions to Tech',
+    options: [
+      { value: 'logistics', label: 'Logistics Coordinator (3-4 yrs)' },
+      { value: 'healthcare', label: 'Medical Professional (2-3 yrs)' },
+      { value: 'lawyer', label: 'Lawyer (3-5 yrs)' }
+    ]
+  }
+]
 
 const analyzeDomains = async () => {
   await findDomains(resumeText.value, selectedLanguage.value)

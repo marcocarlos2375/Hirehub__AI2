@@ -39,20 +39,23 @@
 
     <!-- Examples (collapsible) -->
     <div v-if="question.examples && question.examples.length > 0" class="mb-4">
-      <button
+      <HbButton
         @click="showExamples = !showExamples"
-        class="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+        variant="link"
+        size="sm"
       >
-        <svg
-          :class="['w-4 h-4 transition-transform', showExamples ? 'rotate-90' : '']"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-        <span class="font-medium">{{ showExamples ? 'Hide' : 'Show' }} examples</span>
-      </button>
+        <template #leading-icon>
+          <svg
+            :class="['w-4 h-4 transition-transform', showExamples ? 'rotate-90' : '']"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </template>
+        {{ showExamples ? 'Hide' : 'Show' }} examples
+      </HbButton>
 
       <transition name="slide-fade">
         <div v-if="showExamples" class="mt-3 pl-6">
@@ -69,15 +72,19 @@
 
           <!-- Zero Experience Button -->
           <div class="mt-4 pt-3 border-t border-gray-200">
-            <button
+            <HbButton
               @click="$emit('need-help')"
-              class="w-full px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+              variant="secondary"
+              size="lg"
+              class="w-full"
             >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <template #leading-icon>
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </template>
               I have zero experience/projects with this skill
-            </button>
+            </HbButton>
             <p class="text-xs text-gray-500 text-center mt-2">
               Get personalized learning resources and create a learning plan
             </p>

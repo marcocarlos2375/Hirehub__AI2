@@ -100,7 +100,15 @@ npm run test              # Watch mode
 npm run test:run          # Run once
 npm run test:ui           # Visual UI (http://localhost:51204)
 npm run test:coverage     # Generate coverage report
+
+# Type checking (run this after making edits)
+npx nuxi typecheck        # Check TypeScript types across entire app
+
+# View UI component library
+# Visit http://localhost:3000/ui-test
 ```
+
+**IMPORTANT:** Always run `npx nuxi typecheck` after making edits to Vue components or TypeScript files to catch type errors early. This helps maintain type safety and prevents runtime errors.
 
 ### Running Tests
 
@@ -286,13 +294,15 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 **Pages:**
 - `pages/index.vue` - Landing page with job/CV input
 - `pages/analyze.vue` - Multi-phase analysis interface with sidebar navigation
+- `pages/domain-finder.vue` - Career domain finder standalone page
+- `pages/ui-test.vue` - HireHub UI Components showcase/test page
 
 **Composables (Vue Composition API):**
 - `useAnalysisState.ts` - Global state management for analysis pipeline
 - `useJobParser.ts` - Job description parsing
 - `useCVParser.ts` - Resume/CV parsing
 - `useScoreCalculator.ts` - Compatibility scoring
-- `useAdaptiveQuestions.ts` - **NEW:** Adaptive questions workflow (LangGraph integration)
+- `useAdaptiveQuestions.ts` - Adaptive questions workflow (LangGraph integration)
 - `useQuestionGenerator.ts` - Legacy question generation (being phased out)
 - `useVoiceRecorder.ts` - Audio recording for voice answers
 - `useAudioTranscriber.ts` - Audio transcription (Parakeet/Whisper)
@@ -304,11 +314,25 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 - `useSampleResumes.ts` - Sample resume data
 
 **Components:**
+
+*Application Components:*
 - Results display: `JobParsingResult.vue`, `CVParsingResult.vue`, `ScoreResult.vue`, `QuestionsResult.vue`, `ResumeRewriteResult.vue`, `CoverLetterResult.vue`, `DomainFinderResult.vue`
-- Adaptive Questions: `AdaptiveQuestionFlow.vue` - **NEW:** Main adaptive workflow UI, `AnswerQualityDisplay.vue` - **NEW:** Quality feedback display
+- Adaptive Questions: `AdaptiveQuestionFlow.vue` - Main adaptive workflow UI, `AnswerQualityDisplay.vue` - Quality feedback display
 - UI elements: `ProgressIndicator.vue`, `LoadingSpinner.vue`, `WaitingMessage.vue`, `AnalysisSidebar.vue`
 - Input: `QuestionCard.vue`, `AnswerInput.vue` (with voice recording)
 - Modals: `JobSearchQueriesModal.vue`
+- Cards: `GapCard.vue` - Gap analysis display card
+
+*HireHub UI Component Library (51 components in `components/base/`):*
+- **Auto-imported with `Hb` prefix** - Use `<HbButton>`, `<HbModal>`, etc. without imports
+- **Form Components (10):** HbInput, HbCheckbox, HbRadio, HbToggle, HbSelect, HbRange, HbDatepicker, HbDateInput, HbDateMonthYear, HbSingleCheckbox
+- **UI Components (21):** HbButton, HbBadge, HbSpinner, HbIconSpinner, HbCard, HbCardSelect, HbModal, HbModalFullscreen, HbSidebar, HbBreadcrumbs, HbPagination, HbTabs, HbStepper, HbProgressBar, HbSegmentedProgress, HbSemicircleProgress, HbNotification, HbTooltip, HbPulsingIcon, HbPills, HbTagPills
+- **Data Display (9):** HbTable, HbTableActions, HbAvatar, HbImg, HbVideo, HbFile, HbFileImage, HbIcon, HbCounter
+- **Rich Content (7):** HbWysiwyg, HbImageEditor, HbProfilePicture, HbColor, HbColorPicker, HbColorPalette, HbColorPaletteLocked
+- **Miscellaneous (4):** HbSlider, HbSnake, LanguageBar, SpellErrorMark
+- **Design System:** CSS variables (`assets/css/var.css`), typography (Gabarito, Outfit, Wix Madefor Text), 51 SVG icons (`assets/icons/`)
+- **Full TypeScript support** via `types/components.d.ts` and `types/globals.d.ts`
+- See `frontend/HIREHUB_UI_INTEGRATION.md` for detailed documentation
 
 ### Data Flow
 
@@ -432,6 +456,39 @@ The frontend uses composables for state management:
 - Each phase stores its results in the shared state
 - Use `selectedStepId` to control which phase is displayed
 
+### Using HireHub UI Components
+
+All HireHub UI components are auto-imported with the `Hb` prefix:
+
+```vue
+<template>
+  <!-- No imports needed - use components directly -->
+  <HbButton variant="primary" @click="handleClick">Submit</HbButton>
+  <HbModal v-model="showModal" title="Confirmation">
+    <p>Are you sure?</p>
+  </HbModal>
+  <HbInput v-model="email" placeholder="Email" />
+  <HbSpinner size="md" v-if="loading" />
+</template>
+
+<script setup lang="ts">
+// Optional: Import types for TypeScript support
+import type { HbButtonProps } from '~/types/components'
+
+const showModal = ref(false)
+const email = ref('')
+const loading = ref(false)
+</script>
+```
+
+**Component Variants:**
+- **HbButton:** 11 variants (primary, secondary, outline, ghost, danger, etc.), 3 sizes, loading states
+- **HbBadge:** 7 variants (primary, secondary, success, warning, danger, info, default)
+- **HbModal:** 10 size variants (sm → 7xl)
+- **HbSpinner:** 5 sizes (xs, sm, md, lg, xl)
+
+See `frontend/HIREHUB_UI_INTEGRATION.md` and test page at http://localhost:3000/ui-test for examples.
+
 ### Adding New API Endpoints
 
 1. Define Pydantic models for request/response in `app/main.py`
@@ -484,25 +541,48 @@ frontend/
 ├── pages/
 │   ├── index.vue          # Landing page
 │   ├── analyze.vue        # Main analysis interface
-│   └── domain-finder.vue  # Career domain finder
-├── components/             # Vue components
-│   ├── AdaptiveQuestionFlow.vue    # NEW: Adaptive workflow UI
-│   └── AnswerQualityDisplay.vue    # NEW: Quality feedback UI
-├── composables/            # Composition API composables
-│   ├── useAdaptiveQuestions.ts     # NEW: LangGraph workflow client
+│   ├── domain-finder.vue  # Career domain finder
+│   ├── ui-test.vue        # HireHub UI Components showcase
+│   └── skeleton.vue       # UI skeleton/loading states
+├── components/
+│   ├── base/              # HireHub UI Components (51 components, auto-imported with Hb prefix)
+│   ├── adaptive-questions/  # Adaptive questions workflow components
+│   ├── results/           # Result display components
+│   ├── modals/            # Modal components
+│   ├── learning/          # Learning resource components
+│   └── cards/             # Card components (GapCard, etc.)
+├── composables/           # Composition API composables
+│   ├── useAdaptiveQuestions.ts     # LangGraph workflow client
 │   └── ...                # Other composables
-├── tests/                  # NEW: Test suite
+├── assets/
+│   ├── css/
+│   │   ├── var.css        # HireHub UI CSS variables (design tokens)
+│   │   └── main.css       # HireHub UI base styles
+│   └── icons/             # 51 SVG icons for HbIcon component
+├── types/
+│   ├── components.d.ts    # HireHub UI component type definitions
+│   ├── globals.d.ts       # Global TypeScript types
+│   └── adaptive-questions.ts  # Adaptive questions types
+├── tests/                 # Test suite
 │   ├── setup.ts           # Test configuration
 │   ├── unit/              # Composable unit tests
 │   └── integration/       # Workflow integration tests
-├── vitest.config.ts        # NEW: Vitest configuration
-├── TESTING_README.md       # NEW: Testing documentation
-└── utils/                  # Frontend utilities
+├── stores/
+│   └── useQuestionsStore.ts  # Pinia store for questions workflow
+├── vitest.config.ts       # Vitest configuration
+├── TESTING_README.md      # Testing documentation
+├── HIREHUB_UI_INTEGRATION.md  # HireHub UI Components integration guide
+└── utils/                 # Frontend utilities
 
 docs/                       # Documentation
 ├── pipeline.md            # Full pipeline example with data
 ├── TOON_FORMAT_EXPLAINED.md  # TOON format guide
 └── TOON_IMPROVEMENTS.md   # TOON optimization notes
+
+hirehub-ui-components/     # Original UI component library source
+├── README.md              # Component library documentation
+├── MIGRATION_GUIDE.md     # Migration guide from original library
+└── INDEX.md               # Component catalog and reference
 
 Root-level test scripts:   # Quick prototyping tests
 ├── test_*.py              # Various feature tests
@@ -586,6 +666,17 @@ curl "http://localhost:8888/search?q=Python+tutorial&format=json"
    - Verify API endpoint URLs match backend routes
    - See `frontend/TESTING_README.md` for troubleshooting
 
+7. **TypeScript errors after editing components:**
+   - Always run `npx nuxi typecheck` after editing Vue/TypeScript files
+   - Check type definitions in `types/components.d.ts` and `types/globals.d.ts`
+   - Ensure component props match type interfaces
+
+8. **HireHub UI Components not appearing:**
+   - Verify `components/base/` directory contains all components
+   - Check `nuxt.config.ts` has correct component auto-import configuration
+   - Ensure CSS files are imported in `nuxt.config.ts` css array
+   - View test page at http://localhost:3000/ui-test to verify integration
+
 ## Important Notes
 
 - **Token Optimization:** Always use TOON format for CV/JD in prompts (see `formats/toon.py` and `docs/TOON_FORMAT_EXPLAINED.md`)
@@ -614,9 +705,16 @@ curl "http://localhost:8888/search?q=Python+tutorial&format=json"
   - Legacy `/api/generate-questions` and `/api/submit-answers` being phased out
   - New endpoints under `/api/adaptive-questions/*` use LangGraph workflow
   - Both systems currently coexist for backward compatibility
+- **HireHub UI Components:**
+  - 51 components auto-imported with `Hb` prefix (no manual imports needed)
+  - Complete design system with CSS variables, typography, and icons
+  - Full TypeScript support via `types/components.d.ts`
+  - See `frontend/HIREHUB_UI_INTEGRATION.md` for integration details
+  - Test page at http://localhost:3000/ui-test shows all components
 - **Testing:**
   - Frontend tests use Vitest with mocked API calls
   - Backend tests organized by type (unit/integration/debug)
   - Root-level `test_*.py` files are for rapid prototyping
+  - Always run `npx nuxi typecheck` after editing Vue/TypeScript files
 - **Error Handling:** All API endpoints include try/except with HTTPException
 - **Validation:** Input validation on both frontend and backend (min 50 chars for job/CV)

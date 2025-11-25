@@ -51,7 +51,7 @@
           </div>
           <div class="mt-2 bg-gray-200 rounded-full h-2">
             <div
-              class="h-2 rounded-full transition-all duration-500"
+              class="h-2  transition-all duration-500"
               :class="getScoreBarClass(category.score)"
               :style="{ width: category.score + '%' }"
             ></div>
@@ -73,31 +73,12 @@
           <h3 class="text-lg font-semibold text-gray-900">Critical Gaps ({{ data.gaps.critical.length }})</h3>
         </div>
         <div class="space-y-3">
-          <div
+          <GapCard
             v-for="gap in data.gaps.critical"
             :key="gap.id"
-            class="bg-red-50 border-l-4 border-red-500 rounded-lg p-4"
-          >
-            <div class="flex justify-between items-start mb-2">
-              <h4 class="font-semibold text-gray-900">{{ gap.title }}</h4>
-              <span class="text-sm font-medium text-red-700">{{ gap.impact }}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-sm mb-2">
-              <div>
-                <span class="text-gray-600">Current:</span>
-                <span class="ml-1 text-gray-900">{{ gap.current }}</span>
-              </div>
-              <div>
-                <span class="text-gray-600">Required:</span>
-                <span class="ml-1 text-gray-900">{{ gap.required }}</span>
-              </div>
-            </div>
-            <p class="text-sm text-gray-700 mb-2">{{ gap.description }}</p>
-            <div class="flex gap-3 text-xs text-gray-600">
-              <span class="bg-white px-2 py-1 rounded capitalize">{{ gap.addressability }}</span>
-              <span v-if="gap.timeframe_to_address" class="bg-white px-2 py-1 rounded">{{ gap.timeframe_to_address }}</span>
-            </div>
-          </div>
+            variant="critical"
+            :gap="gap"
+          />
         </div>
       </div>
 
@@ -110,31 +91,12 @@
           <h3 class="text-lg font-semibold text-gray-900">Important Gaps ({{ data.gaps.important.length }})</h3>
         </div>
         <div class="space-y-3">
-          <div
+          <GapCard
             v-for="gap in data.gaps.important"
             :key="gap.id"
-            class="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4"
-          >
-            <div class="flex justify-between items-start mb-2">
-              <h4 class="font-semibold text-gray-900">{{ gap.title }}</h4>
-              <span class="text-sm font-medium text-amber-700">{{ gap.impact }}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-sm mb-2">
-              <div>
-                <span class="text-gray-600">Current:</span>
-                <span class="ml-1 text-gray-900">{{ gap.current }}</span>
-              </div>
-              <div>
-                <span class="text-gray-600">Required:</span>
-                <span class="ml-1 text-gray-900">{{ gap.required }}</span>
-              </div>
-            </div>
-            <p class="text-sm text-gray-700 mb-2">{{ gap.description }}</p>
-            <div class="flex gap-3 text-xs text-gray-600">
-              <span class="bg-white px-2 py-1 rounded capitalize">{{ gap.addressability }}</span>
-              <span v-if="gap.timeframe_to_address" class="bg-white px-2 py-1 rounded">{{ gap.timeframe_to_address }}</span>
-            </div>
-          </div>
+            variant="important"
+            :gap="gap"
+          />
         </div>
       </div>
 
@@ -147,18 +109,12 @@
           <h3 class="text-lg font-semibold text-gray-900">Nice-to-Have Gaps ({{ data.gaps.nice_to_have.length }})</h3>
         </div>
         <div class="space-y-3">
-          <div
+          <GapCard
             v-for="gap in data.gaps.nice_to_have"
             :key="gap.id"
-            class="bg-green-50 border-l-4 border-green-500 rounded-lg p-4"
-          >
-            <div class="flex justify-between items-start mb-2">
-              <h4 class="font-semibold text-gray-900">{{ gap.title }}</h4>
-              <span class="text-sm font-medium text-green-700">{{ gap.impact }}</span>
-            </div>
-            <p class="text-sm text-gray-700 mb-2">{{ gap.description }}</p>
-            <span class="text-xs text-gray-600 bg-white px-2 py-1 rounded capitalize">{{ gap.addressability }}</span>
-          </div>
+            variant="nice-to-have"
+            :gap="gap"
+          />
         </div>
       </div>
 
@@ -171,17 +127,12 @@
           <h3 class="text-lg font-semibold text-gray-900">Logistical Gaps ({{ data.gaps.logistical.length }})</h3>
         </div>
         <div class="space-y-3">
-          <div
+          <GapCard
             v-for="gap in data.gaps.logistical"
             :key="gap.id"
-            class="bg-gray-50 border-l-4 border-gray-500 rounded-lg p-4"
-          >
-            <div class="flex justify-between items-start mb-2">
-              <h4 class="font-semibold text-gray-900">{{ gap.title }}</h4>
-              <span class="text-sm font-medium text-gray-700">{{ gap.impact }}</span>
-            </div>
-            <p class="text-sm text-gray-700">{{ gap.description }}</p>
-          </div>
+            variant="logistical"
+            :gap="gap"
+          />
         </div>
       </div>
 
@@ -240,6 +191,7 @@
 
 <script setup lang="ts">
 import type { ScoreResponse } from '~/composables/analysis/useScoreCalculator'
+import GapCard from '~/components/cards/GapCard.vue'
 
 interface Props {
   data: ScoreResponse

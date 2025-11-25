@@ -9,30 +9,26 @@
 
       <!-- Navigation Links -->
       <div class="mb-6 flex justify-center gap-4">
-        <NuxtLink
-          to="/domain-finder"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
-        >
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          Discover Career Domains
+        <NuxtLink to="/domain-finder">
+          <HbButton variant="secondary">
+            <template #leading-icon>
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </template>
+            Discover Career Domains
+          </HbButton>
         </NuxtLink>
       </div>
 
       <!-- Input Card -->
-      <div class="bg-white rounded-xl shadow-xl p-8">
+      <HbCard>
         <!-- Language Selector -->
         <div class="mb-6 flex justify-end">
-          <select
+          <HbSelect
             v-model="selectedLanguage"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          >
-            <option value="english">🇬🇧 English</option>
-            <option value="french">🇫🇷 Français</option>
-            <option value="german">🇩🇪 Deutsch</option>
-            <option value="spanish">🇪🇸 Español</option>
-          </select>
+            :options="languageOptions"
+          />
         </div>
 
         <!-- Dual Input Grid -->
@@ -44,28 +40,27 @@
                 Job Description
               </label>
               <div class="flex items-center gap-2">
-                <select
+                <HbSelect
                   v-model="selectedSampleType"
-                  class="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
-                >
-                  <option value="poor-match">AI/ML Engineer (Poor Match ~16%)</option>
-                  <option value="good-match">Backend Engineer (Good Match ~75%)</option>
-                </select>
-                <button
+                  :options="sampleTypeOptions"
+                  class="text-xs"
+                />
+                <HbButton
                   @click="loadSampleJob"
-                  class="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                  variant="link"
+                  size="sm"
                 >
                   Load Sample
-                </button>
+                </HbButton>
               </div>
             </div>
 
-            <textarea
+            <HbInput
               v-model="jobDescription"
-              rows="15"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+              type="textarea"
+              :rows="15"
               placeholder="Paste job description here (minimum 50 characters)..."
-            ></textarea>
+            />
 
             <div class="flex justify-between items-center mt-2">
               <span class="text-sm" :class="jobDescription.length > 6200 ? 'text-amber-600' : 'text-gray-500'">
@@ -83,20 +78,21 @@
               <label class="block text-sm font-semibold text-gray-700">
                 CV / Resume
               </label>
-              <button
+              <HbButton
                 @click="loadSampleCV"
-                class="text-sm text-green-600 hover:text-green-800 font-medium"
+                variant="link"
+                size="sm"
               >
                 Load Sample
-              </button>
+              </HbButton>
             </div>
 
-            <textarea
+            <HbInput
               v-model="cvText"
-              rows="15"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+              type="textarea"
+              :rows="15"
               placeholder="Paste resume/CV here (minimum 50 characters)..."
-            ></textarea>
+            />
 
             <div class="flex justify-between items-center mt-2">
               <span class="text-sm" :class="cvText.length > 6200 ? 'text-amber-600' : 'text-gray-500'">
@@ -110,23 +106,25 @@
         </div>
 
         <!-- Next Button -->
-        <button
+        <HbButton
           @click="handleNext"
           :disabled="!isValidInput"
-          class="w-full bg-indigo-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200 shadow-lg"
+          variant="primary"
+          size="lg"
+          class="w-full"
         >
           <span v-if="isValidInput">
             Analyze Compatibility →
           </span>
-          <span v-else class="text-gray-400">
+          <span v-else>
             Please enter both JD and CV (minimum 50 characters each)
           </span>
-        </button>
+        </HbButton>
 
         <p class="mt-4 text-center text-sm text-gray-600">
           Advanced analysis using embeddings, semantic matching, and AI-powered gap analysis
         </p>
-      </div>
+      </HbCard>
 
       <!-- Info Footer -->
       <div class="mt-8 text-center text-sm text-gray-600">
@@ -145,6 +143,20 @@ const cvText = ref('')
 
 const { setInput } = useAnalysisState()
 const router = useRouter()
+
+// Language options for HbSelect
+const languageOptions = [
+  { value: 'english', label: '🇬🇧 English' },
+  { value: 'french', label: '🇫🇷 Français' },
+  { value: 'german', label: '🇩🇪 Deutsch' },
+  { value: 'spanish', label: '🇪🇸 Español' }
+]
+
+// Sample type options for HbSelect
+const sampleTypeOptions = [
+  { value: 'poor-match', label: 'AI/ML Engineer (Poor Match ~16%)' },
+  { value: 'good-match', label: 'Backend Engineer (Good Match ~75%)' }
+]
 
 const isValidInput = computed(() => {
   return jobDescription.value.length >= 50 && cvText.value.length >= 50

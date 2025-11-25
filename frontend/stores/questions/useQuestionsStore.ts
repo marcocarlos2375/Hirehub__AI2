@@ -50,6 +50,7 @@ export interface SubmitAnswersResult {
     after: number
     change: number
   }>
+  uncovered_experiences?: string[]
   updated_cv: any
   time_seconds: number
   model: string

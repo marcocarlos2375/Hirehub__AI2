@@ -109,10 +109,10 @@
 </template>
 
 <script setup lang="ts">
-import type { LearningResourceItem } from '~/composables/adaptive-questions/useAdaptiveQuestions'
+import type { LearningResource } from '~/types/adaptive-questions'
 
 interface Props {
-  resource: LearningResourceItem
+  resource: LearningResource
   showAddButton?: boolean
 }
 

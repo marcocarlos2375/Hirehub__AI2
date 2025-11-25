@@ -289,7 +289,7 @@ export const useAdaptiveQuestions = () => {
     language: string = 'english'
   ): Promise<AnswerEvaluationResponse> => {
     try {
-      const data = await $fetch('/api/evaluate-answer', {
+      const data = await $fetch<AnswerEvaluationResponse>('/api/evaluate-answer', {
         method: 'POST',
         baseURL: config.public.apiBase,
         body: {

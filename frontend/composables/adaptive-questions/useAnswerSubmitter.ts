@@ -1,4 +1,4 @@
-import type { SubmitAnswersResult, QuestionItem, QuestionAnswer } from './useAnalysisState'
+import type { SubmitAnswersResult, QuestionItem, QuestionAnswer } from '~/composables/analysis/useAnalysisState'
 
 export const useAnswerSubmitter = () => {
   const config = useRuntimeConfig()

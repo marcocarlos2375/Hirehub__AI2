@@ -1,0 +1,309 @@
+:root {
+    /* Color System */
+
+    /* Primary Colors - Blue #0ea5e9 */
+    --primary-50: #f0f9ff;
+    --primary-100: #e0f2fe;
+    --primary-200: #bae6fd;
+    --primary-300: #7dd3fc;
+    --primary-400: #38bdf8;
+    --primary-500: #0ea5e9;
+    /* Base color */
+    --primary-500-rgb: 14, 165, 233;
+    /* RGB values for opacity */
+    --primary-600: #0284c7;
+    --primary-700: #0369a1;
+    --primary-800: #075985;
+    --primary-900: #0c4a6e;
+    --primary-950: #082f49;
+    --primary-1000: #042036;
+
+
+    /* Secondary Colors - Green #5bd692 */
+    --secondary-50: #eefbf4;
+    --secondary-100: #d3f5e0;
+    --secondary-200: #b8efcc;
+    --secondary-300: #9ce9b8;
+    --secondary-400: #81e2a5;
+    --secondary-500: #5bd692;
+    /* Base color */
+    --secondary-500-rgb: 91, 214, 146;
+    /* RGB values for opacity */
+    --secondary-600: #49ab75;
+    --secondary-700: #378058;
+    --secondary-800: #24563b;
+    --secondary-900: #122b1d;
+    --secondary-950: #09150e;
+
+    /* Gray Scale */
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --gray-950: #030712;
+
+    /* Semantic Colors */
+    --success-50: #ecfdf5;
+    --success-100: #d1fae5;
+    --success-500: #10b981;
+    --success-600: #059669;
+    --success-700: #047857;
+
+    --danger-50: #fef2f2;
+    --danger-100: #fee2e2;
+    --danger-500: #ef4444;
+    --danger-500-rgb: 239, 68, 68;
+    /* RGB values for opacity */
+    --danger-600: #dc2626;
+    --danger-700: #b91c1c;
+
+    --warning-50: #fffbeb;
+    --warning-100: #fef3c7;
+    --warning-500: #f59e0b;
+    --warning-600: #d97706;
+    --warning-700: #b45309;
+
+    --info-50: #eff6ff;
+    --info-100: #dbeafe;
+    --info-500: #3b82f6;
+    --info-600: #2563eb;
+    --info-700: #1d4ed8;
+
+    /* Neutral Colors */
+    --white: #ffffff;
+    --black: #000000;
+    --transparent: transparent;
+
+    /* Typography */
+
+    /* Font Families */
+    --font-heading: 'Gabarito','Arial', sans-serif;
+    --font-body: 'Outfit', sans-serif;
+    --font-text: 'Wix Madefor Text', sans-serif;
+
+    /* Font Family Stacks */
+    --font-sans: 'Wix Madefor Text', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+    /* Font Sizes */
+    --text-xs: 0.75rem;
+    /* 12px */
+    --text-sm: 0.875rem;
+    /* 14px */
+    --text-base: 1rem;
+    /* 16px */
+    --text-md: 1.0625rem;
+    /* 17px - our body text */
+    --text-lg: 1.125rem;
+    /* 18px */
+    --text-xl: 1.25rem;
+    /* 20px */
+    --text-2xl: 1.5rem;
+    /* 24px */
+    --text-3xl: 1.875rem;
+    /* 30px */
+    --text-4xl: 2.25rem;
+    /* 36px */
+    --text-5xl: 3rem;
+    /* 48px */
+
+    /* Font Weights */
+    --font-light: 300;
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+
+    /* Line Heights */
+    --leading-none: 1;
+    --leading-tight: 1.25;
+    --leading-snug: 1.375;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.625;
+    --leading-loose: 2;
+
+    /* Spacing System */
+    --spacing-0: 0;
+    --spacing-px: 1px;
+    --spacing-0-5: 0.125rem;
+    /* 2px */
+    --spacing-1: 0.25rem;
+    /* 4px */
+    --spacing-1-5: 0.375rem;
+    /* 6px */
+    --spacing-2: 0.5rem;
+    /* 8px */
+    --spacing-2-5: 0.625rem;
+    /* 10px */
+    --spacing-3: 0.75rem;
+    /* 12px */
+    --spacing-3-5: 0.875rem;
+    /* 14px */
+    --spacing-4: 1rem;
+    /* 16px */
+    --spacing-5: 1.25rem;
+    /* 20px */
+    --spacing-6: 1.5rem;
+    /* 24px */
+    --spacing-7: 1.75rem;
+    /* 28px */
+    --spacing-8: 2rem;
+    /* 32px */
+    --spacing-9: 2.25rem;
+    /* 36px */
+    --spacing-10: 2.5rem;
+    /* 40px */
+    --spacing-11: 2.75rem;
+    /* 44px */
+    --spacing-12: 3rem;
+    /* 48px */
+    --spacing-14: 3.5rem;
+    /* 56px */
+    --spacing-16: 4rem;
+    /* 64px */
+    --spacing-20: 5rem;
+    /* 80px */
+    --spacing-24: 6rem;
+    /* 96px */
+    --spacing-28: 7rem;
+    /* 112px */
+    --spacing-32: 8rem;
+    /* 128px */
+
+    /* Border Radius */
+    --radius-none: 0;
+    --radius-sm: 0.125rem;
+    /* 2px */
+    --radius-md: 0.25rem;
+    /* 4px */
+    --radius-lg: 0.5rem;
+    /* 8px */
+    --radius-xl: 0.75rem;
+    /* 12px */
+    --radius-2xl: 1rem;
+    /* 16px */
+    --radius-3xl: 1.5rem;
+    /* 24px */
+    --radius-full: 9999px;
+
+    /* Shadows */
+    --shadow-none: none;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+
+    /* Z-index */
+    --z-0: 0;
+    --z-10: 10;
+    --z-20: 20;
+    --z-30: 30;
+    --z-40: 40;
+    --z-50: 50;
+    --z-auto: auto;
+
+    /* Transitions */
+    --transition-fast: 150ms;
+    --transition-normal: 250ms;
+    --transition-slow: 350ms;
+    --transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --transition-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --transition-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Backgrounds */
+    --bg-primary-dark: var(--primary-900);
+    --bg-secondary-dark: var(--secondary-900);
+    --bg-pattern: url('/assets/svg/pattern-background.svg');
+    --bg-pattern-waves: url('/assets/svg/pattern-waves.svg');
+
+    /* Gradients */
+    --gradient-primary-horizontal: linear-gradient(to right, var(--primary-300), var(--primary-600));
+    --gradient-secondary-horizontal: linear-gradient(to right, var(--secondary-300), var(--secondary-600));
+    --gradient-primary-vertical: linear-gradient(to bottom, var(--primary-300), var(--primary-600));
+    --gradient-primary-to-secondary: linear-gradient(45deg, var(--primary-500), var(--secondary-500));
+
+    /* Width and Height */
+    --width-xs: 20rem;
+    /* 320px */
+    --width-sm: 24rem;
+    /* 384px */
+    --width-md: 28rem;
+    /* 448px */
+    --width-lg: 32rem;
+    /* 512px */
+    --width-xl: 36rem;
+    /* 576px */
+    --width-2xl: 42rem;
+    /* 672px */
+    --width-3xl: 48rem;
+    /* 768px */
+    --width-4xl: 56rem;
+    /* 896px */
+    --width-5xl: 64rem;
+    /* 1024px */
+    --width-6xl: 72rem;
+    /* 1152px */
+    --width-7xl: 80rem;
+    /* 1280px */
+    --width-full: 100%;
+
+    /* Form Elements */
+    /* Standard height for input elements */
+    --width-screen: 100vw;
+    --width-min: min-content;
+    --width-max: max-content;
+    --width-fit: fit-content;
+
+    --height-xs: 20rem;
+    /* 320px */
+    --height-sm: 24rem;
+    /* 384px */
+    --height-md: 28rem;
+    /* 448px */
+    --height-lg: 32rem;
+    /* 512px */
+    --height-xl: 36rem;
+    /* 576px */
+    --height-2xl: 42rem;
+    /* 672px */
+    --height-full: 100%;
+    --height-screen: 100vh;
+    --height-min: min-content;
+    --height-max: max-content;
+    --height-fit: fit-content;
+
+    /* Component Specific */
+
+    /* Input Fields */
+    --input-height: 45px;
+    /* Standard height for input elements - matches button height */
+    --input-padding: 0.75rem 1rem;
+    --input-border-color: var(--gray-200);
+    --input-border-radius: var(--radius-lg);
+    --input-focus-ring: 0 0 0 2px rgba(14, 165, 233, 0.2);
+
+    /* Buttons */
+    --button-sm-padding: 0.375rem 0.75rem;
+    --button-md-padding: 0.5rem 1rem;
+    --button-lg-padding: 0.625rem 1.25rem;
+    --button-border-radius: var(--radius-lg);
+
+    /* Cards */
+    --card-padding: var(--spacing-5);
+    --card-border-radius: var(--radius-lg);
+    --card-border-color: var(--gray-200);
+
+    /* Form Elements */
+    --checkbox-size: 1.25rem;
+    --radio-size: 1.25rem;
+    --select-height: var(--input-height);
+}

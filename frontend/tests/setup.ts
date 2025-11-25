@@ -2,15 +2,15 @@ import { vi } from 'vitest'
 import { ref, computed, watch } from 'vue'
 
 // Mock Nuxt composables
-global.useRuntimeConfig = vi.fn(() => ({
+;(global as any).useRuntimeConfig = vi.fn(() => ({
   public: {
     apiBase: 'http://localhost:8001'
   }
 }))
 
-global.$fetch = vi.fn()
+;(global as any).$fetch = vi.fn() as any
 
 // Make Vue reactivity APIs globally available
-global.ref = ref
-global.computed = computed
-global.watch = watch
+;(global as any).ref = ref
+;(global as any).computed = computed
+;(global as any).watch = watch

@@ -18,12 +18,12 @@
 
     <!-- Action Buttons -->
     <div class="actions">
-      <button class="action-button primary" @click="copyToClipboard">
+      <HbButton variant="primary" @click="copyToClipboard">
         {{ copied ? '✓ Copied!' : '📋 Copy to Clipboard' }}
-      </button>
-      <button class="action-button secondary" @click="downloadAsText">
+      </HbButton>
+      <HbButton variant="secondary" @click="downloadAsText">
         📥 Download as .txt
-      </button>
+      </HbButton>
     </div>
   </div>
 </template>

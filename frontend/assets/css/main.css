@@ -1,0 +1,299 @@
+/* Import local Gabarito font declarations */
+/* @import '../fonts/style.css'; */ /* COMMENTED OUT: Fonts loaded via nuxt.config.ts */
+
+
+/* Google Fonts for Outfit and Wix Madefor Text */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Wix+Madefor+Text:ital,wght@0,400..800;1,400..800&display=swap');
+
+/* @import './var.css'; */ /* COMMENTED OUT: Imported separately in nuxt.config.ts */
+/* @import url('./pattern.css'); */ /* COMMENTED OUT: File doesn't exist */
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        /* font-family: var(--font-text); */
+        font-weight: var(--font-light);
+        font-size: var(--text-md);
+        color: var(--primary-950);
+        font-family: "Gabarito", "Arial", sans-serif;
+      
+        line-height: 1.5;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        text-size-adjust: 100%;
+        background-color: #f9f9f9;
+        
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: "Gabarito", "Arial", sans-serif;
+      
+        line-height: 1.5;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        text-size-adjust: 100%;
+    }
+}
+
+.fon-light {
+    font-weight: var(--font-light);
+}
+.font-heading {
+    font-weight: var(--font-heading);
+      
+        line-height: 1.5;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        text-size-adjust: 100%;
+}
+
+@layer utilities {
+    .font-light {
+        font-weight: var(--font-light);
+    }
+
+    .font-gabarito {
+        font-family: var(--font-heading);
+        line-height: 1.5;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        text-size-adjust: 100%;
+    }
+}
+
+.fw-500 {
+    font-weight: var(--font-medium);
+}
+
+.font-super-bold {
+    font-weight: var(--font-bold);
+}
+
+.text-dark {
+    font-family: var(--font-text);
+    font-weight: 200;
+}
+
+.text-primary {
+    color: var(--primary-500);
+}
+
+.bg-primary-1000 {
+    background-color: var(--primary-1000);
+}
+
+.bg-primary-900 {
+    background-color: var(--primary-900);
+}
+
+.bg-pattern-light {
+    background-color: #082f49 !important;
+
+}
+
+.text-secondary {
+    color: var(--secondary-500);
+}
+
+.font-bold {
+    font-weight: bold;
+}
+
+/* Secondary Background Colors */
+.bg-secondary-50 {
+    background-color: var(--secondary-50);
+}
+
+.bg-secondary-100 {
+    background-color: var(--secondary-100);
+}
+
+.bg-secondary-200 {
+    background-color: var(--secondary-200);
+}
+
+.bg-secondary-300 {
+    background-color: var(--secondary-300);
+}
+
+.bg-secondary-400 {
+    background-color: var(--secondary-400);
+}
+
+.bg-secondary-500 {
+    background-color: var(--secondary-500);
+}
+
+.bg-secondary-600 {
+    background-color: var(--secondary-600);
+}
+
+.bg-secondary-700 {
+    background-color: var(--secondary-700);
+}
+
+.bg-secondary-800 {
+    background-color: var(--secondary-800);
+}
+
+.bg-secondary-900 {
+    background-color: var(--secondary-900);
+}
+
+.bg-secondary-950 {
+    background-color: var(--secondary-950);
+}
+
+/* Secondary Text Colors */
+.text-secondary-50 {
+    color: var(--secondary-50);
+}
+
+.text-secondary-100 {
+    color: var(--secondary-100);
+}
+
+.text-secondary-200 {
+    color: var(--secondary-200);
+}
+
+.text-secondary-300 {
+    color: var(--secondary-300);
+}
+
+.text-secondary-400 {
+    color: var(--secondary-400);
+}
+
+.text-secondary-500 {
+    color: var(--secondary-500);
+}
+
+.text-secondary-600 {
+    color: var(--secondary-600);
+}
+
+.text-secondary-700 {
+    color: var(--secondary-700);
+}
+
+.text-secondary-800 {
+    color: var(--secondary-800);
+}
+
+.text-secondary-900 {
+    color: var(--secondary-900);
+}
+
+.text-secondary-950 {
+    color: var(--secondary-950);
+}
+
+/* ========================================
+   Global Custom Scrollbar Styling
+   ======================================== */
+
+/* Allow scrolling on html/body with custom scrollbar */
+html, body {
+    overflow: auto;
+    height: 100%;
+}
+
+/* Custom scrollbar for html/body (main page scroll) */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-900) transparent;
+}
+
+html::-webkit-scrollbar {
+    width: 10px;
+}
+
+html::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+}
+
+html::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--primary-800), var(--primary-900));
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: all 0.3s ease;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-700));
+    box-shadow: 0 2px 12px rgba(14, 165, 233, 0.4);
+}
+
+/* Main scrollbar for scrollable containers only (not body/html) */
+* :not(html):not(body) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-900) transparent;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) - exclude html and body */
+:not(html):not(body)::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+:not(html):not(body)::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+}
+
+:not(html):not(body)::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--primary-800), var(--primary-900));
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: all 0.3s ease;
+}
+
+:not(html):not(body)::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-700));
+    box-shadow: 0 2px 12px rgba(14, 165, 233, 0.4);
+}
+
+/* Thin scrollbar variant (for small containers) */
+.scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-400);
+}
+
+/* Hidden scrollbar variant */
+.scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+}
+
+.text-capitalize{
+    text-transform: capitalize;
+}

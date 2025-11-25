@@ -10,13 +10,13 @@
     />
 
     <!-- Loading State -->
-    <div v-if="state.loading && !showExperienceModal" class="bg-white border border-indigo-200 rounded-lg p-12">
+    <HbCard v-if="state.loading && !showExperienceModal" class="p-12">
       <div class="flex flex-col items-center justify-center">
-        <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ loadingMessage }}</h3>
+        <HbSpinner size="xl" />
+        <h3 class="text-lg font-semibold text-gray-900 mt-4 mb-2">{{ loadingMessage }}</h3>
         <p class="text-sm text-gray-600">This may take a few seconds...</p>
       </div>
-    </div>
+    </HbCard>
 
     <!-- Error State -->
     <div v-if="state.error" class="bg-red-50 border border-red-200 rounded-lg p-6">
@@ -28,12 +28,13 @@
           <h3 class="font-bold text-gray-900 mb-1">Error</h3>
           <p class="text-sm text-gray-700">{{ state.error }}</p>
         </div>
-        <button
+        <HbButton
           @click="resetFlow"
-          class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+          variant="danger"
+          size="sm"
         >
           Try Again
-        </button>
+        </HbButton>
       </div>
     </div>
 
@@ -70,11 +71,10 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Duration/Timeline Details
             </label>
-            <input
+            <HbInput
               v-model="refinementData.duration_detail"
               type="text"
               placeholder="e.g., 6 months on production system"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             />
           </div>
 
@@ -82,11 +82,10 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Specific Tools/Technologies Used
             </label>
-            <input
+            <HbInput
               v-model="refinementData.specific_tools"
               type="text"
               placeholder="e.g., AWS Lambda, API Gateway, DynamoDB"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             />
           </div>
 
@@ -94,28 +93,29 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Measurable Results/Metrics
             </label>
-            <input
+            <HbInput
               v-model="refinementData.metrics"
               type="text"
               placeholder="e.g., Reduced API response time by 30%"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             />
           </div>
 
           <div class="flex gap-3 pt-4">
-            <button
+            <HbButton
               @click="cancelRefinement"
-              class="px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              variant="outline"
             >
               Cancel
-            </button>
-            <button
+            </HbButton>
+            <HbButton
               @click="submitRefinement"
               :disabled="!hasRefinementData || state.loading"
-              class="flex-1 px-6 py-3 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              :loading="state.loading"
+              variant="secondary"
+              class="flex-1"
             >
               {{ state.loading ? 'Refining...' : 'Refine Answer' }}
-            </button>
+            </HbButton>
           </div>
         </div>
       </div>
@@ -133,7 +133,7 @@
 
       <!-- Timeline (shown after resources are selected) -->
       <LearningTimeline
-        v-if="state.selectedResourceIds.length > 0 && state.timeline"
+        v-if="state.selectedResourceIds && state.selectedResourceIds.length > 0 && state.timeline"
         :timeline="state.timeline"
         :estimated-completion="calculateEstimatedCompletion()"
         class="mt-6"
@@ -167,12 +167,13 @@
           <p class="text-gray-800 whitespace-pre-wrap">{{ state.finalAnswer }}</p>
         </div>
 
-        <button
+        <HbButton
           @click="$emit('complete', state)"
-          class="px-8 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+          variant="primary"
+          size="lg"
         >
           Continue
-        </button>
+        </HbButton>
       </div>
     </div>
   </div>
@@ -189,11 +190,11 @@ import type {
   AdaptiveQuestionState
 } from '~/types/adaptive-questions'
 
-import ExperienceCheckModal from './ExperienceCheckModal.vue'
+import ExperienceCheckModal from '../modals/ExperienceCheckModal.vue'
 import DeepDiveForm from './DeepDiveForm.vue'
 import AnswerQualityDisplay from './AnswerQualityDisplay.vue'
-import LearningResourcesDisplay from './LearningResourcesDisplay.vue'
-import LearningTimeline from './LearningTimeline.vue'
+import LearningResourcesDisplay from '../learning/LearningResourcesDisplay.vue'
+import LearningTimeline from '../learning/LearningTimeline.vue'
 
 interface Props {
   questionId: string
@@ -345,13 +346,21 @@ const cancelRefinement = () => {
 }
 
 const submitRefinement = async () => {
-  if (!hasRefinementData.value) return
+  if (!hasRefinementData.value || !state.value.generatedAnswer || !state.value.qualityIssues) return
 
   state.value.loading = true
   showRefinementDialog.value = false
 
   try {
-    const response = await refineAnswer(props.questionId, refinementData.value)
+    const response = await refineAnswer(
+      props.questionId,
+      props.questionText,
+      props.questionData,
+      props.gapInfo,
+      state.value.generatedAnswer,
+      state.value.qualityIssues,
+      refinementData.value
+    )
 
     if (response.error) {
       state.value.error = response.error
@@ -402,7 +411,7 @@ const generateTimeline = (resourceIds: string[]) => {
 
 // Watch for selected resources changes to update timeline
 watch(() => state.value.selectedResourceIds, (newIds) => {
-  if (newIds.length > 0) {
+  if (newIds && newIds.length > 0) {
     generateTimeline(newIds)
   } else {
     state.value.timeline = []
