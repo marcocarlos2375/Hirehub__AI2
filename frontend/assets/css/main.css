@@ -297,3 +297,68 @@ html::-webkit-scrollbar-thumb:hover {
 .text-capitalize{
     text-transform: capitalize;
 }
+
+/* ========================================
+   Score Visualization Utilities
+   Monochromatic primary color system
+   ======================================== */
+
+/* Score-based text colors (lighter bars = better scores) */
+.score-text-excellent {
+    color: var(--primary-700);
+}
+
+.score-text-good {
+    color: var(--primary-700);
+}
+
+.score-text-fair {
+    color: var(--primary-800);
+}
+
+.score-text-below {
+    color: var(--primary-900);
+}
+
+.score-text-poor {
+    color: var(--primary-950);
+}
+
+/* Score-based background colors (lighter = better) */
+.score-bg-excellent {
+    background-color: var(--primary-200);
+}
+
+.score-bg-good {
+    background-color: var(--primary-400);
+}
+
+.score-bg-fair {
+    background-color: var(--primary-600);
+}
+
+.score-bg-below {
+    background-color: var(--primary-700);
+}
+
+.score-bg-poor {
+    background-color: var(--primary-800);
+}
+
+/* Score badges (consistent light background, varying text darkness) */
+.score-badge-excellent,
+.score-badge-good,
+.score-badge-fair {
+    background-color: var(--primary-50);
+    color: var(--primary-700);
+}
+
+.score-badge-below {
+    background-color: var(--primary-50);
+    color: var(--primary-800);
+}
+
+.score-badge-poor {
+    background-color: var(--primary-50);
+    color: var(--primary-900);
+}

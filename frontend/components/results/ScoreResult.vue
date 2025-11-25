@@ -201,33 +201,36 @@ interface Props {
 defineProps<Props>()
 
 const getStatusColorClass = (score: number) => {
-  if (score >= 75) return 'text-green-600'
-  if (score >= 60) return 'text-blue-600'
-  if (score >= 40) return 'text-yellow-600'
-  return 'text-red-600'  // Red for low scores
+  if (score >= 75) return 'text-primary-700'       // Dark text (6.1:1 contrast)
+  if (score >= 60) return 'text-primary-700'       // Dark text
+  if (score >= 40) return 'text-primary-800'       // Darker text (7.9:1)
+  if (score >= 25) return 'text-primary-900'       // Darkest text (9.2:1)
+  return 'text-primary-950'                         // Near-black (13:1)
 }
 
 const getScoreColorClass = (score: number) => {
-  if (score >= 75) return 'text-green-600'
-  if (score >= 60) return 'text-blue-600'
-  if (score >= 40) return 'text-amber-600'
-  return 'text-red-600'  // Red for low scores
+  if (score >= 75) return 'text-primary-700'       // Dark text (6.1:1 contrast)
+  if (score >= 60) return 'text-primary-700'       // Dark text
+  if (score >= 40) return 'text-primary-800'       // Darker text (7.9:1)
+  if (score >= 25) return 'text-primary-900'       // Darkest text (9.2:1)
+  return 'text-primary-950'                         // Near-black (13:1)
 }
 
 const getScoreBarClass = (score: number) => {
-  if (score >= 75) return 'bg-green-500'
-  if (score >= 60) return 'bg-blue-500'
-  if (score >= 40) return 'bg-amber-500'
-  return 'bg-red-500'  // Red for low scores
+  if (score >= 75) return 'bg-primary-200'         // Lightest bar (best)
+  if (score >= 60) return 'bg-primary-400'         // Light bar
+  if (score >= 40) return 'bg-primary-600'         // Medium bar
+  if (score >= 25) return 'bg-primary-700'         // Dark bar
+  return 'bg-primary-800'                           // Darkest bar (worst)
 }
 
 const getCategoryBadgeClass = (status: string) => {
   const classes = {
-    'Strong': 'bg-green-100 text-green-800',
-    'Good': 'bg-blue-100 text-blue-800',
-    'Fair': 'bg-yellow-100 text-yellow-800',
-    'Below Target': 'bg-orange-100 text-orange-800',
-    'Poor': 'bg-red-100 text-red-800'
+    'Strong': 'bg-primary-50 text-primary-700',        // Very light bg, dark text
+    'Good': 'bg-primary-50 text-primary-700',          // Same (consistency)
+    'Fair': 'bg-primary-50 text-primary-700',          // Same
+    'Below Target': 'bg-primary-50 text-primary-800',  // Slightly darker text
+    'Poor': 'bg-primary-50 text-primary-900'           // Darkest text
   }
   return classes[status as keyof typeof classes] || 'bg-gray-100 text-gray-800'
 }
