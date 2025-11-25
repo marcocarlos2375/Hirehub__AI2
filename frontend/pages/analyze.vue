@@ -1,27 +1,10 @@
 <template>
   <div class="min-h-screen py-16 page-with-bg">
     <div class="container mx-auto px-4">
-      <!-- Top Bar -->
-      <div class="bg-white border-b border-gray-200 px-6 py-4 rounded-t-lg shadow-sm mb-0">
-        <div class="flex justify-between items-center">
-          <h1 class="text-2xl font-bold text-gray-900">Compatibility Analysis</h1>
-          <HbButton
-            @click="handleStartNew"
-            variant="primary"
-            size="md"
-          >
-            <template #leading-icon>
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </template>
-            Start New Analysis
-          </HbButton>
-        </div>
-      </div>
+     
 
       <!-- Card Container -->
-      <div class="card-container-shadow">
+      <div>
         <!-- Loading State -->
         <div v-if="isLoading" class="bg-white py-24 px-8 rounded-b-lg max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
           <HbSpinner size="xl" />
@@ -530,23 +513,9 @@ const triggerCoverLetterGeneration = async (rewriteResult: any) => {
 </script>
 
 <style scoped lang="scss">
-.page-with-bg {
-  position: relative;
-  background: linear-gradient(to bottom right, rgb(239 246 255), rgb(224 231 255));
-  background-size: cover;
-  background-position: center top;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
 
-  > * {
-    position: relative;
-    z-index: 1;
-  }
-}
 
-.card-container-shadow {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
+
 
 /* Wizard Layout */
 .layout {
@@ -554,7 +523,7 @@ const triggerCoverLetterGeneration = async (rewriteResult: any) => {
   grid-template-columns: 260px 1fr;
   height: 85vh;
   overflow: hidden;
-  border-radius: 0 0 0.5rem 0.5rem;
+  border-radius:  0.5rem;
 }
 
 .sidebar {
@@ -571,7 +540,6 @@ const triggerCoverLetterGeneration = async (rewriteResult: any) => {
   flex: 1;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -582,7 +550,6 @@ const triggerCoverLetterGeneration = async (rewriteResult: any) => {
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
     border-radius: 3px;
   }
 }

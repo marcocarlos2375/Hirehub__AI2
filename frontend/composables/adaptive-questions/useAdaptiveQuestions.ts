@@ -19,6 +19,12 @@ import type {
   RefineAnswerResponse,
   LearningPlanItem
 } from '~/types/adaptive-questions'
+import type {
+  ParsedCV,
+  ParsedJobDescription,
+  GapInfo,
+  QuestionData
+} from '~/types/api-responses'
 
 // Specific response types for this composable
 interface LearningPath {
@@ -75,11 +81,11 @@ export const useAdaptiveQuestions = () => {
   const startAdaptiveQuestion = async (
     questionId: string,
     questionText: string,
-    questionData: any,
-    gapInfo: any,
+    questionData: QuestionData,
+    gapInfo: GapInfo,
     userId: string,
-    parsedCV: any,
-    parsedJD: any,
+    parsedCV: ParsedCV,
+    parsedJD: ParsedJobDescription,
     experienceCheckResponse: ExperienceLevel,
     language: string = 'english'
   ): Promise<StartWorkflowResponse> => {
@@ -115,7 +121,7 @@ export const useAdaptiveQuestions = () => {
    */
   const submitStructuredInputs = async (
     questionId: string,
-    structuredData: Record<string, any>
+    structuredData: Record<string, string | number | boolean | string[]>
   ): Promise<SubmitInputsResponse> => {
     try {
       const data = await $fetch<SubmitInputsResponse>('/api/adaptive-questions/submit-inputs', {
@@ -148,11 +154,11 @@ export const useAdaptiveQuestions = () => {
   const refineAnswer = async (
     questionId: string,
     questionText: string,
-    questionData: any,
+    questionData: QuestionData,
     gapInfo: { title: string; description: string },
     generatedAnswer: string,
     qualityIssues: string[],
-    refinementData: Record<string, any>
+    refinementData: Record<string, string | number | boolean>
   ): Promise<RefineAnswerResponse> => {
     try {
       const data = await $fetch<RefineAnswerResponse>('/api/adaptive-questions/refine-answer', {
@@ -186,7 +192,7 @@ export const useAdaptiveQuestions = () => {
    * @param limit - Maximum number of resources (default: 5)
    */
   const getLearningResources = async (
-    gap: any,
+    gap: GapInfo,
     userLevel: 'beginner' | 'intermediate' | 'advanced' = 'intermediate',
     maxDays: number = 10,
     costPreference: 'free' | 'paid' | 'any' = 'any',
@@ -222,7 +228,7 @@ export const useAdaptiveQuestions = () => {
    */
   const saveLearningPlan = async (
     userId: string,
-    gap: any,
+    gap: GapInfo,
     resourceIds: string[],
     notes?: string
   ): Promise<{ plan_id: string; success: boolean; error?: string }> => {

@@ -16,7 +16,7 @@
 @layer base {
     html {
         /* font-family: var(--font-text); */
-        font-weight: var(--font-light);
+        font-weight: var(--font-light) !important;
         font-size: var(--text-md);
         color: var(--primary-950);
         font-family: "Gabarito", "Arial", sans-serif;

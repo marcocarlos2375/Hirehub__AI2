@@ -12,6 +12,7 @@
 
 import { defineStore } from 'pinia'
 import type { ExperienceLevel } from '~/types/adaptive-questions'
+import type { QuestionData, ParsedCV } from '~/types/api-responses'
 
 /**
  * Answer types
@@ -51,7 +52,7 @@ export interface SubmitAnswersResult {
     change: number
   }>
   uncovered_experiences?: string[]
-  updated_cv: any
+  updated_cv: ParsedCV
   time_seconds: number
   model: string
 }
@@ -83,7 +84,7 @@ export const useQuestionsStore = defineStore('questions', {
 
     // Adaptive modal state
     showAdaptiveModal: false,
-    currentAdaptiveQuestion: null as any | null, // QuestionItem type from component
+    currentAdaptiveQuestion: null as QuestionData | null,
 
     // Refinement iteration tracking
     refinementIterations: new Map<string, number>(),
@@ -334,7 +335,7 @@ export const useQuestionsStore = defineStore('questions', {
      *
      * @param question - The question object to pass to the modal
      */
-    openAdaptiveModal(question: any) {
+    openAdaptiveModal(question: QuestionData) {
       this.showAdaptiveModal = true
       this.currentAdaptiveQuestion = question
     },

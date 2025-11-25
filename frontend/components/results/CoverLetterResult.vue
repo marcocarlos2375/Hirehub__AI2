@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { sanitizeHtml } from '~/utils/sanitize'
 
 interface Props {
   coverLetter: string
@@ -41,12 +42,15 @@ const props = defineProps<Props>()
 
 const copied = ref(false)
 
-// Format cover letter with HTML line breaks
+// Format cover letter with HTML line breaks and sanitize to prevent XSS
 const formattedCoverLetter = computed(() => {
-  return props.coverLetter
+  const formatted = props.coverLetter
     .split('\n\n')
     .map(paragraph => `<p>${paragraph.trim()}</p>`)
     .join('')
+
+  // Sanitize the HTML to prevent XSS attacks
+  return sanitizeHtml(formatted)
 })
 
 const copyToClipboard = async () => {

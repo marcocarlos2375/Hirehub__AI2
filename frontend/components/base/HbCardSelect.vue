@@ -20,7 +20,7 @@
           <div class="card-option-content">
             <div v-if="getOptionProperty(option, 'icon') || getOptionProperty(option, 'image')" class="card-option-media">
               <img v-if="getOptionProperty(option, 'image')" :src="getOptionProperty(option, 'image')" :alt="getOptionLabel(option)" class="card-option-image">
-              <div v-else-if="getOptionProperty(option, 'icon')" class="card-option-icon" v-html="getOptionProperty(option, 'icon')"></div>
+              <div v-else-if="getOptionProperty(option, 'icon')" class="card-option-icon" v-html="getSanitizedIcon(option)"></div>
             </div>
             <div class="card-option-label">{{ getOptionLabel(option) }}</div>
             <div v-if="getOptionProperty(option, 'description')" class="card-option-description">{{ getOptionProperty(option, 'description') }}</div>
@@ -40,8 +40,9 @@
 
 <script setup lang="ts">
 // @ts-strict
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import HbCard from './HbCard.vue'
+import { sanitizeSvg } from '~/utils/sanitize'
 
 type ModelValue = string | number | object | any[]
 
@@ -163,6 +164,13 @@ const getOptionProperty = (option: string | number | OptionObject, property: str
     return (option as OptionObject)[property];
   }
   return undefined;
+};
+
+// Sanitize SVG icon content to prevent XSS attacks
+const getSanitizedIcon = (option: string | number | OptionObject): string => {
+  const icon = getOptionProperty(option, 'icon');
+  if (!icon) return '';
+  return typeof icon === 'string' ? sanitizeSvg(icon) : '';
 };
 
 </script>

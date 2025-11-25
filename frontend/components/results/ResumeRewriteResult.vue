@@ -225,7 +225,7 @@
               <!-- Professional Summary -->
               <div v-if="content.professionalSummary" class="resume-section">
                 <h2 class="section-title">Professional Summary</h2>
-                <div class="section-content" v-html="content.professionalSummary"></div>
+                <div class="section-content" v-html="sanitizedSummary"></div>
               </div>
 
               <!-- Work Experience -->
@@ -247,7 +247,7 @@
                     <div
                       v-if="editingField !== `employmentHistory-${index}-description`"
                       class="experience-description editable-field"
-                      v-html="job.description"
+                      v-html="sanitizedJobDescription(index)"
                       @click="startEditing(`employmentHistory-${index}-description`, job.description)"
                       title="Click to edit"
                     ></div>
@@ -286,7 +286,7 @@
                     <div
                       v-if="editingField !== `projects-${index}-description`"
                       class="project-description editable-field"
-                      v-html="project.description"
+                      v-html="sanitizedProjectDescription(index)"
                       @click="startEditing(`projects-${index}-description`, project.description)"
                       title="Click to edit"
                     ></div>
@@ -415,6 +415,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { sanitizeHtml } from '~/utils/sanitize'
 
 interface Props {
   sampleFormat: Record<string, any>
@@ -456,6 +457,23 @@ watch(() => props.sampleFormat, (newVal) => {
 }, { immediate: true })
 
 const content = computed(() => editableContent.value?.content || {})
+
+// Sanitized HTML content to prevent XSS attacks
+const sanitizedSummary = computed(() =>
+  content.value.professionalSummary
+    ? sanitizeHtml(content.value.professionalSummary)
+    : ''
+)
+
+const sanitizedJobDescription = computed(() => (jobIndex: number) => {
+  const job = content.value.employmentHistory?.[jobIndex]
+  return job?.description ? sanitizeHtml(job.description) : ''
+})
+
+const sanitizedProjectDescription = computed(() => (projectIndex: number) => {
+  const project = content.value.projects?.[projectIndex]
+  return project?.description ? sanitizeHtml(project.description) : ''
+})
 
 // Detect if a string contains [SUGGESTED] marker
 const isSuggested = (text: string): boolean => {

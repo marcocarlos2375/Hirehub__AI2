@@ -1,18 +1,19 @@
 <template>
-  <span 
-    class="hb-icon" 
+  <span
+    class="hb-icon"
     :class="[
       `hb-icon--${size}`,
       { 'hb-icon--clickable': clickable }
     ]"
     :style="iconStyle"
-    v-html="svgContent"
+    v-html="sanitizedSvgContent"
   ></span>
 </template>
 
 <script setup lang="ts">
 // @ts-strict
 import { ref, computed, watch } from 'vue'
+import { sanitizeSvg } from '~/utils/sanitize'
 
 interface Props {
   /** Name of the icon (without .svg extension) - Should match the filename in the icons directory */
@@ -41,6 +42,11 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const svgContent = ref<string>('')
+
+// Sanitized SVG content to prevent XSS attacks
+const sanitizedSvgContent = computed(() =>
+  svgContent.value ? sanitizeSvg(svgContent.value) : ''
+)
 
 const iconStyle = computed(() => {
   const style: Record<string, string> = {}
