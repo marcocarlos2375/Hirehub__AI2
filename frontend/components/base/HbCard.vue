@@ -1,5 +1,5 @@
 <template>
-  <div 
+  <div
     class="hb-card"
     :class="[
       `shadow-${shadow}`,
@@ -13,6 +13,7 @@
       variant,
       $attrs.class
     ]"
+    :style="{ backgroundColor: bgColor }"
     v-bind="{ ...$attrs, class: undefined }"
     @click="handleClick"
   >
@@ -47,6 +48,8 @@ interface Props {
   border?: boolean
   rounded?: boolean
   padding?: CardPadding
+  /** Background color - allows parent components to override. Defaults to white. Set to 'transparent' for no background. */
+  bgColor?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -58,7 +61,8 @@ const props = withDefaults(defineProps<Props>(), {
   interactive: false,
   border: true,
   rounded: true,
-  padding: 'md'
+  padding: 'md',
+  bgColor: '#ffffff'
 });
 
 interface Emits {
@@ -78,7 +82,7 @@ defineOptions({
 
 <style lang="scss" scoped>
 .hb-card {
-  background-color: #ffffff;
+  /* Background color now controlled via bgColor prop (defaults to #ffffff) */
   transition: all 0.2s ease;
   width: 100%;
   
