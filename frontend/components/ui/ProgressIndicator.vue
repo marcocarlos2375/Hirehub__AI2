@@ -31,7 +31,7 @@
         <!-- Loading spinner -->
         <svg
           v-if="status === 'loading'"
-          class="animate-spin h-3 w-3 text-indigo-600"
+          class="animate-spin h-3 w-3 text-primary-500"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -107,7 +107,7 @@ const dashOffset = computed(() => {
 const progressColor = computed(() => {
   if (props.status === 'complete') return '#10b981' // green-500
   if (props.status === 'error') return '#ef4444' // red-500
-  if (props.status === 'loading') return '#6366f1' // indigo-500
+  if (props.status === 'loading') return '#0ea5e9' // primary-500 (sky blue)
   return '#d1d5db' // gray-300
 })
 </script>

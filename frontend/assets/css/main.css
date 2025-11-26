@@ -156,6 +156,9 @@
 .bg-secondary-950 {
     background-color: var(--secondary-950);
 }
+.bg-primary-50{
+    background-color: var(--primary-50);
+}
 
 /* Secondary Text Colors */
 .text-secondary-50 {

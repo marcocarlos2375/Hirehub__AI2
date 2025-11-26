@@ -13,6 +13,7 @@
 import { defineStore } from 'pinia'
 import type { ExperienceLevel } from '~/types/adaptive-questions'
 import type { QuestionData, ParsedCV } from '~/types/api-responses'
+import type { QuestionItem } from '~/composables/analysis/useAnalysisState'
 
 /**
  * Answer types
@@ -84,10 +85,13 @@ export const useQuestionsStore = defineStore('questions', {
 
     // Adaptive modal state
     showAdaptiveModal: false,
-    currentAdaptiveQuestion: null as QuestionData | null,
+    currentAdaptiveQuestion: null as QuestionItem | null,
 
     // Refinement iteration tracking
     refinementIterations: new Map<string, number>(),
+
+    // Answer drafts (preserves text when navigating between questions)
+    answerDrafts: new Map<string, string>(),
   }),
 
   getters: {
@@ -154,6 +158,13 @@ export const useQuestionsStore = defineStore('questions', {
      */
     getRefinementIteration: (state) => (questionId: string) => {
       return state.refinementIterations.get(questionId) || 0
+    },
+
+    /**
+     * Get answer draft by question ID
+     */
+    getAnswerDraft: (state) => (questionId: string) => {
+      return state.answerDrafts.get(questionId) || ''
     },
 
     /**
@@ -335,7 +346,7 @@ export const useQuestionsStore = defineStore('questions', {
      *
      * @param question - The question object to pass to the modal
      */
-    openAdaptiveModal(question: QuestionData) {
+    openAdaptiveModal(question: QuestionItem) {
       this.showAdaptiveModal = true
       this.currentAdaptiveQuestion = question
     },
@@ -392,6 +403,31 @@ export const useQuestionsStore = defineStore('questions', {
     },
 
     /**
+     * Set answer draft for a question
+     */
+    setAnswerDraft(questionId: string, draft: string) {
+      this.answerDrafts.set(questionId, draft)
+    },
+
+    /**
+     * Clear answer draft for a question
+     */
+    clearAnswerDraft(questionId: string) {
+      this.answerDrafts.set(questionId, '')
+    },
+
+    /**
+     * Initialize drafts for all questions
+     */
+    initializeAnswerDrafts(questionIds: string[]) {
+      questionIds.forEach(id => {
+        if (!this.answerDrafts.has(id)) {
+          this.answerDrafts.set(id, '')
+        }
+      })
+    },
+
+    /**
      * Clear specific question state
      */
     clearQuestionState(questionId: string) {
@@ -401,6 +437,7 @@ export const useQuestionsStore = defineStore('questions', {
       this.activeQuestionTab.delete(questionId)
       this.refinementIterations.delete(questionId)
       this.activeAdaptiveFlows.delete(questionId)
+      this.answerDrafts.delete(questionId)
     },
   }
 })

@@ -14,25 +14,12 @@
           }"
           @click="handleStepClick(index)"
         >
-          <div class="hb-stepper__step-indicator">
-            <div class="hb-stepper__step-icon">
-              <template v-if="index < activeStep">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clip-rule="evenodd" />
-                </svg>
-              </template>
-              <template v-else>
-                {{ index + 1 }}
-              </template>
-            </div>
-          </div>
           <div class="hb-stepper__step-content">
             <div class="hb-stepper__step-title">{{ step.title }}</div>
             <div v-if="step.description" class="hb-stepper__step-description">
               {{ step.description }}
             </div>
           </div>
-          <div v-if="index < steps.length - 1" class="hb-stepper__connector"></div>
         </div>
       </div>
       
@@ -232,6 +219,7 @@ watch(() => props.steps.length, (newLength: number) => {
   display: flex;
   width: 100%;
   position: relative;
+  gap: var(--spacing-4);
 }
 
 .hb-stepper__steps--vertical {
@@ -249,8 +237,11 @@ watch(() => props.steps.length, (newLength: number) => {
   display: flex;
   align-items: center;
   position: relative;
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
+  padding-top: var(--spacing-3);
+  border-top: 3px solid var(--gray-300);
+  transition: border-color 0.2s ease;
 }
 
 .hb-stepper__step--vertical {
@@ -259,8 +250,12 @@ watch(() => props.steps.length, (newLength: number) => {
   margin-bottom: var(--spacing-6);
 }
 
-.hb-stepper__step:last-child {
-  flex: 0;
+.hb-stepper__step--active {
+  border-top-color: var(--primary-500);
+}
+
+.hb-stepper__step--completed {
+  border-top-color: var(--success-500);
 }
 
 .hb-stepper__step--disabled {
@@ -272,68 +267,11 @@ watch(() => props.steps.length, (newLength: number) => {
   cursor: pointer;
 }
 
-/* Step indicator */
-.hb-stepper__step-indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 1;
-}
-
-/* Step icon */
-.hb-stepper__step-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background-color: var(--gray-200);
-  color: var(--gray-700);
-  font-weight: var(--font-medium);
-  transition: all 0.2s ease;
-}
-
-.hb-stepper--sm .hb-stepper__step-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  font-size: var(--text-xs);
-}
-
-.hb-stepper--lg .hb-stepper__step-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  font-size: var(--text-lg);
-}
-
-.hb-stepper__step--active .hb-stepper__step-icon {
-  background-color: var(--primary-500);
-  color: white;
-}
-
-.hb-stepper__step--completed .hb-stepper__step-icon {
-  background-color: var(--success-500);
-  color: white;
-}
-
-.hb-stepper__step-icon svg {
-  width: 1rem;
-  height: 1rem;
-}
-
-.hb-stepper--sm .hb-stepper__step-icon svg {
-  width: 0.75rem;
-  height: 0.75rem;
-}
-
-.hb-stepper--lg .hb-stepper__step-icon svg {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
 /* Step content */
 .hb-stepper__step-content {
-  margin-left: var(--spacing-3);
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .hb-stepper__step-title {
@@ -373,56 +311,9 @@ watch(() => props.steps.length, (newLength: number) => {
   font-size: var(--text-sm);
 }
 
-/* Connector */
-.hb-stepper__connector {
-  position: absolute;
-  top: 1rem;
-  left: calc(50% + 1rem);
-  right: calc(50% - 1rem);
-  height: 2px;
-  background-color: var(--gray-200);
-  z-index: 0;
-}
-
-.hb-stepper--sm .hb-stepper__connector {
-  top: 0.75rem;
-}
-
-.hb-stepper--lg .hb-stepper__connector {
-  top: 1.25rem;
-}
-
-.hb-stepper__connector--vertical {
-  position: absolute;
-  top: 2rem;
-  left: 1rem;
-  width: 2px;
-  height: calc(100% - 1rem);
-  background-color: var(--gray-200);
-}
-
-.hb-stepper--sm .hb-stepper__connector--vertical {
-  top: 1.5rem;
-  left: 0.75rem;
-}
-
-.hb-stepper--lg .hb-stepper__connector--vertical {
-  top: 2.5rem;
-  left: 1.25rem;
-}
-
-.hb-stepper__step--completed + .hb-stepper__step .hb-stepper__connector,
-.hb-stepper__step--completed .hb-stepper__connector--vertical {
-  background-color: var(--success-500);
-}
-
 /* Content area */
 .hb-stepper__content {
   margin-top: var(--spacing-8);
-  padding: var(--spacing-4);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-md);
-  background-color: white;
 }
 
 .hb-stepper__content--vertical {

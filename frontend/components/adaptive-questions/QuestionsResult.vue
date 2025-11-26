@@ -1,293 +1,284 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6" ref="containerRef">
     <!-- Header with Stats -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex-1">
-          <h2 class="text-2xl font-bold text-gray-900">Smart Questions</h2>
-          <p class="text-sm text-gray-600 mt-1">
-            Answer these questions to potentially improve your score by +15-20%
-          </p>
-        </div>
-
-        <div class="text-right">
-          <div class="text-3xl font-bold text-indigo-600">
-            {{ questionsData.total_questions }}
+    <transition name="slide-up">
+      <div v-if="!hideHeader" class="bg-white">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex-1">
+            <h2 class="text-2xl font-bold text-gray-900">Land your dream job in {{ questionsData.total_questions }} steps</h2>
+            <p class="text-sm text-gray-600 mt-1">
+             Answer to improve your score by +15-25%
+            </p>
           </div>
-          <div class="text-sm text-gray-600">Questions</div>
+
+          <div class="text-right">
+           <!-- Stats Row -->
+        <div class="flex gap-3">
+          <div class="flex items-center gap-1.5 px-2 py-1 bg-red-50 rounded-lg">
+            <div class="text-lg font-semibold text-red-600">{{ questionsData.critical_count }}</div>
+            <div class="text-xs text-red-600">Critical</div>
+          </div>
+          <div class="flex items-center gap-1.5 px-2 py-1 bg-orange-50 rounded-lg">
+            <div class="text-lg font-semibold text-orange-600">{{ questionsData.high_count }}</div>
+            <div class="text-xs text-orange-600">High</div>
+          </div>
+          <div class="flex items-center gap-1.5 px-2 py-1 bg-yellow-50 rounded-lg">
+            <div class="text-lg font-semibold text-yellow-600">{{ questionsData.medium_count }}</div>
+            <div class="text-xs text-yellow-600">Medium</div>
+          </div>
+          <!-- Debug button -->
+          <button @click="hideHeader = true" class="text-xs px-2 py-1 bg-gray-200 rounded">Hide (test)</button>
+        </div>
+          </div>
         </div>
       </div>
+    </transition>
 
-      <!-- Stats Row -->
-      <div class="grid grid-cols-3 gap-4">
-        <div class="text-center p-3 bg-red-50 rounded-lg">
-          <div class="text-2xl font-semibold text-red-700">
-            {{ questionsData.critical_count }}
-          </div>
-          <div class="text-xs text-gray-600">Critical</div>
-        </div>
-        <div class="text-center p-3 bg-orange-50 rounded-lg">
-          <div class="text-2xl font-semibold text-orange-700">
-            {{ questionsData.high_count }}
-          </div>
-          <div class="text-xs text-gray-600">High Priority</div>
-        </div>
-        <div class="text-center p-3 bg-yellow-50 rounded-lg">
-          <div class="text-2xl font-semibold text-yellow-700">
-            {{ questionsData.medium_count }}
-          </div>
-          <div class="text-xs text-gray-600">Medium</div>
-        </div>
-      </div>
+    <!-- Questions Stepper -->
+    <HbStepper
+      v-model="currentQuestionIndex"
+      :steps="questionSteps"
+      orientation="horizontal"
+      size="md"
+      :allowSkip="true"
+      :showNavigation="true"
+      nextLabel="Next Question"
+      backLabel="Previous"
+      finishLabel="Submit All Answers"
+      @update:modelValue="handleStepChange"
+      @complete="submitAllAnswers"
+    >
+      <template #default="{ index }">
+        <div class="min-h-[400px]">
+          <!-- Get the current question based on index -->
+          <div v-if="currentQuestion" class="space-y-4">
+            <!-- BEFORE Evaluation: Show QuestionCard with AnswerInput -->
+            <QuestionCard
+              v-if="!activeAdaptiveFlows.has(currentQuestion.id) && !answerEvaluations.has(currentQuestion.id)"
+              :question="currentQuestion"
+              @need-help="handleNeedHelp(currentQuestion)"
+            >
+              <AnswerInput
+                :modelValue="questionsStore.getAnswerDraft(currentQuestion!.id)"
+                @update:modelValue="(val) => questionsStore.setAnswerDraft(currentQuestion!.id, val)"
+                :question-id="currentQuestion.id"
+                :question-text="currentQuestion.question_text"
+                :placeholder="`Share your experience for: ${currentQuestion.title}`"
+                :disabled="isSubmitting || hasSubmitted || evaluatingQuestionId === currentQuestion.id"
+                :submit-button-text="evaluatingQuestionId === currentQuestion.id ? 'Evaluating...' : 'Submit Answer'"
+                :show-examples="!!currentQuestion.examples"
+                :examples="currentQuestion.examples"
+                @submit="(text, type, time) => handleAnswerSubmit(currentQuestion!.id, text, type, time)"
+              />
+            </QuestionCard>
 
-      <!-- RAG Context Indicator -->
-      <div v-if="questionsData.rag_context_used" class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <div class="flex items-center gap-2 text-sm text-blue-800">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          <span>
-            <span class="font-medium">AI-Enhanced:</span> Questions personalized based on similar successful candidates
-          </span>
-        </div>
-      </div>
+            <!-- AFTER Evaluation: Show Single Tab "Answer Refinement" -->
+            <div v-if="answerEvaluations.has(currentQuestion.id)" class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <!-- Tab Header -->
+              <div class="flex gap-2 border-b border-gray-200 bg-gray-50 px-4">
+                <div class="px-4 py-3 font-medium text-sm text-green-600 border-b-2 border-green-600 bg-white">
+                  ✨ Answer Refinement
+                </div>
+              </div>
 
-      <!-- Generation Time -->
-      <div class="mt-3 text-xs text-gray-500 text-right">
-        Generated in {{ timeSeconds }}s using {{ questionsData.model }}
-      </div>
-    </div>
+              <!-- Tab Content -->
+              <div class="p-6 space-y-6">
+                <!-- Question Context -->
+                <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-5">
+                  <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3 mb-2">
+                        <span class="text-sm font-semibold text-gray-500">Q{{ currentQuestion.number }}</span>
+                        <span
+                          :class="[
+                            'px-2.5 py-0.5 rounded-full text-xs font-medium',
+                            currentQuestion.priority === 'CRITICAL' ? 'bg-red-100 text-red-800' :
+                            currentQuestion.priority === 'HIGH' ? 'bg-orange-100 text-orange-800' :
+                            currentQuestion.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          ]"
+                        >
+                          {{ currentQuestion.priority }}
+                        </span>
+                        <span class="text-xs text-green-600 font-medium">
+                          {{ currentQuestion.impact }}
+                        </span>
+                      </div>
+                      <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                        {{ currentQuestion.title }}
+                      </h3>
+                      <p class="text-sm text-gray-700 leading-relaxed">
+                        {{ currentQuestion.question_text }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-    <!-- Questions List -->
-    <div class="space-y-6">
-      <div
-        v-for="question in questionsData.questions"
-        :key="question.id"
-        class="space-y-4"
-      >
-        <!-- BEFORE Evaluation: Show QuestionCard with AnswerInput -->
-        <QuestionCard
-          v-if="!activeAdaptiveFlows.has(question.id) && !answerEvaluations.has(question.id)"
-          :question="question"
-          @need-help="handleNeedHelp(question)"
-        >
-          <AnswerInput
-            :question-id="question.id"
-            :question-text="question.question_text"
-            :placeholder="`Share your experience for: ${question.title}`"
-            :disabled="isSubmitting || hasSubmitted || evaluatingQuestionId === question.id"
-            :submit-button-text="evaluatingQuestionId === question.id ? 'Evaluating...' : 'Submit Answer'"
-            :show-examples="!!question.examples"
-            :examples="question.examples"
-            @submit="(text, type, time) => handleAnswerSubmit(question.id, text, type, time)"
-          />
-        </QuestionCard>
+                <!-- Answer Quality Display -->
+                <AnswerQualityDisplay
+                    :generated-answer="answerEvaluations.get(currentQuestion.id)!.answer_text"
+                    :quality-score="answerEvaluations.get(currentQuestion.id)!.quality_score"
+                    :quality-issues="answerEvaluations.get(currentQuestion.id)!.quality_issues"
+                    :quality-strengths="answerEvaluations.get(currentQuestion.id)!.quality_strengths"
+                    :improvement-suggestions="answerEvaluations.get(currentQuestion.id)!.improvement_suggestions.map(s => ({ issue: s, suggestion: s, priority: 'medium' }))"
+                    :is-acceptable="answerEvaluations.get(currentQuestion.id)!.is_acceptable"
+                    :show-refine-button="false"
+                    @accept-answer="handleAcceptAnswer(currentQuestion.id)"
+                  />
 
-        <!-- AFTER Evaluation: Show Single Tab "Answer Refinement" -->
-        <div v-if="answerEvaluations.has(question.id)" class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <!-- Tab Header -->
-          <div class="flex gap-2 border-b border-gray-200 bg-gray-50 px-4">
-            <div class="px-4 py-3 font-medium text-sm text-green-600 border-b-2 border-green-600 bg-white">
-              ✨ Answer Refinement
-            </div>
-          </div>
+                <!-- Improvement Questions Section (only if score < 7) -->
+                <div v-if="!answerEvaluations.get(currentQuestion.id)!.is_acceptable && refinementData.has(currentQuestion.id)" class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-300 rounded-lg p-6">
+                  <h3 class="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <svg class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                   Improve Your Answer
+                  </h3>
+                  <p class="text-sm text-gray-700 mb-6">
+                    Answer the questions below to address the specific issues identified in your response:
+                  </p>
 
-          <!-- Tab Content -->
-          <div class="p-6 space-y-6">
-            <!-- Question Context -->
-            <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-5">
-              <div class="flex items-start justify-between mb-3">
-                <div class="flex-1">
-                  <div class="flex items-center gap-3 mb-2">
-                    <span class="text-sm font-semibold text-gray-500">Q{{ question.number }}</span>
-                    <span
+                  <div class="space-y-4">
+                    <div
+                      v-for="(suggestion, index) in answerEvaluations.get(currentQuestion.id)?.improvement_suggestions || []"
+                      :key="index"
                       :class="[
-                        'px-2.5 py-0.5 rounded-full text-xs font-medium',
-                        question.priority === 'CRITICAL' ? 'bg-red-100 text-red-800' :
-                        question.priority === 'HIGH' ? 'bg-orange-100 text-orange-800' :
-                        question.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
+                        'p-5 rounded-lg border shadow-sm transition-all',
+                        getSuggestionPriorityClass(suggestion, index)
                       ]"
                     >
-                      {{ question.priority }}
-                    </span>
-                    <span class="text-xs text-green-600 font-medium">
-                      {{ question.impact }}
-                    </span>
-                  </div>
-                  <h3 class="text-lg font-semibold text-gray-900 mb-2">
-                    {{ question.title }}
-                  </h3>
-                  <p class="text-sm text-gray-700 leading-relaxed">
-                    {{ question.question_text }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Answer Quality Display -->
-            <AnswerQualityDisplay
-                :generated-answer="answerEvaluations.get(question.id)!.answer_text"
-                :quality-score="answerEvaluations.get(question.id)!.quality_score"
-                :quality-issues="answerEvaluations.get(question.id)!.quality_issues"
-                :quality-strengths="answerEvaluations.get(question.id)!.quality_strengths"
-                :improvement-suggestions="answerEvaluations.get(question.id)!.improvement_suggestions.map(s => ({ issue: s, suggestion: s, priority: 'medium' }))"
-                :is-acceptable="answerEvaluations.get(question.id)!.is_acceptable"
-                :show-refine-button="false"
-                @accept-answer="handleAcceptAnswer(question.id)"
-              />
-
-              <!-- Improvement Questions Section (only if score < 7) -->
-              <div v-if="!answerEvaluations.get(question.id)!.is_acceptable && refinementData.has(question.id)" class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-300 rounded-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                  <svg class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  💡 Improve Your Answer
-                </h3>
-                <p class="text-sm text-gray-700 mb-6">
-                  Answer the questions below to address the specific issues identified in your response:
-                </p>
-
-                <div class="space-y-4">
-                  <div
-                    v-for="(suggestion, index) in answerEvaluations.get(question.id)?.improvement_suggestions || []"
-                    :key="index"
-                    :class="[
-                      'p-5 rounded-lg border shadow-sm transition-all',
-                      getSuggestionPriorityClass(suggestion, index)
-                    ]"
-                  >
-                    <div class="flex items-start gap-3 mb-3">
-                      <span :class="[
-                        'inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm flex-shrink-0',
-                        getSuggestionBadgeClass(suggestion, index)
-                      ]">
-                        {{ index + 1 }}
-                      </span>
-                      <div class="flex-1">
-                        <p class="text-sm text-gray-800 mb-1">
-                          {{ getSuggestionPriorityIcon(suggestion, index) }}
-                          <span class="font-medium">{{ extractSuggestionTitle(suggestion) }}</span>
-                        </p>
-                        <p class="text-xs text-gray-600">{{ extractSuggestionDetail(suggestion) }}</p>
+                      <div class="flex items-start gap-3 mb-3">
+                        <span :class="[
+                          'inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm flex-shrink-0',
+                          getSuggestionBadgeClass(suggestion, index)
+                        ]">
+                          {{ index + 1 }}
+                        </span>
+                        <div class="flex-1">
+                          <p class="text-sm text-gray-800 mb-1">
+                            {{ getSuggestionPriorityIcon(suggestion, index) }}
+                            <span class="font-medium">{{ extractSuggestionTitle(suggestion) }}</span>
+                          </p>
+                          <p class="text-xs text-gray-600">{{ extractSuggestionDetail(suggestion) }}</p>
+                        </div>
+                      </div>
+                      <textarea
+                        v-model="refinementData.get(currentQuestion.id)![`suggestion_${index}`]"
+                        :placeholder="getSuggestionPlaceholder(suggestion, index)"
+                        :rows="getSuggestionRows(suggestion)"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-vertical text-sm"
+                        @input="updateRefinementField(currentQuestion.id, `suggestion_${index}`, ($event.target as HTMLTextAreaElement).value)"
+                      ></textarea>
+                      <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
+                        <span>
+                          {{ (refinementData.get(currentQuestion.id)?.[`suggestion_${index}`] || '').length }} characters
+                        </span>
+                        <span v-if="(refinementData.get(currentQuestion.id)?.[`suggestion_${index}`] || '').length < 20" class="text-amber-600">
+                          Add more details (min 20 chars)
+                        </span>
+                        <span v-else class="text-green-600">
+                          Good detail level
+                        </span>
                       </div>
                     </div>
-                    <textarea
-                      v-model="refinementData.get(question.id)![`suggestion_${index}`]"
-                      :placeholder="getSuggestionPlaceholder(suggestion, index)"
-                      :rows="getSuggestionRows(suggestion)"
-                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-vertical text-sm"
-                      @input="updateRefinementField(question.id, `suggestion_${index}`, ($event.target as HTMLTextAreaElement).value)"
-                    ></textarea>
-                    <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
-                      <span>
-                        {{ (refinementData.get(question.id)?.[`suggestion_${index}`] || '').length }} characters
-                      </span>
-                      <span v-if="(refinementData.get(question.id)?.[`suggestion_${index}`] || '').length < 20" class="text-amber-600">
-                        ⚠️ Add more details (min 20 chars)
-                      </span>
-                      <span v-else class="text-green-600">
-                        ✓ Good detail level
-                      </span>
+
+                    <div class="flex gap-3 pt-4">
+                      <HbButton
+                        @click="submitRefinement(currentQuestion.id)"
+                        :disabled="evaluatingQuestionId === currentQuestion.id"
+                        :loading="evaluatingQuestionId === currentQuestion.id"
+                        variant="secondary"
+                        size="lg"
+                        class="flex-1"
+                      >
+                        <template #leading-icon>
+                          <svg v-if="!evaluatingQuestionId" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </template>
+                        {{ evaluatingQuestionId === currentQuestion.id ? 'Submitting Improvements...' : 'Submit Improvements' }}
+                      </HbButton>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
 
-                  <div class="flex gap-3 pt-4">
-                    <HbButton
-                      @click="submitRefinement(question.id)"
-                      :disabled="evaluatingQuestionId === question.id"
-                      :loading="evaluatingQuestionId === question.id"
-                      variant="secondary"
-                      size="lg"
-                      class="flex-1"
-                    >
-                      <template #leading-icon>
-                        <svg v-if="!evaluatingQuestionId" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </template>
-                      {{ evaluatingQuestionId === question.id ? 'Submitting Improvements...' : 'Submit Improvements' }}
-                    </HbButton>
+            <!-- Evaluation Loading with Enhanced UI -->
+            <div v-if="evaluatingQuestionId === currentQuestion.id" class="ml-4 pl-4 border-l-4 border-blue-300">
+              <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                <!-- Main Loading Message -->
+                <div class="flex items-center gap-3 mb-4">
+                  <HbSpinner size="lg" />
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-gray-900 flex items-center gap-2">
+                      <span>Evaluating Your Answer</span>
+                      <span class="animate-pulse">...</span>
+                    </h4>
+                    <p class="text-sm text-gray-600">AI is analyzing quality and generating feedback</p>
+                  </div>
+                </div>
+
+                <!-- Timeout Warning (if taking longer than 10s) -->
+                <div v-if="showTimeoutWarning" class="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg">
+                  <div class="flex items-start gap-2">
+                    <svg class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div class="flex-1">
+                      <p class="text-sm font-medium text-yellow-800">This is taking longer than usual</p>
+                      <p class="text-xs text-yellow-700 mt-1">The AI is conducting a thorough analysis. Please wait a moment longer.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Progress Steps -->
+                <div class="space-y-2 pl-13">
+                  <div class="flex items-center gap-2 text-sm">
+                    <div class="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center text-white text-xs">✓</div>
+                    <span class="text-gray-700">Answer received</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-sm">
+                    <div class="w-4 h-4 rounded-full bg-blue-500 animate-pulse"></div>
+                    <span class="text-gray-700 font-medium">Analyzing content...</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-sm text-gray-400">
+                    <div class="w-4 h-4 rounded-full border-2 border-gray-300"></div>
+                    <span>Generating improvements</span>
+                  </div>
+                </div>
+
+                <!-- Skeleton Loader for Expected Output -->
+                <div class="mt-4 pt-4 border-t border-blue-200">
+                  <div class="space-y-3 animate-pulse">
+                    <div class="h-4 bg-blue-200 rounded w-3/4"></div>
+                    <div class="h-4 bg-blue-200 rounded w-1/2"></div>
+                    <div class="h-4 bg-blue-200 rounded w-5/6"></div>
                   </div>
                 </div>
               </div>
-          </div>
-        </div>
-
-        <!-- Evaluation Loading with Enhanced UI -->
-        <div v-if="evaluatingQuestionId === question.id" class="ml-4 pl-4 border-l-4 border-blue-300">
-          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-            <!-- Main Loading Message -->
-            <div class="flex items-center gap-3 mb-4">
-              <HbSpinner size="lg" />
-              <div class="flex-1">
-                <h4 class="font-semibold text-gray-900 flex items-center gap-2">
-                  <span>Evaluating Your Answer</span>
-                  <span class="animate-pulse">...</span>
-                </h4>
-                <p class="text-sm text-gray-600">AI is analyzing quality and generating feedback</p>
-              </div>
             </div>
 
-            <!-- Timeout Warning (if taking longer than 10s) -->
-            <div v-if="showTimeoutWarning" class="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg">
-              <div class="flex items-start gap-2">
-                <svg class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <div class="flex-1">
-                  <p class="text-sm font-medium text-yellow-800">This is taking longer than usual</p>
-                  <p class="text-xs text-yellow-700 mt-1">The AI is conducting a thorough analysis. Please wait a moment longer.</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Progress Steps -->
-            <div class="space-y-2 pl-13">
-              <div class="flex items-center gap-2 text-sm">
-                <div class="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center text-white text-xs">✓</div>
-                <span class="text-gray-700">Answer received</span>
-              </div>
-              <div class="flex items-center gap-2 text-sm">
-                <div class="w-4 h-4 rounded-full bg-blue-500 animate-pulse"></div>
-                <span class="text-gray-700 font-medium">Analyzing content...</span>
-              </div>
-              <div class="flex items-center gap-2 text-sm text-gray-400">
-                <div class="w-4 h-4 rounded-full border-2 border-gray-300"></div>
-                <span>Generating improvements</span>
-              </div>
-            </div>
-
-            <!-- Skeleton Loader for Expected Output -->
-            <div class="mt-4 pt-4 border-t border-blue-200">
-              <div class="space-y-3 animate-pulse">
-                <div class="h-4 bg-blue-200 rounded w-3/4"></div>
-                <div class="h-4 bg-blue-200 rounded w-1/2"></div>
-                <div class="h-4 bg-blue-200 rounded w-5/6"></div>
-              </div>
+            <!-- Adaptive Flow (shown inline after modal choice) -->
+            <div v-if="activeAdaptiveFlows.has(currentQuestion.id)" class="ml-4 pl-4 border-l-4 border-indigo-300">
+              <AdaptiveQuestionFlow
+                :question-id="currentQuestion.id"
+                :question-text="currentQuestion.question_text"
+                :question-data="currentQuestion"
+                :gap-info="{ title: currentQuestion.title, description: currentQuestion.context_why }"
+                :user-id="getUserId()"
+                :parsed-cv="parsedCV"
+                :parsed-jd="parsedJD"
+                :language="language"
+                :initial-experience-level="activeAdaptiveFlows.get(currentQuestion.id)"
+                @complete="(state) => handleAdaptiveComplete(currentQuestion!.id, state)"
+                @cancel="() => cancelAdaptiveFlow(currentQuestion!.id)"
+              />
             </div>
           </div>
         </div>
-
-        <!-- Adaptive Flow (shown inline after modal choice) -->
-        <div v-if="activeAdaptiveFlows.has(question.id)" class="ml-4 pl-4 border-l-4 border-indigo-300">
-          <AdaptiveQuestionFlow
-            :question-id="question.id"
-            :question-text="question.question_text"
-            :question-data="question"
-            :gap-info="{ title: question.title, description: question.context_why }"
-            :user-id="getUserId()"
-            :parsed-cv="parsedCV"
-            :parsed-jd="parsedJD"
-            :language="language"
-            :initial-experience-level="activeAdaptiveFlows.get(question.id)"
-            @complete="(state) => handleAdaptiveComplete(question.id, state)"
-            @cancel="() => cancelAdaptiveFlow(question.id)"
-          />
-        </div>
-      </div>
-    </div>
+      </template>
+    </HbStepper>
 
     <!-- Adaptive Modal (opens when user clicks "Zero Experience" button) -->
     <ExperienceCheckModal
@@ -297,32 +288,6 @@
       @experience-selected="handleExperienceSelection"
       @close="closeAdaptiveModal"
     />
-
-    <!-- Submit All Button -->
-    <div v-if="allQuestionsAnswered && !hasSubmitted" class="sticky bottom-6 z-10">
-      <div class="bg-white rounded-lg shadow-lg border-2 border-indigo-500 p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-lg font-semibold text-gray-900">
-              All Questions Answered!
-            </h3>
-            <p class="text-sm text-gray-600">
-              Ready to analyze your answers and update your score
-            </p>
-          </div>
-          <HbButton
-            @click="submitAllAnswers"
-            :disabled="isSubmitting"
-            :loading="isSubmitting"
-            variant="primary"
-            size="lg"
-          >
-            <span v-if="!isSubmitting">Submit All Answers</span>
-            <span v-else>Analyzing...</span>
-          </HbButton>
-        </div>
-      </div>
-    </div>
 
     <!-- Results Section (shown after submission) -->
     <div v-if="hasSubmitted && answersResult" class="space-y-6">
@@ -461,6 +426,147 @@ const allQuestionsAnswered = computed(() => {
   return questionsStore.allQuestionsAnswered(props.questionsData.questions.length)
 })
 
+// Stepper state management
+const currentQuestionIndex = ref(0)
+
+const questionSteps = computed(() => {
+  return props.questionsData.questions.map((q, idx) => ({
+    title: `Q${idx + 1}`,
+    description: q.title.length > 40 ? q.title.substring(0, 40) + '...' : q.title
+  }))
+})
+
+const currentQuestion = computed(() => {
+  return props.questionsData.questions[currentQuestionIndex.value]
+})
+
+// Hide header on any user interaction
+const hideHeader = ref(false)
+const containerRef = ref<HTMLElement | null>(null)
+
+// Simple approach: hide header when user starts answering or after first step
+const handleUserInteraction = () => {
+  if (!hideHeader.value) {
+    console.log('User interaction detected - hiding header')
+    hideHeader.value = true
+  }
+}
+
+// Watch for step changes - hide header after moving past first question
+watch(currentQuestionIndex, (newIndex) => {
+  if (newIndex > 0) {
+    hideHeader.value = true
+  }
+})
+
+// Keyboard navigation for steps
+const handleKeyDown = (event: KeyboardEvent) => {
+  // Arrow Right or Arrow Down = Next question
+  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+    if (currentQuestionIndex.value < props.questionsData.questions.length - 1) {
+      event.preventDefault()
+      currentQuestionIndex.value++
+    }
+  }
+  // Arrow Left or Arrow Up = Previous question
+  else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+    if (currentQuestionIndex.value > 0) {
+      event.preventDefault()
+      currentQuestionIndex.value--
+    }
+  }
+}
+
+// Also hide on mount after a short delay to detect any scroll
+onMounted(() => {
+  // Initialize answer drafts for all questions
+  const questionIds = props.questionsData.questions.map(q => q.id)
+  questionsStore.initializeAnswerDrafts(questionIds)
+
+  nextTick(() => {
+    console.log('Setting up scroll detection...')
+
+    // Approach 1: Listen to wheel events (mouse scroll) globally
+    window.addEventListener('wheel', handleUserInteraction, { once: true, passive: true })
+    console.log('Wheel listener attached to window')
+
+    // Approach 2: Listen to any scroll event on document
+    document.addEventListener('scroll', handleUserInteraction, { once: true, passive: true })
+    console.log('Scroll listener attached to document')
+
+    // Approach 3: Listen on the container
+    if (containerRef.value) {
+      containerRef.value.addEventListener('wheel', handleUserInteraction, { once: true, passive: true })
+      console.log('Wheel listener attached to container')
+    }
+
+    // Approach 4: Listen to parent scroll
+    const contentParent = document.querySelector('.content')
+    if (contentParent) {
+      contentParent.addEventListener('scroll', handleUserInteraction, { once: true, passive: true })
+      contentParent.addEventListener('wheel', handleUserInteraction, { once: true, passive: true })
+      console.log('Scroll and wheel listeners attached to .content parent')
+    }
+
+    // Approach 5: Find all scrollable elements
+    const allElements = document.querySelectorAll('*')
+    allElements.forEach(el => {
+      const style = window.getComputedStyle(el)
+      if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+        el.addEventListener('scroll', handleUserInteraction, { once: true, passive: true })
+        console.log('Scroll listener attached to scrollable element:', el.className)
+      }
+    })
+
+    // Add keyboard navigation
+    window.addEventListener('keydown', handleKeyDown)
+    console.log('Keyboard navigation enabled')
+  })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+})
+
+const currentQuestionState = computed(() => {
+  const qId = currentQuestion.value?.id
+  if (!qId) return 'unanswered'
+
+  if (activeAdaptiveFlows.value.has(qId)) return 'adaptive'
+  if (evaluatingQuestionId.value === qId) return 'evaluating'
+  if (answerEvaluations.value.has(qId)) {
+    const evaluation = answerEvaluations.value.get(qId)
+    return evaluation?.is_acceptable ? 'answered' : 'needs_refinement'
+  }
+  return 'unanswered'
+})
+
+// Handle step navigation
+const handleStepChange = (newIndex: number) => {
+  const oldIndex = currentQuestionIndex.value
+  const oldQuestion = props.questionsData.questions[oldIndex]
+
+  // Allow backward navigation always
+  if (newIndex < oldIndex) {
+    currentQuestionIndex.value = newIndex
+    return
+  }
+
+  // Forward navigation - validate current question is answered
+  if (newIndex > oldIndex && oldQuestion) {
+    const isAnswered = questionsStore.isQuestionAnswered(oldQuestion.id)
+    const isAdaptiveActive = activeAdaptiveFlows.value.has(oldQuestion.id)
+    const isEvaluating = evaluatingQuestionId.value === oldQuestion.id
+
+    if (!isAnswered && !isAdaptiveActive && !isEvaluating) {
+      // Allow skipping by not blocking navigation
+      console.warn('Skipping question:', oldQuestion.id)
+    }
+  }
+
+  currentQuestionIndex.value = newIndex
+}
+
 const getUserId = (): string => {
   // Generate a session-based user ID
   return `user-${Date.now()}`
@@ -516,6 +622,9 @@ const handleAnswerSubmit = async (
 
     // Store evaluation using store action (handles refinement init automatically)
     questionsStore.setEvaluation(questionId, evaluation)
+
+    // Clear the answer draft after successful evaluation
+    questionsStore.clearAnswerDraft(questionId)
 
     // Initialize tab to 'original' when evaluation completes
     questionsStore.setActiveTab(questionId, 'original')
@@ -808,3 +917,32 @@ const submitAllAnswers = async () => {
   }
 }
 </script>
+
+<style scoped>
+.slide-up-enter-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-up-leave-active {
+  transition: all 0.5s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.slide-up-enter-from {
+  transform: translateY(-30px);
+  opacity: 0;
+  margin-bottom: -100px;
+}
+
+.slide-up-leave-to {
+  transform: translateY(-30px);
+  opacity: 0;
+  margin-bottom: -100px;
+}
+
+.slide-up-enter-to,
+.slide-up-leave-from {
+  transform: translateY(0);
+  opacity: 1;
+  margin-bottom: 0;
+}
+</style>

@@ -387,15 +387,7 @@ $radius-md: 0.75rem;
 }
 
 .score-result__stat-value {
-  background: linear-gradient(
-    45deg,
-    color-mix(in srgb, currentColor 100%, black 10%) 0%,
-    color-mix(in srgb, currentColor 100%, white 40%) 50%,
-    color-mix(in srgb, currentColor 100%, black 10%) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: currentColor;
 }
 
 .score-result__stat-value-max {
@@ -455,10 +447,10 @@ $radius-md: 0.75rem;
   background-color: var(--secondary-500);
 }
 .text-good {
-  color: var(--secondary-600);
+  color: var(--secondary-500);
 }
 .bg-good {
-  background-color: var(--secondary-600);
+  background-color: var(--secondary-500);
 }
 .text-medium {
   color: $c-warning;
@@ -526,41 +518,14 @@ $radius-md: 0.75rem;
 
 .score-result__cluster-title--critical {
   color: $c-danger;
-  background: linear-gradient(
-    45deg,
-    color-mix(in srgb, #{$c-danger} 100%, black 10%) 0%,
-    color-mix(in srgb, #{$c-danger} 100%, white 40%) 50%,
-    color-mix(in srgb, #{$c-danger} 100%, black 10%) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .score-result__cluster-title--important {
   color: darken($c-warning, 10%);
-  background: linear-gradient(
-    45deg,
-    color-mix(in srgb, #{$c-warning} 100%, black 10%) 0%,
-    color-mix(in srgb, #{$c-warning} 100%, white 40%) 50%,
-    color-mix(in srgb, #{$c-warning} 100%, black 10%) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .score-result__cluster-title--neutral {
   color: $c-text-muted;
-  background: linear-gradient(
-    45deg,
-    color-mix(in srgb, #{$c-text-muted} 100%, black 10%) 0%,
-    color-mix(in srgb, #{$c-text-muted} 100%, white 40%) 50%,
-    color-mix(in srgb, #{$c-text-muted} 100%, black 10%) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .score-result__empty-state {

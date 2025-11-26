@@ -33,24 +33,27 @@
                   }"
                   :disabled="step.status === 'pending'"
                 >
+                  <!-- Progress Bar -->
+                  <div
+                    v-if="step.status === 'loading'"
+                    class="step-progress-bar"
+                  >
+                    <div
+                      class="step-progress-fill"
+                      :style="{ width: step.progress + '%' }"
+                    ></div>
+                  </div>
+
                   <div class="flex items-center gap-3 p-3 rounded-lg transition-all">
-                    <!-- Progress Indicator -->
+                    <!-- Step Number -->
                     <div class="step-number">
-                      <ProgressIndicator
-                        v-if="step.status !== 'pending'"
-                        :percentage="step.progress"
-                        :status="step.status"
-                        :size="36"
-                        :show-percentage="false"
-                        class="absolute inset-0"
-                      />
                       <span class="relative z-10">{{ index + 1 }}</span>
                     </div>
                     <div class="step-info">
                       <div class="step-title">{{ step.label }}</div>
                       <div class="step-subtitle">
-                        {{ step.status === 'loading' ? Math.round(step.progress) + '%' :
-                           step.status === 'complete' ? 'Complete' :
+                        {{ step.status === 'loading' ? Math.round(step.progress) + '% Complete' :
+                           step.status === 'complete' ? '100% Complete' :
                            step.status === 'error' ? 'Error' : 'Waiting...' }}
                       </div>
                     </div>
@@ -612,7 +615,7 @@ const triggerCoverLetterGeneration = async (rewriteResult: any) => {
 .step-number {
   width: 36px;
   height: 36px;
-  border-radius: 0.5rem;
+  border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -647,6 +650,24 @@ const triggerCoverLetterGeneration = async (rewriteResult: any) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.step-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.step-progress-fill {
+  height: 100%;
+  background-color: var(--primary-500);
+  transition: width 0.3s ease;
+  border-radius: 0;
 }
 
 /* Mobile Responsive */

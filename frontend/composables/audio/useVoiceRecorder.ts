@@ -3,6 +3,7 @@ export const useVoiceRecorder = () => {
   const isPaused = ref(false)
   const recordingTime = ref(0)
   const audioBlob = ref<Blob | null>(null)
+  const mediaStream = ref<MediaStream | null>(null)
 
   let mediaRecorder: MediaRecorder | null = null
   let audioChunks: Blob[] = []
@@ -12,6 +13,7 @@ export const useVoiceRecorder = () => {
     try {
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaStream.value = stream
 
       // Create MediaRecorder
       mediaRecorder = new MediaRecorder(stream, {
@@ -34,6 +36,7 @@ export const useVoiceRecorder = () => {
 
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop())
+        mediaStream.value = null
       }
 
       // Start recording
@@ -117,6 +120,7 @@ export const useVoiceRecorder = () => {
     isPaused: readonly(isPaused),
     recordingTime: readonly(recordingTime),
     audioBlob: readonly(audioBlob),
+    mediaStream: readonly(mediaStream),
     startRecording,
     stopRecording,
     pauseRecording,
