@@ -92,6 +92,9 @@ export const useQuestionsStore = defineStore('questions', {
 
     // Answer drafts (preserves text when navigating between questions)
     answerDrafts: new Map<string, string>(),
+
+    // AI-improved responses from refinement flow
+    improvedResponses: new Map<string, string>(),
   }),
 
   getters: {
@@ -179,6 +182,20 @@ export const useQuestionsStore = defineStore('questions', {
      */
     getAdaptiveExperienceLevel: (state) => (questionId: string) => {
       return state.activeAdaptiveFlows.get(questionId)
+    },
+
+    /**
+     * Get AI-improved response for question
+     */
+    getImprovedResponse: (state) => (questionId: string) => {
+      return state.improvedResponses.get(questionId) || ''
+    },
+
+    /**
+     * Check if question has improved response
+     */
+    hasImprovedResponse: (state) => (questionId: string) => {
+      return state.improvedResponses.has(questionId)
     },
   },
 
@@ -428,6 +445,27 @@ export const useQuestionsStore = defineStore('questions', {
     },
 
     /**
+     * Set AI-improved response for a question
+     */
+    setImprovedResponse(questionId: string, improvedText: string) {
+      this.improvedResponses.set(questionId, improvedText)
+    },
+
+    /**
+     * Clear improved response for a question
+     */
+    clearImprovedResponse(questionId: string) {
+      this.improvedResponses.delete(questionId)
+    },
+
+    /**
+     * Clear all improved responses
+     */
+    clearAllImprovedResponses() {
+      this.improvedResponses.clear()
+    },
+
+    /**
      * Clear specific question state
      */
     clearQuestionState(questionId: string) {
@@ -438,6 +476,7 @@ export const useQuestionsStore = defineStore('questions', {
       this.refinementIterations.delete(questionId)
       this.activeAdaptiveFlows.delete(questionId)
       this.answerDrafts.delete(questionId)
+      this.improvedResponses.delete(questionId)
     },
   }
 })

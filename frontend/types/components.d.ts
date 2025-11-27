@@ -230,10 +230,65 @@ export interface HbBreadcrumbsProps {
   separator?: string
 }
 
+// Stepper types
+export type StepperOrientation = 'horizontal' | 'vertical'
+export type StepperSize = 'sm' | 'md' | 'lg'
+export type StepperVariant = 'default' | 'compact' | 'pills'
+export type StepperType = 'number' | 'border'
+export type StepperTransition = 'none' | 'fade' | 'slide' | 'slide-fade' | 'zoom'
+
+export interface Step {
+  label: string
+  description?: string
+  completed?: boolean
+  disabled?: boolean
+  error?: boolean | string
+  hidden?: boolean
+  icon?: string
+  id?: string
+}
+
+export type StepValidator = (
+  fromIndex: number,
+  toIndex: number,
+  steps: Step[]
+) => boolean | Promise<boolean>
+
 export interface HbStepperProps {
-  steps: Array<{ label: string; description?: string; completed?: boolean; active?: boolean }>
-  currentStep: number
-  orientation?: 'horizontal' | 'vertical'
+  modelValue: number
+  steps: Step[]
+  stepperType?: StepperType
+  transition?: StepperTransition
+  orientation?: StepperOrientation
+  size?: StepperSize
+  variant?: StepperVariant
+  allowSkip?: boolean
+  allowBack?: boolean
+  linear?: boolean
+  clickable?: boolean
+  showNavigation?: boolean
+  nextLabel?: string
+  backLabel?: string
+  finishLabel?: string
+  validator?: StepValidator
+  showConnector?: boolean
+  showProgress?: boolean
+  showStepCount?: boolean
+  showStepNumber?: boolean
+  editable?: boolean
+  disabled?: boolean
+  loading?: boolean
+  label?: string
+}
+
+export interface HbStepperEmits {
+  (e: 'update:modelValue', index: number): void
+  (e: 'before-change', from: number, to: number): void
+  (e: 'after-change', index: number): void
+  (e: 'change', index: number): void
+  (e: 'step-complete', index: number): void
+  (e: 'complete'): void
+  (e: 'validation-failed', from: number, to: number): void
 }
 
 export interface HbRangeProps {
@@ -355,4 +410,76 @@ export interface HbFileEmits {
 
 export interface HbWysiwygEmits {
   (e: 'update:modelValue', value: string): void
+}
+
+// ==================== HB SLIDER ====================
+
+// Slider mode (carousel vs range input)
+export type SliderMode = 'carousel' | 'range'
+
+// Carousel-specific types
+export type SliderTransition = 'slide' | 'fade' | 'scale'
+export type SliderDirection = 'horizontal' | 'vertical'
+export type SliderNavigation = 'dots' | 'arrows' | 'both' | 'none'
+export type DotPosition = 'bottom' | 'top' | 'left' | 'right'
+export type DotAlignment = 'start' | 'center' | 'end'
+
+// Range-specific types
+export type RangeVariant = 'default' | 'gradient' | 'segmented'
+export type RangeSize = 'sm' | 'md' | 'lg'
+
+// Tick mark interface (for range mode)
+export interface SliderTick {
+  value: number
+  label?: string
+}
+
+export interface HbSliderProps {
+  // Core mode selector
+  mode?: SliderMode
+  modelValue?: number | number[]
+
+  // CAROUSEL MODE PROPS
+  autoplay?: boolean
+  interval?: number
+  loop?: boolean
+  transition?: SliderTransition
+  direction?: SliderDirection
+  navigation?: SliderNavigation
+  showDots?: boolean
+  showArrows?: boolean
+  dotPosition?: DotPosition
+  dotAlignment?: DotAlignment
+  arrowPosition?: 'inside' | 'outside'
+  pauseOnHover?: boolean
+  swipeable?: boolean
+  height?: string | number
+
+  // RANGE MODE PROPS
+  min?: number
+  max?: number
+  step?: number
+  range?: boolean
+  variant?: RangeVariant
+  size?: RangeSize
+  showValue?: boolean
+  showTicks?: boolean
+  ticks?: SliderTick[]
+  valueFormat?: (value: number) => string
+  marks?: Record<number, string>
+
+  // SHARED PROPS
+  disabled?: boolean
+  label?: string
+  helperText?: string
+  error?: string
+  required?: boolean
+}
+
+export interface HbSliderEmits {
+  (e: 'update:modelValue', value: number | number[]): void
+  (e: 'change', value: number | number[]): void
+  (e: 'before-change', from: number, to: number): void
+  (e: 'after-change', index: number): void
+  (e: 'input', value: number | number[]): void
 }

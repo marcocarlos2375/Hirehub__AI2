@@ -47,77 +47,34 @@
     />
 
     <!-- Deep Dive Path: Quality Evaluation -->
-    <div v-if="state.currentStep === 'quality_eval' && state.generatedAnswer">
-      <AnswerQualityDisplay
-        :generated-answer="state.generatedAnswer"
-        :quality-score="state.qualityScore || 0"
-        :quality-issues="state.qualityIssues"
-        :quality-strengths="state.qualityStrengths"
-        :improvement-suggestions="state.improvementSuggestions"
-        :is-acceptable="(state.qualityScore || 0) >= 7"
-        @refine-answer="showRefinementPrompt"
-        @accept-answer="handleAcceptAnswer"
-      />
+    <!-- Refinement Slider (replaces quality_eval step when score < 7) -->
+    <RefinementSlider
+      v-if="state.currentStep === 'quality_eval' && state.generatedAnswer && (state.qualityScore || 0) < 7"
+      :generated-answer="state.generatedAnswer"
+      :quality-score="state.qualityScore || 0"
+      :quality-issues="state.qualityIssues"
+      :quality-strengths="state.qualityStrengths"
+      @submit-refinement="handleRefinementSubmit"
+    />
 
-      <!-- Refinement Dialog -->
-      <div v-if="showRefinementDialog" class="mt-6 bg-amber-50 border border-amber-200 rounded-lg p-6">
-        <h3 class="font-bold text-gray-900 mb-4">Provide Additional Details</h3>
-        <p class="text-sm text-gray-700 mb-4">
-          Add more specific information to improve your answer quality:
-        </p>
+    <!-- Quality Evaluation (only shown if score >= 7) -->
+    <AnswerQualityDisplay
+      v-if="state.currentStep === 'quality_eval' && state.generatedAnswer && (state.qualityScore || 0) >= 7"
+      :generated-answer="state.generatedAnswer"
+      :quality-score="state.qualityScore || 0"
+      :quality-issues="state.qualityIssues"
+      :quality-strengths="state.qualityStrengths"
+      :improvement-suggestions="state.improvementSuggestions"
+      :is-acceptable="true"
+      :show-refine-button="false"
+      @accept-answer="handleAcceptAnswer"
+    />
 
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Duration/Timeline Details
-            </label>
-            <HbInput
-              v-model="refinementData.duration_detail"
-              type="text"
-              placeholder="e.g., 6 months on production system"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Specific Tools/Technologies Used
-            </label>
-            <HbInput
-              v-model="refinementData.specific_tools"
-              type="text"
-              placeholder="e.g., AWS Lambda, API Gateway, DynamoDB"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Measurable Results/Metrics
-            </label>
-            <HbInput
-              v-model="refinementData.metrics"
-              type="text"
-              placeholder="e.g., Reduced API response time by 30%"
-            />
-          </div>
-
-          <div class="flex gap-3 pt-4">
-            <HbButton
-              @click="cancelRefinement"
-              variant="outline"
-            >
-              Cancel
-            </HbButton>
-            <HbButton
-              @click="submitRefinement"
-              :disabled="!hasRefinementData || state.loading"
-              :loading="state.loading"
-              variant="secondary"
-              class="flex-1"
-            >
-              {{ state.loading ? 'Refining...' : 'Refine Answer' }}
-            </HbButton>
-          </div>
-        </div>
+    <!-- Black Loading Overlay -->
+    <div v-if="showRefinementLoading" class="refinement-loading-overlay">
+      <div class="loading-content">
+        <HbSpinner size="lg" class="mb-4" />
+        <p class="text-xl font-semibold text-white">Generating the best answer...</p>
       </div>
     </div>
 
@@ -189,10 +146,12 @@ import type {
   QualityEvaluation,
   AdaptiveQuestionState
 } from '~/types/adaptive-questions'
+import type { QuestionData, GapInfo, ParsedCV, ParsedJobDescription } from '~/types/api-responses'
 
 import ExperienceCheckModal from '../modals/ExperienceCheckModal.vue'
 import DeepDiveForm from './DeepDiveForm.vue'
 import AnswerQualityDisplay from './AnswerQualityDisplay.vue'
+import RefinementSlider from './RefinementSlider.vue'
 import LearningResourcesDisplay from '../learning/LearningResourcesDisplay.vue'
 import LearningTimeline from '../learning/LearningTimeline.vue'
 
@@ -226,6 +185,7 @@ const { startAdaptiveQuestion, submitStructuredInputs, refineAnswer, saveLearnin
 // State
 const showExperienceModal = ref(!props.initialExperienceLevel)
 const showRefinementDialog = ref(false)
+const showRefinementLoading = ref(false)
 const refinementData = ref<Record<string, any>>({
   duration_detail: '',
   specific_tools: '',
@@ -268,11 +228,11 @@ const handleExperienceSelection = async (level: ExperienceLevel) => {
     const response = await startAdaptiveQuestion(
       props.questionId,
       props.questionText,
-      props.questionData,
-      props.gapInfo,
+      props.questionData as QuestionData,
+      props.gapInfo as GapInfo,
       props.userId,
-      props.parsedCv,
-      props.parsedJd,
+      props.parsedCv as ParsedCV,
+      props.parsedJd as ParsedJobDescription,
       level,
       props.language
     )
@@ -355,8 +315,8 @@ const submitRefinement = async () => {
     const response = await refineAnswer(
       props.questionId,
       props.questionText,
-      props.questionData,
-      props.gapInfo,
+      props.questionData as QuestionData,
+      props.gapInfo as { title: string; description: string },
       state.value.generatedAnswer,
       state.value.qualityIssues,
       refinementData.value
@@ -368,17 +328,58 @@ const submitRefinement = async () => {
     }
 
     state.value.generatedAnswer = response.refined_answer
-    state.value.qualityScore = response.quality_score
+    state.value.qualityScore = response.quality_score ?? undefined
     state.value.refinementIteration = response.iteration
 
-    if (response.final_answer) {
-      state.value.finalAnswer = response.final_answer
-      state.value.currentStep = 'complete'
-    }
+    // With new flow, refinement always completes the workflow
+    state.value.finalAnswer = response.refined_answer
+    state.value.currentStep = 'complete'
   } catch (error: any) {
     state.value.error = error.message || 'Failed to refine answer'
   } finally {
     state.value.loading = false
+  }
+}
+
+const handleRefinementSubmit = async (refinementData: Record<string, any>) => {
+  if (!state.value.generatedAnswer || !state.value.qualityIssues) return
+
+  // Show black loading overlay
+  showRefinementLoading.value = true
+
+  try {
+    const response = await refineAnswer(
+      props.questionId,
+      props.questionText,
+      props.questionData as QuestionData,
+      props.gapInfo as { title: string; description: string },
+      state.value.generatedAnswer,
+      state.value.qualityIssues,
+      refinementData
+    )
+
+    if (response.error) {
+      state.value.error = response.error
+      showRefinementLoading.value = false
+      return
+    }
+
+    // Store the AI-rewritten answer
+    const rewrittenAnswer = response.refined_answer
+
+    // Hide loading overlay
+    showRefinementLoading.value = false
+
+    // Return to answer_generation step (which doesn't exist in this flow)
+    // Instead, complete the workflow with the rewritten answer
+    state.value.generatedAnswer = rewrittenAnswer
+    state.value.refinementIteration = 1  // Mark as refined (blocks further refinement)
+    state.value.finalAnswer = rewrittenAnswer
+    state.value.currentStep = 'complete'
+
+  } catch (error: any) {
+    state.value.error = error.message || 'Failed to refine answer'
+    showRefinementLoading.value = false
   }
 }
 
@@ -436,7 +437,7 @@ const handleSaveLearningPlan = async (resourceIds: string[]) => {
   try {
     const response = await saveLearningPlan(
       props.userId,
-      props.gapInfo,
+      props.gapInfo as GapInfo,
       resourceIds,
       `Learning plan for ${props.gapInfo.title}`
     )
@@ -476,3 +477,25 @@ onMounted(() => {
   }
 })
 </script>
+
+<style scoped>
+.refinement-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+</style>

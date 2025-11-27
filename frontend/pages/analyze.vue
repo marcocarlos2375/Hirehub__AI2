@@ -563,12 +563,22 @@ const triggerCoverLetterGeneration = async (rewriteResult: any) => {
   flex-direction: column;
   background-color: white;
   border-bottom-right-radius: 0.5rem;
-  overflow-y: auto;
+  overflow-y: hidden;  /* Disable global scroll for questions step */
+}
+
+/* Restore scroll for other steps that need it */
+.content:not(:has(.questions-wrapper)) {
+  overflow-y: auto;  /* Job parsing, CV parsing, Score result, etc. */
 }
 
 .content-animated {
   flex: 1;
   overflow-y: auto;
+
+  /* Disable scroll for questions step */
+  &:has(.questions-wrapper) {
+    overflow-y: hidden;
+  }
 
   .content {
     height: auto;

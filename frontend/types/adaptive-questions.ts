@@ -150,18 +150,9 @@ export interface RefineAnswerRequest {
 export interface RefineAnswerResponse {
   question_id: string
   refined_answer: string
-  quality_score: number
-  quality_issues?: string[]
-  quality_strengths?: string[]
-  improvement_suggestions?: Array<{
-    issue: string
-    suggestion: string
-    priority: string
-  }>
-  is_acceptable: boolean
-  final_answer?: string
-  current_step: string
-  iteration: number
+  quality_score: number | null  // Always null after refinement (no re-evaluation)
+  current_step: string  // "answer_generation" (return to answer input)
+  iteration: number  // Always 1
   error?: string
 }
 

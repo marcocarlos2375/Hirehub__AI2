@@ -256,7 +256,7 @@ const updateWaveform = () => {
 
   // Only add a bar every 5 frames (slows down to ~12 bars per second instead of 60)
   if (frameCount % 5 === 0) {
-    analyser.value.getByteTimeDomainData(dataArray.value!)
+    analyser.value.getByteTimeDomainData(dataArray.value! as Uint8Array<ArrayBuffer>)
 
     // Calculate average volume across all data
     const sum = dataArray.value.reduce((acc, val) => {

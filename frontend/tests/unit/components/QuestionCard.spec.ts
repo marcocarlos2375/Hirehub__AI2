@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import QuestionCard from '~/components/adaptive-questions/QuestionCard.vue'
+import QuestionContextCard from '~/components/adaptive-questions/QuestionContextCard.vue'
 import type { QuestionItem } from '~/composables/analysis/useAnalysisState'
 
-describe('QuestionCard Component', () => {
+describe('QuestionContextCard Component', () => {
   const createMockQuestion = (overrides?: Partial<QuestionItem>): QuestionItem => ({
     id: 'q1',
     number: 1,
@@ -19,10 +19,16 @@ describe('QuestionCard Component', () => {
     ...overrides
   })
 
-  it('should render question details correctly', () => {
+  it('should render question details correctly with full variant', () => {
     const question = createMockQuestion()
-    const wrapper = mount(QuestionCard, {
-      props: { question }
+    const wrapper = mount(QuestionContextCard, {
+      props: {
+        question,
+        variant: 'full',
+        showImpact: true,
+        showContextWhy: true,
+        showExamples: true
+      }
     })
 
     expect(wrapper.text()).toContain('Q1')
@@ -30,66 +36,68 @@ describe('QuestionCard Component', () => {
     expect(wrapper.text()).toContain('HIGH')
     expect(wrapper.text()).toContain('Missing skills: Python, FastAPI')
     expect(wrapper.text()).toContain('Can you describe your experience with Python backend development?')
-    expect(wrapper.text()).toContain('Why we\'re asking:')
     expect(wrapper.text()).toContain('The role requires strong Python and FastAPI knowledge')
   })
 
-  it('should apply correct priority color classes', () => {
-    const testCases = [
-      { priority: 'CRITICAL' as const, expectedClass: 'bg-red-100 text-red-800' },
-      { priority: 'HIGH' as const, expectedClass: 'bg-orange-100 text-orange-800' },
-      { priority: 'MEDIUM' as const, expectedClass: 'bg-yellow-100 text-yellow-800' }
-    ]
+  it('should use HbBadge for priority display', () => {
+    const question = createMockQuestion({ priority: 'HIGH' })
+    const wrapper = mount(QuestionContextCard, {
+      props: {
+        question,
+        variant: 'default'
+      }
+    })
 
-    for (const { priority, expectedClass } of testCases) {
-      const question = createMockQuestion({ priority })
-      const wrapper = mount(QuestionCard, {
-        props: { question }
-      })
-
-      const priorityBadge = wrapper.find('.px-2\\.5')
-      expect(priorityBadge.classes()).toContain(expectedClass.split(' ')[0])
-    }
+    // QuestionContextCard uses HbBadge component now
+    expect(wrapper.text()).toContain('HIGH')
+    expect(wrapper.text()).toContain('Q1')
   })
 
   it('should toggle examples visibility when clicked', async () => {
     const question = createMockQuestion()
-    const wrapper = mount(QuestionCard, {
-      props: { question }
+    const wrapper = mount(QuestionContextCard, {
+      props: {
+        question,
+        variant: 'full',
+        showExamples: true
+      }
     })
 
-    // Examples should be hidden initially
-    expect(wrapper.text()).not.toContain('Describe API endpoints you built')
-    expect(wrapper.text()).toContain('Show examples')
-
-    // Click to show examples
-    const toggleButton = wrapper.find('button')
-    await toggleButton.trigger('click')
-
-    // Examples should now be visible
-    expect(wrapper.text()).toContain('Hide examples')
+    // Examples should be visible initially (default: expanded)
+    expect(wrapper.text()).toContain('Examples')
     expect(wrapper.text()).toContain('Describe API endpoints you built')
-    expect(wrapper.text()).toContain('Explain database integration you implemented')
 
-    // Click again to hide
-    await toggleButton.trigger('click')
+    // Find the Examples button
+    const toggleButton = wrapper.findAll('button').find(btn => btn.text().includes('Examples'))
+    expect(toggleButton).toBeDefined()
+
+    // Click to collapse examples
+    await toggleButton!.trigger('click')
+
+    // Examples should now be hidden
+    await wrapper.vm.$nextTick()
     expect(wrapper.text()).not.toContain('Describe API endpoints you built')
-    expect(wrapper.text()).toContain('Show examples')
+
+    // Click again to expand
+    await toggleButton!.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Describe API endpoints you built')
   })
 
-  it('should emit need-help event when zero experience button clicked', async () => {
+  it('should emit need-help event when "I have no experience" button clicked', async () => {
     const question = createMockQuestion()
-    const wrapper = mount(QuestionCard, {
-      props: { question }
+    const wrapper = mount(QuestionContextCard, {
+      props: {
+        question,
+        variant: 'full',
+        showExamples: true
+      }
     })
 
-    // First, show examples to reveal the button
-    const toggleButton = wrapper.find('button')
-    await toggleButton.trigger('click')
-
-    // Find and click the "zero experience" button
+    // Examples should be expanded by default
+    // Find and click the "I have no experience" button
     const needHelpButton = wrapper.findAll('button').find(btn =>
-      btn.text().includes('I have zero experience')
+      btn.text().includes('I have no experience')
     )
     expect(needHelpButton).toBeDefined()
 
@@ -100,20 +108,26 @@ describe('QuestionCard Component', () => {
     expect(wrapper.emitted('need-help')?.length).toBe(1)
   })
 
-  it('should not render examples section if no examples provided', () => {
-    const question = createMockQuestion({ examples: [] })
-    const wrapper = mount(QuestionCard, {
-      props: { question }
+  it('should not render examples section if showExamples is false', () => {
+    const question = createMockQuestion()
+    const wrapper = mount(QuestionContextCard, {
+      props: {
+        question,
+        variant: 'default',
+        showExamples: false
+      }
     })
 
-    expect(wrapper.text()).not.toContain('Show examples')
-    expect(wrapper.findAll('button').length).toBe(0)
+    expect(wrapper.text()).not.toContain('Examples')
   })
 
   it('should render slot content', () => {
     const question = createMockQuestion()
-    const wrapper = mount(QuestionCard, {
-      props: { question },
+    const wrapper = mount(QuestionContextCard, {
+      props: {
+        question,
+        variant: 'full'
+      },
       slots: {
         default: '<div class="test-slot">Slot content here</div>'
       }
@@ -124,13 +138,17 @@ describe('QuestionCard Component', () => {
   })
 
   it('should handle questions without examples gracefully', () => {
-    const question = createMockQuestion({ examples: undefined as any })
-    const wrapper = mount(QuestionCard, {
-      props: { question }
+    const question = createMockQuestion({ examples: [] })
+    const wrapper = mount(QuestionContextCard, {
+      props: {
+        question,
+        variant: 'full',
+        showExamples: true
+      }
     })
 
     // Should still render the main content
     expect(wrapper.text()).toContain('Backend Development Experience')
-    expect(wrapper.text()).not.toContain('Show examples')
+    expect(wrapper.text()).not.toContain('Examples')
   })
 })

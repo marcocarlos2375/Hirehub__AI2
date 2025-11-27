@@ -3423,7 +3423,7 @@ async def refine_answer(request: SubmitRefinementDataRequest):
     Max 2 refinement iterations. After that, accepts current answer.
     """
     try:
-        from core.answer_flow_nodes import refine_answer_node, evaluate_quality_node
+        from core.answer_flow_nodes import refine_answer_node
         from core.answer_flow_state import AdaptiveAnswerState
 
         # TODO: Load state from storage
@@ -3445,19 +3445,17 @@ async def refine_answer(request: SubmitRefinementDataRequest):
             "answer_accepted": False,  # Required field
         }
 
-        # Refine answer
+        # Refine answer (AI rewrite only - no re-evaluation)
         state = refine_answer_node(state)
 
-        # Re-evaluate quality
-        state = evaluate_quality_node(state)
-
+        # Skip re-evaluation - return rewritten answer directly
         return SubmitRefinementDataResponse(
             question_id=request.question_id,
             refined_answer=state.get("refined_answer", ""),
-            quality_score=state.get("quality_score"),
-            final_answer=state.get("final_answer"),
-            current_step=state.get("current_step", "unknown"),
-            iteration=state.get("refinement_iteration", 0),
+            quality_score=None,  # No re-evaluation
+            final_answer=None,
+            current_step="answer_generation",  # Return to answer input step
+            iteration=1,
             error=state.get("error")
         )
 
