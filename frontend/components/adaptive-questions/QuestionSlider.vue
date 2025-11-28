@@ -1,5 +1,12 @@
 <template>
   <div class="question-slider pt-1">
+    <!-- Loading Overlay for Skill Gap Analysis -->
+    <HbLoadingOverlay
+      :show="loadingSkillGap"
+      message="Analyzing your background..."
+      spinner-size="lg"
+    />
+
     <!-- Dots at top (show when multiple slides) -->
     <div v-if="showDots" class="dots">
       <button
@@ -36,6 +43,9 @@
             <NoExperienceSlide
               :question="question"
               :is-active="currentSlide === 1"
+              :parsed-cv="parsedCv"
+              :parsed-jd="parsedJd"
+              :analysis="skillGapAnalysis"
               @learning-choice="handleLearningChoice"
             />
           </div>
@@ -72,6 +82,8 @@ import { ref, computed, watch } from 'vue'
 import type { QuestionSliderProps, QuestionSliderEmits } from '~/types/component-props'
 import { QUESTION_STEP_STATES } from '~/types/constants'
 import { useQuestionsStore } from '~/stores/questions/useQuestionsStore'
+import { useSkillGapAnalysis } from '~/composables/adaptive-questions/useSkillGapAnalysis'
+import type { SkillGapAnalysis } from '~/types/adaptive-questions'
 
 import OriginalQuestionSlide from '../adaptive-questions/OriginalQuestionSlide.vue'
 import RefinementSlide from '../adaptive-questions/RefinementSlide.vue'
@@ -85,6 +97,11 @@ const props = withDefaults(defineProps<QuestionSliderProps>(), {
 const emit = defineEmits<QuestionSliderEmits>()
 
 const questionsStore = useQuestionsStore()
+const { analyzeSkillGap } = useSkillGapAnalysis()
+
+// Loading state for skill gap analysis
+const loadingSkillGap = ref(false)
+const skillGapAnalysis = ref<SkillGapAnalysis | null>(null)
 
 // Current slide index for this question
 const currentSlide = ref(questionsStore.getCurrentSlide(props.question.id))
@@ -192,14 +209,33 @@ const handleFeedbackContinue = () => {
 }
 
 // Handle "I have no experience" button click
-const handleNeedHelp = () => {
-  // Set NO_EXPERIENCE state for this question
-  questionsStore.setQuestionState(props.question.id, QUESTION_STEP_STATES.NO_EXPERIENCE)
+const handleNeedHelp = async () => {
+  // Set loading state
+  loadingSkillGap.value = true
 
-  // Navigate to slide 1 (NoExperienceSlide)
-  currentSlide.value = 1
-  questionsStore.setCurrentSlide(props.question.id, 1)
-  handleSlideChange(1)
+  try {
+    // Call API to get personalized message
+    skillGapAnalysis.value = await analyzeSkillGap(
+      props.question.id,
+      props.question.title,
+      props.parsedCv,
+      props.parsedJd
+    )
+
+    // Set NO_EXPERIENCE state for this question
+    questionsStore.setQuestionState(props.question.id, QUESTION_STEP_STATES.NO_EXPERIENCE)
+
+    // NOW navigate to slide 1 (data is ready)
+    currentSlide.value = 1
+    questionsStore.setCurrentSlide(props.question.id, 1)
+    handleSlideChange(1)
+
+  } catch (error) {
+    console.error('Error analyzing skill gap:', error)
+    // TODO: Show error notification to user
+  } finally {
+    loadingSkillGap.value = false
+  }
 }
 
 // Handle learning choice from NoExperienceSlide

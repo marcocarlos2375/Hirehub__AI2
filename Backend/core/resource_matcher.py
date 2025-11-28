@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker, Session
 import os
 
 from core.langchain_config import get_learning_resources_vectorstore, get_embeddings
+from core.perplexica_client import get_perplexica_client
 from models.learning_resources import LearningResource, UserLearningPlan, Base
 
 
@@ -433,10 +434,10 @@ class ResourceMatcher:
         max_days: int = 30,
         cost_preference: str = "any",
         limit: int = 5,
-        search_mode: str = "hybrid"
+        search_mode: str = "perplexica"  # Changed default to perplexica
     ) -> Dict[str, Any]:
         """
-        Find resources using hybrid approach: local DB + web search via SearXNG.
+        Find resources using hybrid approach: local DB + web search via SearXNG or Perplexica AI.
 
         Args:
             gap: Gap information (title, description)
@@ -444,7 +445,7 @@ class ResourceMatcher:
             max_days: Maximum duration in days
             cost_preference: Cost filter (free, freemium, paid, any)
             limit: Number of results to return
-            search_mode: Search strategy ("local_only", "web_only", "hybrid")
+            search_mode: Search strategy ("local_only", "web_only", "hybrid", "perplexica")
 
         Returns:
             Dictionary with resources, learning_path, and metadata
@@ -505,6 +506,67 @@ class ResourceMatcher:
 
             except Exception as e:
                 print(f"Web search error: {str(e)}")
+
+        # 2.5. Perplexica AI Search (new mode)
+        if search_mode == "perplexica":
+            try:
+                use_perplexica = os.getenv("USE_PERPLEXICA", "true").lower() == "true"
+
+                if use_perplexica:
+                    perplexica = get_perplexica_client()
+
+                    # Check health before using
+                    if perplexica.health_check():
+                        perplexica_result = perplexica.search_learning_resources(
+                            skill=gap.get("title", ""),
+                            user_level=user_level,
+                            num_results=limit * 2
+                        )
+
+                        # Parse Perplexica results
+                        parsed_perplexica = self._parse_perplexica_results(
+                            perplexica_result,
+                            max_days,
+                            cost_preference
+                        )
+                        all_resources.extend(parsed_perplexica)
+
+                        if parsed_perplexica:
+                            sources_used.append("Perplexica")
+
+                        print(f"Perplexica returned {len(parsed_perplexica)} resources")
+                    else:
+                        print("Perplexica health check failed, falling back to SearXNG")
+                        # Fallback to SearXNG
+                        search_mode = "web_only"
+                else:
+                    print("USE_PERPLEXICA=false, using SearXNG")
+                    search_mode = "web_only"
+
+            except Exception as e:
+                print(f"Perplexica error: {e}, falling back to SearXNG")
+                search_mode = "web_only"
+
+            # If fallback triggered, run SearXNG search
+            if search_mode == "web_only":
+                try:
+                    searxng = get_searxng_client()
+                    if searxng.health_check():
+                        query_builder = get_query_builder()
+                        queries = query_builder.generate_queries(gap, user_level, num_queries=2)
+
+                        web_results = []
+                        for query in queries:
+                            results = searxng.search(query=query, num_results=limit * 2)
+                            web_results.extend(results)
+
+                        if web_results:
+                            sources_used.append("searxng_web_fallback")
+
+                        parsed_web = self._parse_web_results(web_results, user_level, max_days, cost_preference)
+                        all_resources.extend(parsed_web)
+                except Exception as e:
+                    print(f"Fallback search error: {str(e)}")
 
         # 3. Deduplicate by URL
         seen_urls = set()
@@ -747,6 +809,103 @@ class ResourceMatcher:
                 return name
 
         return "Web"
+
+    def _parse_perplexica_results(
+        self,
+        perplexica_result: Dict[str, Any],
+        max_days: int,
+        cost_preference: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Parse Perplexica AI-synthesized results into resource format.
+
+        Args:
+            perplexica_result: Result from Perplexica with 'answer' and 'sources'
+            max_days: Maximum duration filter
+            cost_preference: Cost preference filter
+
+        Returns:
+            List of parsed resources from Perplexica sources
+        """
+        from core.langchain_config import get_langchain_config
+
+        parsed = []
+        sources = perplexica_result.get("sources", [])
+        ai_answer = perplexica_result.get("answer", "")
+
+        if not sources:
+            return parsed
+
+        llm = get_langchain_config().llm_fast
+
+        for source in sources:
+            # Perplexica sources have nested structure: metadata.title and metadata.url
+            source_metadata = source.get("metadata", {})
+            title = source_metadata.get("title", "")
+            url = source_metadata.get("url", "")
+
+            # Get page content for additional context
+            page_content = source.get("pageContent", "")
+
+            if not url or not title:
+                continue
+
+            # Extract provider from URL
+            provider = self._extract_provider(url)
+
+            # Skip forums and discussion platforms - prioritize learning platforms
+            forum_domains = [
+                'reddit.com', 'facebook.com', 'stackoverflow.com',
+                'quora.com', 'discourse.org', 'github.com/issues',
+                'dev.to', 'hashnode.com', 'medium.com/@'  # Skip personal blog posts
+            ]
+            if any(domain in url.lower() for domain in forum_domains):
+                continue
+
+            # Use Perplexica's AI context + source info to estimate metadata
+            # Combine page content and AI answer for richer context
+            context_description = f"{page_content}\n\nAI Context: {ai_answer[:300]}"
+
+            # Use AI to estimate resource metadata with Perplexica context
+            resource_metadata = self._estimate_metadata(title, context_description, url, "beginner", llm)
+
+            # Apply filters
+            duration = resource_metadata.get("duration_days", 5)
+            cost = resource_metadata.get("cost", "unknown")
+
+            # Filter by max_days
+            if duration > max_days:
+                continue
+
+            # Filter by cost preference
+            if cost_preference != "any":
+                if cost_preference == "free" and cost not in ["free", "freemium"]:
+                    continue
+                elif cost_preference != "free" and cost != cost_preference:
+                    continue
+
+            resource = {
+                "id": f"perplexica_{hash(url) % 1000000}",
+                "title": title,
+                "description": page_content[:200] if page_content else ai_answer[:200],
+                "url": url,
+                "provider": provider,
+                "source": "perplexica",
+                "source_badge": "AI Search",
+                "confidence": "high",  # Perplexica uses AI synthesis, higher confidence
+                "type": resource_metadata.get("type", "course"),
+                "difficulty": resource_metadata.get("difficulty", "beginner"),
+                "duration_days": duration,
+                "cost": cost,
+                "rating": resource_metadata.get("rating", 4.2),  # Slightly higher default for AI-curated
+                "skills_covered": [],
+                "completion_certificate": resource_metadata.get("certificate", False),
+                "ai_summary": ai_answer[:300]  # Include AI context for this resource
+            }
+
+            parsed.append(resource)
+
+        return parsed
 
     def _estimate_metadata(
         self,

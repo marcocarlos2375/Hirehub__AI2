@@ -68,3 +68,4 @@ qdrant_storage/
 # OS files
 Thumbs.db
 .DS_Store
+perplexica/

@@ -245,3 +245,13 @@ export interface AdaptiveQuestionEvents {
   'plan-saved': (planId: string) => void
   'error': (error: string) => void
 }
+
+// Skill Gap Analysis types (for "No Experience" flow)
+export interface SkillGapAnalysis {
+  case: 'A' | 'B'
+  skill_missing: string
+  skill_exist: string | null
+  intro: string  // Opening 1-3 sentences
+  key_points: string[]  // 3-5 bullet points from original message
+  message: string  // Full message (backward compatibility)
+}

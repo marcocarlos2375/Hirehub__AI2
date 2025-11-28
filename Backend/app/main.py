@@ -3619,7 +3619,7 @@ class GetLearningResourcesRequest(BaseModel):
     max_days: int = 10
     cost_preference: str = "any"  # "free", "paid", "any"
     limit: int = 5
-    search_mode: str = "hybrid"  # "local_only", "web_only", "hybrid"
+    search_mode: str = "perplexica"  # "local_only", "web_only", "hybrid", "perplexica"
 
 
 class LearningPathStep(BaseModel):
@@ -3806,6 +3806,80 @@ async def get_learning_plans(request: GetLearningPlansRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving learning plans: {str(e)}")
+
+
+# ============= Skill Gap Analysis (No Experience) =============
+
+class SkillGapAnalysisRequest(BaseModel):
+    question_id: str
+    question_title: str  # e.g., "Docker", "React"
+    parsed_cv: dict
+    parsed_jd: dict
+
+
+class SkillGapAnalysisResponse(BaseModel):
+    case: str  # "A" or "B"
+    skill_missing: str
+    skill_exist: str | None
+    intro: str  # Opening 1-3 sentences
+    key_points: list[str]  # 3-5 bullet points from original message
+    message: str  # Full message (backward compatibility)
+
+
+@app.post("/api/analyze-skill-gap", response_model=SkillGapAnalysisResponse)
+async def analyze_skill_gap(request: SkillGapAnalysisRequest):
+    """
+    Analyze if user has related skills (Case A) or no background (Case B)
+    for the missing skill in the question.
+
+    Used when user clicks "I have no experience" button.
+    """
+    try:
+        from app.config import get_skill_gap_analysis_prompt
+
+        # Generate prompt
+        prompt = get_skill_gap_analysis_prompt(
+            question_title=request.question_title,
+            parsed_cv=request.parsed_cv,
+            parsed_jd=request.parsed_jd
+        )
+
+        # Call Gemini
+        model_name = "gemini-2.5-flash-lite"
+        response = gemini_client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config={"temperature": 0.3}  # Slightly higher for creative, personalized messages
+        )
+        response_text = response.text.strip()
+
+        # Remove markdown code blocks if present
+        if response_text.startswith("```"):
+            lines = response_text.split('\n')
+            response_text = '\n'.join(lines[1:-1])  # Remove first and last lines
+
+        # Parse JSON
+        analysis = json.loads(response_text)
+
+        return SkillGapAnalysisResponse(
+            case=analysis['case'],
+            skill_missing=analysis['skill_missing'],
+            skill_exist=analysis.get('skill_exist'),
+            intro=analysis['intro'],
+            key_points=analysis['key_points'],
+            message=analysis['message']
+        )
+
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to parse AI response: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error analyzing skill gap: {str(e)}"
+        )
 
 
 @app.on_event("startup")

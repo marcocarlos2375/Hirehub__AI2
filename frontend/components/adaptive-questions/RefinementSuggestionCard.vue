@@ -11,7 +11,7 @@
         <!-- Title with icon for clarity -->
         <div class="flex items-center gap-2 mb-2">
 
-          <p class="text-base text-gray-900 font-semibold">
+          <p class="text-base text-gray-900 title">
             {{ title }}
           </p>
         </div>
@@ -186,5 +186,9 @@ const handleInput = (value: string | number) => {
   color: var(--primary-400);
   flex-shrink: 0;
   line-height: 1;
+}
+.title{
+  font-weight: 500;
+  margin-top: 2px;
 }
 </style>

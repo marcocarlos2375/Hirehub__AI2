@@ -58,7 +58,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: 'http://localhost:8001',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8001',
       // HireHub UI Components configuration
       apiBaseUrl: process.env.VITE_API_BASE_URL || 'http://localhost:8001',
       apiUrl: process.env.VITE_API_URL || 'http://localhost:8001/api',

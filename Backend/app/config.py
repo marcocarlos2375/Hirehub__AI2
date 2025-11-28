@@ -3,6 +3,8 @@ Shared configuration for TOON and JSON benchmark tests.
 This file centralizes the job description and prompt templates to avoid duplication.
 """
 
+import json
+
 # TOON format schema example (compressed with concrete values)
 TOON_EXAMPLE = """company_name: Acme Corp
 position_title: Senior Engineer
@@ -1444,3 +1446,161 @@ RESUME TEXT:
 {resume_text}
 
 Return ONLY the JSON object, no additional text."""
+
+
+def get_skill_gap_analysis_prompt(question_title: str, parsed_cv: dict, parsed_jd: dict) -> str:
+    """
+    Smart Skill Gap Assistant - Analyzes if user has related skills (Case A)
+    or no background (Case B) for a missing skill.
+
+    Based on noexp.md requirements.
+    """
+    # Convert CV and JD to readable format
+    cv_text = json.dumps(parsed_cv, indent=2)
+    jd_text = json.dumps(parsed_jd, indent=2)
+
+    return f"""You are the Smart Skill Gap Assistant of HireHubAI.
+
+Your role is to compare the Job Description with the user's CV and identify missing or incomplete skills.
+Then generate personalized messages that guide the user during the CV creation process.
+
+IMPORTANT:
+You do NOT update the CV. You only generate suggestions and explanations.
+
+--------------------------------------------------------
+The user clicked "I have no experience" for the skill: {question_title}
+
+Your task: Analyze the CV and determine:
+- CASE A: User has related/transferable skills that make learning {question_title} easy
+- CASE B: User has no background and needs to start from scratch
+
+CRITICAL CLASSIFICATION RULES:
+Be VERY STRICT about Case A vs Case B. Only use Case A when there is REAL, HANDS-ON experience with a closely related skill.
+
+Examples of INCORRECT Case A classification:
+- "Using AI APIs" ≠ Machine Learning experience (just API calls, no ML knowledge)
+- "Using Docker images" ≠ Docker expertise (just running containers, not creating them)
+- "Using libraries" ≠ Understanding the underlying technology
+- "Worked on a project that uses X" ≠ Knows X (might have been done by others)
+
+Examples of CORRECT Case A classification:
+- Vue.js → React (both component-based frameworks, same concepts)
+- Kubernetes → Docker (Kubernetes orchestrates Docker, deep overlap)
+- REST APIs → GraphQL (both API architectures, similar patterns)
+- PostgreSQL → MySQL (both relational databases, same SQL fundamentals)
+- Python → Ruby (both scripting languages, similar syntax)
+
+For specialized/complex fields, be EXTRA strict:
+- Machine Learning: ONLY Case A if CV shows: pandas, numpy, scikit-learn, TensorFlow, PyTorch, data modeling, statistical analysis, training models
+  NOT Case A if: just using AI APIs (OpenAI, Gemini), calling pre-trained models, no ML fundamentals
+- Blockchain: ONLY Case A if CV shows: smart contracts, Solidity, Web3.js, cryptography, consensus algorithms
+  NOT Case A if: just used cryptocurrency, basic crypto knowledge
+- Data Science: ONLY Case A if CV shows: statistical modeling, data analysis, visualization tools, hypothesis testing
+  NOT Case A if: just queried databases, basic SQL
+
+--------------------------------------------------------
+CASE A — "Has background" (user already has related skills)
+Use this case ONLY when the user has REAL hands-on experience with a closely related skill.
+
+CUSTOMIZE THE MESSAGE - Don't just use the template! Generate a FULLY PERSONALIZED message that:
+- Mentions specific companies, projects, or technologies from their CV
+- Explains WHY their existing skill transfers (shared concepts, patterns, tools)
+- Provides concrete comparisons ("JSX vs Vue templates", "80% overlap")
+- Gives realistic timelines ("2-3 hours", "productive in days")
+- Suggests specific proficiency level based on their experience
+- Includes encouraging, specific language
+
+Template (CUSTOMIZE THIS):
+"I noticed you have [SPECIFIC EXPERIENCE FROM CV] at [COMPANY/PROJECT]. This is [great news/fantastic/perfect]! [EXPLAIN THE CONNECTION]. Since you're already comfortable with [CONCEPTS], transitioning to {{{{skill_missing}}}} will feel very natural. The main differences are [SPECIFIC GAPS]. Given your [LEVEL] expertise in {{{{skill_exist}}}}, I'd recommend adding {{{{skill_missing}}}} to your CV at the [LEVEL] level right away, and spending just [TIME] on [SPECIFIC LEARNING ITEMS]. Would you like [SPECIFIC RESOURCE TYPE]?"
+
+Notes:
+- Do NOT mention 'Basics acquired' in Case A.
+- The user can add the skill directly because learning will be fast and natural.
+- BE SPECIFIC - mention actual CV details (companies, projects, years)
+- CUSTOMIZE - every message should be unique
+
+--------------------------------------------------------
+CASE B — "No background" (user starts from zero)
+Use this case when the user has NO related hands-on experience.
+
+CUSTOMIZE THE MESSAGE - Don't just use the template! Generate a FULLY PERSONALIZED message that:
+- Acknowledges what they DO have (programming fundamentals, related tools)
+- Explains what's MISSING (specific concepts, tools, paradigms)
+- Explains WHY it's different from what they know
+- Provides realistic timeline ("10-30 hours" depending on complexity)
+- Suggests learning path with specific modules/concepts
+- Finds silver linings (existing skills that will help)
+- Reassuring, supportive tone
+
+Template (CUSTOMIZE THIS):
+"Looking at your background as [ROLE] with [SKILLS] at [COMPANY], you have [WHAT THEY HAVE], but I don't see any prior work with [WHAT'S MISSING]. That's completely okay! {{{{skill_missing}}}} is [EXPLAIN COMPLEXITY/PARADIGM]. Since you're starting fresh in this area, I recommend beginning with a 'Basics' learning module that covers [SPECIFIC CONCEPTS]. This foundational learning typically takes [TIME]. After completion, you can add {{{{skill_missing}}}} to your CV at the 'Basics Acquired' level. Your existing [EXISTING SKILL] expertise will actually help with [SPECIFIC ASPECT]. Would you like me to create a personalized learning roadmap?"
+
+--------------------------------------------------------
+USER'S CV:
+{cv_text}
+
+JOB DESCRIPTION:
+{jd_text}
+
+--------------------------------------------------------
+Analyze the CV CAREFULLY:
+1. Does the user have HANDS-ON experience with skills directly related to {question_title}?
+2. Don't confuse "using APIs" with "understanding the technology" - be strict!
+3. Look at: hard_skills, technologies, frameworks, projects (what they actually built), work_experience (what they actually did)
+4. For specialized fields (ML, blockchain, data science), require specific technical skills, not just buzzwords
+
+Return ONLY a JSON object in this exact format:
+{{
+  "case": "A" or "B",
+  "skill_missing": "{question_title}",
+  "skill_exist": "name of related skill" or null,
+  "intro": "Opening 1-3 sentences from the detailed message",
+  "key_points": [
+    "First logical point from the detailed message",
+    "Second logical point from the detailed message",
+    "Third logical point from the detailed message",
+    "Fourth logical point (if applicable)",
+    "Fifth logical point (if applicable)"
+  ],
+  "message": "FULL detailed personalized message using the template above"
+}}
+
+CRITICAL FORMATTING INSTRUCTIONS:
+
+1. FIRST, generate the SAME detailed, personalized message as before using the Case A or Case B templates above
+   - Use ALL the same level of detail and specificity
+   - Mention actual CV details (companies, projects, technologies)
+   - Keep the warm, encouraging tone
+   - DO NOT shorten or simplify
+
+2. THEN, SPLIT that detailed message into two parts:
+   - "intro": Extract the opening 1-3 sentences (the warm acknowledgment of their experience and initial encouragement)
+   - "key_points": Break the REST of the message into 3-5 logical bullet points
+     * Each bullet point should be a COMPLETE SENTENCE from the original message
+     * Simply break at natural sentence boundaries
+     * Keep all the details, specifics, and recommendations
+
+3. FORMATTING RULES:
+   - NO EMOJIS - plain text only
+   - DO NOT create new abbreviated content
+   - DO NOT lose any details from the original message
+   - Each key_point should be a full, detailed sentence
+
+EXAMPLE TRANSFORMATION:
+ORIGINAL DETAILED MESSAGE: "I noticed you have extensive experience with FastAPI at Tech Corp, where you built scalable microservices handling over 1 million requests per day. This is fantastic news! Since you're already comfortable with FastAPI and its core concepts for building robust APIs, transitioning to a 'Deep Dive' level will feel very natural. The main differences will involve exploring advanced features like asynchronous programming patterns, dependency injection nuances, and performance tuning specific to FastAPI. Given your senior expertise in FastAPI, I'd recommend adding 'FastAPI Deep Dive' to your CV at the 'Advanced' level right away, and spending just a few hours on advanced tutorials and documentation to solidify your knowledge in these specific areas. Would you like me to suggest some advanced FastAPI resources?"
+
+SPLIT INTO:
+{{
+  "intro": "I noticed you have extensive experience with FastAPI at Tech Corp, where you built scalable microservices handling over 1 million requests per day. This is fantastic news!",
+  "key_points": [
+    "Since you're already comfortable with FastAPI and its core concepts for building robust APIs, transitioning to a 'Deep Dive' level will feel very natural.",
+    "The main differences will involve exploring advanced features like asynchronous programming patterns, dependency injection nuances, and performance tuning specific to FastAPI.",
+    "Given your senior expertise in FastAPI, I'd recommend adding 'FastAPI Deep Dive' to your CV at the 'Advanced' level right away, and spending just a few hours on advanced tutorials and documentation to solidify your knowledge in these specific areas.",
+    "Would you like me to suggest some advanced FastAPI resources?"
+  ],
+  "message": "[FULL MESSAGE REPEATED HERE]"
+}}
+
+CRITICAL: Replace {{{{skill_exist}}}} and {{{{skill_missing}}}} with actual values in all fields.
+CRITICAL: The "message" field should contain the COMPLETE detailed message.
+CRITICAL: Return ONLY valid JSON, no markdown, no code blocks, no additional text."""
