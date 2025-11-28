@@ -1,5 +1,5 @@
 <template>
-  <div class=" py-4 bg-white border-b ">
+  <div class=" py-2 bg-white">
     <!-- Header with sidebar-style number -->
     <div class="flex items-start gap-3 mb-3">
       <!-- Sidebar-style step number -->
@@ -22,7 +22,7 @@
     <HbInput
       :model-value="modelValue"
       @update:model-value="handleInput"
-      type="textarea"
+      type="text"
       :placeholder="placeholder"
       appearance="white"
       size="md"

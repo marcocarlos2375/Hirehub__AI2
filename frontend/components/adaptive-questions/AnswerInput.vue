@@ -145,28 +145,17 @@
 </template>
 
 <script setup lang="ts">
+import type { AnswerInputProps, AnswerInputEmits } from '~/types/component-props'
 import { useVoiceRecorder } from '~/composables/audio/useVoiceRecorder'
 import { useAudioTranscriber } from '~/composables/audio/useAudioTranscriber'
 
-interface Props {
-  modelValue?: string
-  placeholder?: string
-  disabled?: boolean
-  submitButtonText?: string
-}
-
-interface Emits {
-  (e: 'update:modelValue', value: string): void
-  (e: 'submit', value: string, type: 'text' | 'voice', transcriptionTime?: number): void
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<AnswerInputProps>(), {
   placeholder: 'Type your answer here...',
   submitButtonText: 'Submit Answer',
   disabled: false
 })
 
-const emit = defineEmits<Emits>()
+const emit = defineEmits<AnswerInputEmits>()
 
 // Voice modal state
 const showVoiceModal = ref(false)

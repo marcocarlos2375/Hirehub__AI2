@@ -346,6 +346,19 @@ export interface HbWysiwygProps {
   toolbar?: string[]
 }
 
+export interface HbLoadingOverlayProps {
+  show: boolean
+  message?: string
+  spinnerSize?: SpinnerSize
+  textSize?: 'sm' | 'md' | 'lg' | 'xl'
+  blur?: boolean
+  opacity?: number
+  showTimeoutWarning?: boolean
+  timeoutThreshold?: number
+  timeoutMessage?: string
+  zIndex?: number
+}
+
 // ==================== EMITS ====================
 
 export interface HbButtonEmits {
@@ -410,6 +423,10 @@ export interface HbFileEmits {
 
 export interface HbWysiwygEmits {
   (e: 'update:modelValue', value: string): void
+}
+
+export interface HbLoadingOverlayEmits {
+  (e: 'update:show', value: boolean): void
 }
 
 // ==================== HB SLIDER ====================

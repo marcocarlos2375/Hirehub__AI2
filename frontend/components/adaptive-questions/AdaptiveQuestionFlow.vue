@@ -71,12 +71,11 @@
     />
 
     <!-- Black Loading Overlay -->
-    <div v-if="showRefinementLoading" class="refinement-loading-overlay">
-      <div class="loading-content">
-        <HbSpinner size="lg" class="mb-4" />
-        <p class="text-xl font-semibold text-white">Generating the best answer...</p>
-      </div>
-    </div>
+    <HbLoadingOverlay
+      :show="showRefinementLoading"
+      message="Generating the best answer..."
+      text-size="xl"
+    />
 
     <!-- Learning Path: Resources Display -->
     <div v-if="state.currentStep === 'resources' && state.suggestedResources">
@@ -479,23 +478,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.refinement-loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.loading-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
+/* Styles removed - using HbLoadingOverlay component */
 </style>

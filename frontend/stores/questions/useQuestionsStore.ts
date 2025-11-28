@@ -15,48 +15,16 @@ import type { ExperienceLevel } from '~/types/adaptive-questions'
 import type { QuestionData, ParsedCV } from '~/types/api-responses'
 import type { QuestionItem } from '~/composables/analysis/useAnalysisState'
 
-/**
- * Answer types
- */
-export interface QuestionAnswer {
-  question_id: string
-  answer_text: string
-  answer_type: 'text' | 'voice'
-  transcription_time?: number
-  timestamp: string
-}
+// Import centralized types from types/question-state.ts
+import type {
+  QuestionStepState,
+  QuestionAnswer,
+  AnswerEvaluation,
+  SubmitAnswersResult
+} from '~/types/question-state'
 
-export interface AnswerEvaluation {
-  question_id: string
-  answer_text: string
-  quality_score: number
-  quality_issues: string[]
-  quality_strengths: string[]
-  improvement_suggestions: string[]
-  is_acceptable: boolean
-  time_seconds: number
-  model: string
-}
-
-export interface SubmitAnswersResult {
-  success: boolean
-  score_improvement: {
-    before: number
-    after: number
-    absolute_change: number
-    percentage_change: number
-  }
-  category_improvements: Array<{
-    category: string
-    before: number
-    after: number
-    change: number
-  }>
-  uncovered_experiences?: string[]
-  updated_cv: ParsedCV
-  time_seconds: number
-  model: string
-}
+// Re-export types for backward compatibility
+export type { QuestionStepState, QuestionAnswer, AnswerEvaluation, SubmitAnswersResult }
 
 export const useQuestionsStore = defineStore('questions', {
   state: () => ({
@@ -95,6 +63,12 @@ export const useQuestionsStore = defineStore('questions', {
 
     // AI-improved responses from refinement flow
     improvedResponses: new Map<string, string>(),
+
+    // Current slide index per question (0 = original, 1 = refinement)
+    currentSlides: new Map<string, number>(),
+
+    // Question step state per question ('initial' | 'feedback')
+    questionStates: new Map<string, QuestionStepState>(),
   }),
 
   getters: {
@@ -196,6 +170,27 @@ export const useQuestionsStore = defineStore('questions', {
      */
     hasImprovedResponse: (state) => (questionId: string) => {
       return state.improvedResponses.has(questionId)
+    },
+
+    /**
+     * Check if question has active adaptive flow
+     */
+    hasActiveAdaptiveFlow: (state) => (questionId: string) => {
+      return state.activeAdaptiveFlows.has(questionId)
+    },
+
+    /**
+     * Get current slide index for question (0 = original, 1 = refinement)
+     */
+    getCurrentSlide: (state) => (questionId: string) => {
+      return state.currentSlides.get(questionId) || 0
+    },
+
+    /**
+     * Get question step state ('initial' | 'feedback')
+     */
+    getQuestionState: (state) => (questionId: string): QuestionStepState => {
+      return state.questionStates.get(questionId) || 'initial'
     },
   },
 
@@ -456,6 +451,26 @@ export const useQuestionsStore = defineStore('questions', {
      */
     clearImprovedResponse(questionId: string) {
       this.improvedResponses.delete(questionId)
+    },
+
+    /**
+     * Set current slide index for a question
+     *
+     * @param questionId - Unique identifier for the question
+     * @param slideIndex - Slide index (0 = original, 1 = refinement)
+     */
+    setCurrentSlide(questionId: string, slideIndex: number) {
+      this.currentSlides.set(questionId, slideIndex)
+    },
+
+    /**
+     * Set question step state
+     *
+     * @param questionId - Unique identifier for the question
+     * @param state - Question step state ('initial' | 'feedback')
+     */
+    setQuestionState(questionId: string, state: QuestionStepState) {
+      this.questionStates.set(questionId, state)
     },
 
     /**

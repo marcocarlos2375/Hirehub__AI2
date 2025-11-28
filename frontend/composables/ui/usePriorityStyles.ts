@@ -74,33 +74,29 @@ export const usePriorityStyles = () => {
 
   /**
    * Returns quality score styling classes
-   * Replaces gradient backgrounds with flat colors
+   * Uses 3-color system matching circleProgress.vue:
+   * - Red (score < 5): red-500
+   * - Amber (5 <= score < 7): amber-500
+   * - Green (score >= 7): success-500
    */
   const qualityScoreClasses = (score: number) => {
-    if (score >= 9) {
-      return {
-        container: 'bg-green-50 border-green-200',
-        text: 'text-green-700',
-        circle: 'bg-green-100 border-4 border-green-600'
-      }
-    }
     if (score >= 7) {
       return {
-        container: 'bg-blue-50 border-blue-200',
-        text: 'text-blue-700',
-        circle: 'bg-blue-100 border-4 border-blue-600'
+        container: 'bg-green-50 border-green-200',
+        text: 'text-green-600',
+        circle: 'bg-green-100 border-4 border-green-600'
       }
     }
     if (score >= 5) {
       return {
         container: 'bg-amber-50 border-amber-200',
-        text: 'text-amber-700',
+        text: 'text-amber-600',
         circle: 'bg-amber-100 border-4 border-amber-600'
       }
     }
     return {
       container: 'bg-red-50 border-red-200',
-      text: 'text-red-700',
+      text: 'text-red-500',
       circle: 'bg-red-100 border-4 border-red-600'
     }
   }

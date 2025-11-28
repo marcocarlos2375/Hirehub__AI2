@@ -1,0 +1,379 @@
+[nuxt:tailwindcss] ℹ Using default Tailwind CSS file
+
+ WARN  Duplicated imports "QuestionAnswer", the one from "/Users/carlosid/PycharmProjects/test/frontend/composables/analysis/useAnalysisState.ts" has been ignored and "/Users/carlosid/PycharmProjects/test/frontend/stores/questions/useQuestionsStore.ts" is used
+
+
+ WARN  Duplicated imports "SubmitAnswersResult", the one from "/Users/carlosid/PycharmProjects/test/frontend/composables/analysis/useAnalysisState.ts" has been ignored and "/Users/carlosid/PycharmProjects/test/frontend/stores/questions/useQuestionsStore.ts" is used
+
+components/adaptive-questions/AdaptiveQuestionFlow.vue(271,7): error TS2345: Argument of type 'Record<string, any>' is not assignable to parameter of type 'QuestionData'.
+  Type 'Record<string, any>' is missing the following properties from type 'QuestionData': id, text, gap_info, context
+components/adaptive-questions/AdaptiveQuestionFlow.vue(358,7): error TS2345: Argument of type 'Record<string, any>' is not assignable to parameter of type 'QuestionData'.
+  Type 'Record<string, any>' is missing the following properties from type 'QuestionData': id, text, gap_info, context
+components/adaptive-questions/AdaptiveQuestionFlow.vue(439,7): error TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type 'GapInfo'.
+  Type '{ title: string; description: string; }' is missing the following properties from type 'GapInfo': category, impact
+components/adaptive-questions/AnswerEvaluationModal.vue(329,23): error TS2532: Object is possibly 'undefined'.
+components/adaptive-questions/AnswerEvaluationModal.vue(333,21): error TS2532: Object is possibly 'undefined'.
+components/adaptive-questions/AnswerInput.vue(259,42): error TS2345: Argument of type '{ [x: number]: number; readonly BYTES_PER_ELEMENT: number; readonly buffer: { readonly byteLength: number; slice: (begin?: number | undefined, end?: number | undefined) => ArrayBuffer; ... 6 more ...; readonly [Symbol.toStringTag]: "ArrayBuffer"; } | { ...; }; ... 36 more ...; readonly [Symbol.toStringTag]: "Uint8Ar...' is not assignable to parameter of type 'Uint8Array<ArrayBuffer>'.
+  Types of property 'buffer' are incompatible.
+    Type '{ readonly byteLength: number; slice: (begin?: number | undefined, end?: number | undefined) => ArrayBuffer; readonly maxByteLength: number; readonly resizable: boolean; ... 4 more ...; readonly [Symbol.toStringTag]: "ArrayBuffer"; } | { ...; }' is not assignable to type 'ArrayBuffer'.
+      Type '{ readonly byteLength: number; slice: (begin?: number | undefined, end?: number | undefined) => SharedArrayBuffer; readonly growable: boolean; readonly maxByteLength: number; grow: (newByteLength?: number | undefined) => void; readonly [Symbol.toStringTag]: "SharedArrayBuffer"; }' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
+components/adaptive-questions/QuestionsResult.vue(322,18): error TS2339: Property 'showLoadingBox' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(333,18): error TS2339: Property 'showEvaluationSlider' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(337,49): error TS2339: Property 'currentSlide' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(338,26): error TS2339: Property 'handleTouchStart' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(339,25): error TS2339: Property 'handleTouchMove' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(340,24): error TS2339: Property 'handleTouchEnd' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(348,28): error TS2339: Property 'currentEvaluation' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(351,51): error TS2339: Property 'scoreColorClass' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(352,53): error TS2339: Property 'currentEvaluation' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(355,47): error TS2339: Property 'scoreLabel' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(359,30): error TS2339: Property 'currentEvaluation' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(362,55): error TS2339: Property 'currentEvaluation' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(369,30): error TS2339: Property 'currentEvaluation' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(372,52): error TS2339: Property 'currentEvaluation' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(379,31): error TS2339: Property 'currentEvaluation' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(385,34): error TS2339: Property 'refinementFields' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(388,36): error TS2339: Property 'isRefining' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(395,34): error TS2339: Property 'refinementFields' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(398,36): error TS2339: Property 'isRefining' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(405,34): error TS2339: Property 'refinementFields' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(408,36): error TS2339: Property 'isRefining' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(414,31): error TS2339: Property 'handleRefinementSubmit' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(415,34): error TS2339: Property 'isRefining' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(415,49): error TS2551: Property 'hasRefinementData' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'. Did you mean 'refinementData'?
+components/adaptive-questions/QuestionsResult.vue(418,26): error TS2339: Property 'isRefining' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(434,24): error TS2339: Property 'currentImprovedAnswer' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(441,29): error TS2339: Property 'currentSlide' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(447,29): error TS2339: Property 'handleUseImprovedAnswer' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(462,39): error TS2339: Property 'currentSlide' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(463,21): error TS2339: Property 'currentSlide' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(464,24): error TS2339: Property 'isRefining' does not exist on type '{ ExperienceCheckModal: DefineComponent<Props, {}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, { close: () => any; "experience-selected": (level: ExperienceLevel) => any; }, ... 11 more ..., any>; ... 69 more ...; $route: RouteLocationNormalizedLoadedGeneric; }'.
+components/adaptive-questions/QuestionsResult.vue(949,7): error TS2345: Argument of type 'QuestionItem' is not assignable to parameter of type 'QuestionData'.
+  Type 'QuestionItem' is missing the following properties from type 'QuestionData': text, gap_info, context
+components/adaptive-questions/QuestionsResult.vue(1025,9): error TS2739: Type 'Record<string, any>' is missing the following properties from type 'ParsedCV': personal_info, work_experience, education, skills
+components/base/HbAvatar.vue(414,1): error TS2578: Unused '@ts-expect-error' directive.
+components/base/HbAvatar.vue(523,13): error TS2532: Object is possibly 'undefined'.
+components/base/HbAvatar.vue(523,13): error TS2532: Object is possibly 'undefined'.
+components/base/HbAvatar.vue(523,27): error TS2532: Object is possibly 'undefined'.
+components/base/HbAvatar.vue(523,27): error TS2532: Object is possibly 'undefined'.
+components/base/HbAvatar.vue(525,10): error TS2532: Object is possibly 'undefined'.
+components/base/HbAvatar.vue(678,7): error TS18047: 'ctx' is possibly 'null'.
+components/base/HbAvatar.vue(708,9): error TS18047: 'tempCtx' is possibly 'null'.
+components/base/HbAvatar.vue(709,9): error TS18047: 'tempCtx' is possibly 'null'.
+components/base/HbAvatar.vue(710,9): error TS18047: 'tempCtx' is possibly 'null'.
+components/base/HbAvatar.vue(711,9): error TS18047: 'tempCtx' is possibly 'null'.
+components/base/HbAvatar.vue(717,27): error TS7006: Parameter 'blob' implicitly has an 'any' type.
+components/base/HbAvatar.vue(718,26): error TS18047: 'newAvatarFile.value' is possibly 'null'.
+components/base/HbAvatar.vue(734,21): error TS7006: Parameter 'event' implicitly has an 'any' type.
+components/base/HbAvatar.vue(744,17): error TS7006: Parameter 'event' implicitly has an 'any' type.
+components/base/HbAvatar.vue(755,23): error TS7006: Parameter 'event' implicitly has an 'any' type.
+components/base/HbAvatar.vue(766,33): error TS7006: Parameter 'file' implicitly has an 'any' type.
+components/base/HbAvatar.vue(794,26): error TS7006: Parameter 'errorMsg' implicitly has an 'any' type.
+components/base/HbAvatar.vue(804,24): error TS7006: Parameter 'angle' implicitly has an 'any' type.
+components/base/HbAvatar.vue(818,29): error TS7006: Parameter 'event' implicitly has an 'any' type.
+components/base/HbAvatar.vue(845,22): error TS7006: Parameter 'blob' implicitly has an 'any' type.
+components/base/HbAvatar.vue(915,5): error TS7034: Variable 'cleanupDragListeners' implicitly has type 'any' in some locations where its type cannot be determined.
+components/base/HbAvatar.vue(919,7): error TS7005: Variable 'cleanupDragListeners' implicitly has an 'any' type.
+components/base/HbAvatar.vue(926,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+components/base/HbAvatar.vue(1005,5): error TS18047: 'ctx' is possibly 'null'.
+components/base/HbAvatar.vue(1007,3): error TS18047: 'ctx' is possibly 'null'.
+components/base/HbAvatar.vue(1014,49): error TS2345: Argument of type 'Blob | null' is not assignable to parameter of type 'Blob | MediaSource'.
+  Type 'null' is not assignable to type 'Blob | MediaSource'.
+components/base/HbAvatar.vue(1052,7): error TS7005: Variable 'cleanupDragListeners' implicitly has an 'any' type.
+components/base/HbCheckbox.vue(120,5): error TS2322: Type 'string | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+components/base/HbColorPalette.vue(87,33): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbColorPalette.vue(151,31): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbColorPalette.vue(152,5): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbColorPicker.vue(142,18): error TS2532: Object is possibly 'undefined'.
+components/base/HbColorPicker.vue(142,27): error TS2532: Object is possibly 'undefined'.
+components/base/HbColorPicker.vue(143,18): error TS2532: Object is possibly 'undefined'.
+components/base/HbColorPicker.vue(143,27): error TS2532: Object is possibly 'undefined'.
+components/base/HbColorPicker.vue(144,18): error TS2532: Object is possibly 'undefined'.
+components/base/HbColorPicker.vue(144,27): error TS2532: Object is possibly 'undefined'.
+components/base/HbColorPicker.vue(226,49): error TS2532: Object is possibly 'undefined'.
+components/base/HbColorPicker.vue(227,49): error TS2532: Object is possibly 'undefined'.
+components/base/HbColorPicker.vue(263,49): error TS2532: Object is possibly 'undefined'.
+components/base/HbColorPicker.vue(395,5): error TS2322: Type 'Position | undefined' is not assignable to type 'Position | null'.
+  Type 'undefined' is not assignable to type 'Position | null'.
+components/base/HbColorPicker.vue(398,9): error TS2339: Property 'top' does not exist on type 'Position | null'.
+components/base/HbColorPicker.vue(398,14): error TS2339: Property 'left' does not exist on type 'Position | null'.
+components/base/HbCounter.vue(56,9): error TS18048: 'entry' is possibly 'undefined'.
+components/base/HbDateInput.vue(247,42): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbDateInput.vue(247,58): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbDateInput.vue(247,79): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbDateInput.vue(253,43): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(getter: ComputedGetter<string>, debugOptions?: DebuggerOptions | undefined): ComputedRef<string>', gave the following error.
+    Argument of type '() => string | undefined' is not assignable to parameter of type 'ComputedGetter<string>'.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(options: WritableComputedOptions<string, string>, debugOptions?: DebuggerOptions | undefined): WritableComputedRef<string, string>', gave the following error.
+    Argument of type '() => string | undefined' is not assignable to parameter of type 'WritableComputedOptions<string, string>'.
+components/base/HbDateMonthYear.vue(266,34): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbDateMonthYear.vue(267,35): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbDatepicker.vue(131,26): error TS2307: Cannot find module 'vue-material-design-icons/Calendar.vue' or its corresponding type declarations.
+components/base/HbDatepicker.vue(250,44): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbDatepicker.vue(250,60): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbDatepicker.vue(250,81): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbDatepicker.vue(265,44): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbDatepicker.vue(265,60): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbDatepicker.vue(265,81): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/base/HbFile.vue(170,31): error TS2345: Argument of type 'File | undefined' is not assignable to parameter of type 'File | File[] | null'.
+  Type 'undefined' is not assignable to type 'File | File[] | null'.
+components/base/HbFileImage.vue(266,28): error TS2345: Argument of type 'File | undefined' is not assignable to parameter of type 'File'.
+  Type 'undefined' is not assignable to type 'File'.
+components/base/HbFileImage.vue(275,28): error TS2345: Argument of type 'File | undefined' is not assignable to parameter of type 'File'.
+  Type 'undefined' is not assignable to type 'File'.
+components/base/HbImg.vue(25,8): error TS2322: Type 'string | number | null' is not assignable to type 'Numberish | undefined'.
+  Type 'null' is not assignable to type 'Numberish | undefined'.
+components/base/HbImg.vue(26,8): error TS2322: Type 'string | number | null' is not assignable to type 'Numberish | undefined'.
+  Type 'null' is not assignable to type 'Numberish | undefined'.
+components/base/HbNotification.vue(69,32): error TS2307: Cannot find module '@headlessui/vue' or its corresponding type declarations.
+components/base/HbPagination.vue(147,3): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(getter: ComputedGetter<PageSizeOption>, debugOptions?: DebuggerOptions | undefined): ComputedRef<PageSizeOption>', gave the following error.
+    Object literal may only specify known properties, and 'get' does not exist in type 'ComputedGetter<PageSizeOption>'.
+  Overload 2 of 2, '(options: WritableComputedOptions<PageSizeOption, PageSizeOption>, debugOptions?: DebuggerOptions | undefined): WritableComputedRef<...>', gave the following error.
+    Type '() => PageSizeOption | undefined' is not assignable to type 'ComputedGetter<PageSizeOption>'.
+      Type 'PageSizeOption | undefined' is not assignable to type 'PageSizeOption'.
+        Type 'undefined' is not assignable to type 'PageSizeOption'.
+components/base/HbProfilePicture.vue(584,35): error TS2307: Cannot find module '~/services/api' or its corresponding type declarations.
+components/base/HbProfilePicture.vue(585,37): error TS2307: Cannot find module '~/types/entities' or its corresponding type declarations.
+components/base/HbProfilePicture.vue(630,1): error TS2578: Unused '@ts-expect-error' directive.
+components/base/HbProfilePicture.vue(637,47): error TS2304: Cannot find name 'useProfilePictureUrl'.
+components/base/HbProfilePicture.vue(794,44): error TS7006: Parameter 'p' implicitly has an 'any' type.
+components/base/HbProfilePicture.vue(812,47): error TS7006: Parameter 'p' implicitly has an 'any' type.
+components/base/HbProfilePicture.vue(827,50): error TS7006: Parameter 'p' implicitly has an 'any' type.
+components/base/HbProfilePicture.vue(840,50): error TS7006: Parameter 'p' implicitly has an 'any' type.
+components/base/HbProfilePicture.vue(978,7): error TS2322: Type 'HTMLCanvasElement | undefined' is not assignable to type 'HTMLCanvasElement'.
+  Type 'undefined' is not assignable to type 'HTMLCanvasElement'.
+components/base/HbProgressBar.vue(97,25): error TS2532: Object is possibly 'undefined'.
+components/base/HbProgressBar.vue(101,24): error TS2532: Object is possibly 'undefined'.
+components/base/HbProgressBar.vue(105,3): error TS2532: Object is possibly 'undefined'.
+components/base/HbProgressBar.vue(108,22): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(getter: ComputedGetter<string>, debugOptions?: DebuggerOptions | undefined): ComputedRef<string>', gave the following error.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+  Overload 2 of 2, '(options: WritableComputedOptions<string, string>, debugOptions?: DebuggerOptions | undefined): WritableComputedRef<string, string>', gave the following error.
+    Argument of type '() => string | undefined' is not assignable to parameter of type 'WritableComputedOptions<string, string>'.
+components/base/HbRadio.vue(99,5): error TS2322: Type 'string | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+components/base/HbSemicircleProgress.vue(95,57): error TS2532: Object is possibly 'undefined'.
+components/base/HbSemicircleProgress.vue(96,75): error TS2532: Object is possibly 'undefined'.
+components/base/HbSemicircleProgress.vue(97,41): error TS2532: Object is possibly 'undefined'.
+components/base/HbSemicircleProgress.vue(98,42): error TS2532: Object is possibly 'undefined'.
+components/base/HbSlider.vue(146,49): error TS2532: Object is possibly 'undefined'.
+components/base/HbWysiwyg.vue(175,22): error TS2307: Cannot find module 'vue-material-design-icons/FormatBold.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(176,24): error TS2307: Cannot find module 'vue-material-design-icons/FormatItalic.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(177,27): error TS2307: Cannot find module 'vue-material-design-icons/FormatUnderline.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(178,20): error TS2307: Cannot find module 'vue-material-design-icons/FormatHeader1.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(179,20): error TS2307: Cannot find module 'vue-material-design-icons/FormatHeader2.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(180,22): error TS2307: Cannot find module 'vue-material-design-icons/FormatListBulleted.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(181,29): error TS2307: Cannot find module 'vue-material-design-icons/FormatListNumbered.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(182,28): error TS2307: Cannot find module 'vue-material-design-icons/FormatQuoteClose.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(183,22): error TS2307: Cannot find module 'vue-material-design-icons/CodeTags.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(184,32): error TS2307: Cannot find module 'vue-material-design-icons/Minus.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(185,22): error TS2307: Cannot find module 'vue-material-design-icons/Undo.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(186,22): error TS2307: Cannot find module 'vue-material-design-icons/Redo.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(187,28): error TS2307: Cannot find module 'vue-material-design-icons/Spellcheck.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(188,25): error TS2307: Cannot find module 'vue-material-design-icons/Loading.vue' or its corresponding type declarations.
+components/base/HbWysiwyg.vue(361,3): error TS2322: Type '({ editor, transaction }: { editor: Editor; transaction: Transaction; }) => void' is not assignable to type '(props: { editor: Editor; transaction: Transaction; }) => void'.
+  Types of parameters '__0' and 'props' are incompatible.
+    Type '{ editor: import("/Users/carlosid/PycharmProjects/test/frontend/node_modules/@tiptap/core/dist/Editor").Editor; transaction: import("/Users/carlosid/PycharmProjects/test/frontend/node_modules/prosemirror-state/dist/index").Transaction; }' is not assignable to type '{ editor: import("/Users/carlosid/PycharmProjects/test/frontend/node_modules/@tiptap/vue-3/dist/Editor").Editor; transaction: import("/Users/carlosid/PycharmProjects/test/frontend/node_modules/prosemirror-state/dist/index").Transaction; }'.
+      Types of property 'editor' are incompatible.
+        Type 'Editor' is missing the following properties from type 'Editor': reactiveState, reactiveExtensionStorage, contentComponent, appContext
+components/base/HbWysiwyg.vue(431,9): error TS7034: Variable 'offsetMap' implicitly has type 'any[]' in some locations where its type cannot be determined.
+components/base/HbWysiwyg.vue(435,20): error TS7006: Parameter 'node' implicitly has an 'any' type.
+components/base/HbWysiwyg.vue(435,26): error TS7006: Parameter 'pos' implicitly has an 'any' type.
+components/base/HbWysiwyg.vue(454,19): error TS7005: Variable 'offsetMap' implicitly has an 'any[]' type.
+components/base/HbWysiwyg.vue(461,20): error TS7005: Variable 'offsetMap' implicitly has an 'any[]' type.
+components/base/HbWysiwyg.vue(587,5): error TS2578: Unused '@ts-expect-error' directive.
+components/base/HbWysiwyg.vue(639,35): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+components/base/HbWysiwyg.vue(649,34): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+components/base/HbWysiwyg.vue(710,9): error TS7034: Variable 'errorPos' implicitly has type 'any' in some locations where its type cannot be determined.
+components/base/HbWysiwyg.vue(715,11): error TS7005: Variable 'errorPos' implicitly has an 'any' type.
+components/base/HbWysiwyg.vue(731,87): error TS2339: Property 'from' does not exist on type 'never'.
+components/base/HbWysiwyg.vue(731,104): error TS2339: Property 'to' does not exist on type 'never'.
+components/base/HbWysiwyg.vue(736,30): error TS2339: Property 'from' does not exist on type 'never'.
+components/base/HbWysiwyg.vue(736,45): error TS2339: Property 'to' does not exist on type 'never'.
+components/base/HbWysiwyg.vue(742,44): error TS2339: Property 'from' does not exist on type 'never'.
+components/base/HbWysiwyg.vue(742,63): error TS2339: Property 'to' does not exist on type 'never'.
+components/base/HbWysiwyg.vue(752,33): error TS18048: 'err.context' is possibly 'undefined'.
+components/base/HbWysiwyg.vue(753,33): error TS18048: 'err.context' is possibly 'undefined'.
+components/base/HbWysiwyg.vue(798,9): error TS7034: Variable 'errorFrom' implicitly has type 'any' in some locations where its type cannot be determined.
+components/base/HbWysiwyg.vue(802,11): error TS7005: Variable 'errorFrom' implicitly has an 'any' type.
+components/base/HbWysiwyg.vue(830,33): error TS18048: 'err.context' is possibly 'undefined'.
+components/base/HbWysiwyg.vue(831,33): error TS18048: 'err.context' is possibly 'undefined'.
+components/base/HbWysiwyg.vue(902,19): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(type: keyof ElementEventMap, listener: (this: Element, ev: Event) => any, options?: boolean | AddEventListenerOptions | undefined): void', gave the following error.
+    Argument of type '"click"' is not assignable to parameter of type 'keyof ElementEventMap'.
+  Overload 2 of 2, '(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions | undefined): void', gave the following error.
+    Argument of type '(event: MouseEvent) => void' is not assignable to parameter of type 'EventListenerOrEventListenerObject'.
+      Type '(event: MouseEvent) => void' is not assignable to type 'EventListener'.
+        Types of parameters 'event' and 'evt' are incompatible.
+          Type 'Event' is missing the following properties from type 'MouseEvent': altKey, button, buttons, clientX, and 23 more.
+components/base/HbWysiwyg.vue(913,19): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(type: keyof ElementEventMap, listener: (this: Element, ev: Event) => any, options?: boolean | EventListenerOptions | undefined): void', gave the following error.
+    Argument of type '"click"' is not assignable to parameter of type 'keyof ElementEventMap'.
+  Overload 2 of 2, '(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions | undefined): void', gave the following error.
+    Argument of type '(event: MouseEvent) => void' is not assignable to parameter of type 'EventListenerOrEventListenerObject'.
+      Type '(event: MouseEvent) => void' is not assignable to type 'EventListener'.
+        Types of parameters 'event' and 'evt' are incompatible.
+          Type 'Event' is missing the following properties from type 'MouseEvent': altKey, button, buttons, clientX, and 23 more.
+components/results/CategoryLineGraph.vue(117,33): error TS7006: Parameter 'axis' implicitly has an 'any' type.
+pages/jetable.vue(383,78): error TS2532: Object is possibly 'undefined'.
+pages/jetable.vue(384,57): error TS2532: Object is possibly 'undefined'.
+pages/jetable.vue(728,25): error TS2307: Cannot find module 'vue-i18n' or its corresponding type declarations.
+pages/jetable.vue(729,37): error TS2307: Cannot find module '~/stores/coverLetter' or its corresponding type declarations.
+pages/jetable.vue(731,30): error TS2307: Cannot find module '~/stores/user' or its corresponding type declarations.
+pages/jetable.vue(735,26): error TS2307: Cannot find module '~/components/base/HbUpgradeNow.vue' or its corresponding type declarations.
+pages/jetable.vue(739,28): error TS2307: Cannot find module '~/components/base/HbNoConnection.vue' or its corresponding type declarations.
+pages/jetable.vue(740,30): error TS2307: Cannot find module '~/components/base/HbResumeNotFound.vue' or its corresponding type declarations.
+pages/jetable.vue(741,48): error TS2307: Cannot find module '~/config/templateConfig' or its corresponding type declarations.
+pages/jetable.vue(742,31): error TS2307: Cannot find module '~/components/tunnel/SenderInformation.vue' or its corresponding type declarations.
+pages/jetable.vue(743,34): error TS2307: Cannot find module '~/components/tunnel/RecipientInformation.vue' or its corresponding type declarations.
+pages/jetable.vue(744,33): error TS2307: Cannot find module '~/components/tunnel/PositionInformation.vue' or its corresponding type declarations.
+pages/jetable.vue(745,27): error TS2307: Cannot find module '~/components/tunnel/LetterContent.vue' or its corresponding type declarations.
+pages/jetable.vue(746,29): error TS2307: Cannot find module '~/components/tunnel/LetterSignature.vue' or its corresponding type declarations.
+pages/jetable.vue(747,31): error TS2307: Cannot find module '~/components/coverLetter/JobCustomizeModal.vue' or its corresponding type declarations.
+pages/jetable.vue(748,33): error TS2307: Cannot find module '~/components/coverLetter/VersionHistoryModal.vue' or its corresponding type declarations.
+pages/jetable.vue(749,37): error TS2307: Cannot find module '~/components/coverLetter/CoverLetterPreviewModal.vue' or its corresponding type declarations.
+pages/jetable.vue(1069,7): error TS2322: Type 'WizardStep | undefined' is not assignable to type 'WizardStep'.
+  Type 'undefined' is not assignable to type 'WizardStep'.
+pages/jetable.vue(1083,14): error TS2532: Object is possibly 'undefined'.
+pages/jetable.vue(1114,7): error TS2322: Type '({ displayIndex: number; isEllipsis: boolean; id?: number | undefined; title?: string | undefined; subtitle?: string | undefined; component?: string | null | undefined; } | { id: string; isEllipsis: boolean; displayIndex: string; })[]' is not assignable to type 'WizardStep[]'.
+  Type '{ displayIndex: number; isEllipsis: boolean; id?: number | undefined; title?: string | undefined; subtitle?: string | undefined; component?: string | null | undefined; } | { id: string; isEllipsis: boolean; displayIndex: string; }' is not assignable to type 'WizardStep'.
+    Type '{ displayIndex: number; isEllipsis: boolean; id?: number | undefined; title?: string | undefined; subtitle?: string | undefined; component?: string | null | undefined; }' is not assignable to type 'WizardStep'.
+      Types of property 'id' are incompatible.
+        Type 'number | undefined' is not assignable to type 'number'.
+          Type 'undefined' is not assignable to type 'number'.
+pages/jetable.vue(1204,5): error TS2322: Type 'LocationQueryValue | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+pages/jetable.vue(1326,19): error TS2339: Property 'clearCoverLetterData' does not exist on type 'Window & typeof globalThis'.
+pages/jetable.vue(1552,9): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+pages/jetable.vue(2047,45): error TS2531: Object is possibly 'null'.
+pages/jetable.vue(2081,11): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+pages/jetable.vue(2094,33): error TS7006: Parameter 'data' implicitly has an 'any' type.
+tests/integration/adaptive-flow.spec.ts(47,31): error TS2345: Argument of type 'QuestionData' is not assignable to parameter of type 'QuestionItem'.
+  Type 'QuestionData' is missing the following properties from type 'QuestionItem': number, title, priority, impact, and 2 more.
+tests/integration/adaptive-flow.spec.ts(86,9): error TS2345: Argument of type '{}' is not assignable to parameter of type 'ParsedCV'.
+  Type '{}' is missing the following properties from type 'ParsedCV': personal_info, work_experience, education, skills
+tests/integration/adaptive-flow.spec.ts(92,37): error TS2345: Argument of type '"some"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/integration/adaptive-flow.spec.ts(245,9): error TS2345: Argument of type '{ id: string; text: string; }' is not assignable to parameter of type 'QuestionData'.
+  Type '{ id: string; text: string; }' is missing the following properties from type 'QuestionData': gap_info, context
+tests/integration/adaptive-flow.spec.ts(291,31): error TS2345: Argument of type 'QuestionData' is not assignable to parameter of type 'QuestionItem'.
+  Type 'QuestionData' is missing the following properties from type 'QuestionItem': number, title, priority, impact, and 2 more.
+tests/integration/adaptive-flow.spec.ts(307,9): error TS2345: Argument of type '{}' is not assignable to parameter of type 'ParsedCV'.
+  Type '{}' is missing the following properties from type 'ParsedCV': personal_info, work_experience, education, skills
+tests/integration/adaptive-flow.spec.ts(409,37): error TS2345: Argument of type '"some"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/integration/adaptive-flow.spec.ts(431,34): error TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type 'GapInfo'.
+  Type '{ title: string; description: string; }' is missing the following properties from type 'GapInfo': category, impact
+tests/integration/adaptive-flow.spec.ts(469,31): error TS2345: Argument of type 'QuestionData' is not assignable to parameter of type 'QuestionItem'.
+  Type 'QuestionData' is missing the following properties from type 'QuestionItem': number, title, priority, impact, and 2 more.
+tests/integration/adaptive-flow.spec.ts(481,11): error TS2345: Argument of type '{}' is not assignable to parameter of type 'ParsedCV'.
+  Type '{}' is missing the following properties from type 'ParsedCV': personal_info, work_experience, education, skills
+tests/integration/adaptive-flow.spec.ts(496,42): error TS2345: Argument of type '"some"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/integration/adaptive-flow.spec.ts(534,31): error TS2345: Argument of type 'QuestionData' is not assignable to parameter of type 'QuestionItem'.
+  Type 'QuestionData' is missing the following properties from type 'QuestionItem': number, title, priority, impact, and 2 more.
+tests/integration/adaptive-flow.spec.ts(535,44): error TS2345: Argument of type '"some"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/integration/adaptive-flow.spec.ts(565,37): error TS2345: Argument of type '"some"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/integration/refinement-flow.spec.ts(84,9): error TS2353: Object literal may only specify known properties, and 'question_text' does not exist in type 'QuestionData'.
+tests/integration/refinement-flow.spec.ts(143,7): error TS2345: Argument of type '{}' is not assignable to parameter of type 'QuestionData'.
+  Type '{}' is missing the following properties from type 'QuestionData': id, text, gap_info, context
+tests/integration/refinement-flow.spec.ts(167,7): error TS2345: Argument of type '{}' is not assignable to parameter of type 'QuestionData'.
+  Type '{}' is missing the following properties from type 'QuestionData': id, text, gap_info, context
+tests/integration/refinement-flow.spec.ts(204,7): error TS2345: Argument of type '{ id: string; question_text: string; title: string; context_why: string; }' is not assignable to parameter of type 'QuestionData'.
+  Type '{ id: string; question_text: string; title: string; context_why: string; }' is missing the following properties from type 'QuestionData': text, gap_info, context
+tests/integration/refinement-flow.spec.ts(242,9): error TS2345: Argument of type '{}' is not assignable to parameter of type 'QuestionData'.
+  Type '{}' is missing the following properties from type 'QuestionData': id, text, gap_info, context
+tests/unit/composables/useAdaptiveQuestions.spec.ts(89,26): error TS2353: Object literal may only specify known properties, and 'question_text' does not exist in type 'QuestionData'.
+tests/unit/composables/useAdaptiveQuestions.spec.ts(136,11): error TS2345: Argument of type '{}' is not assignable to parameter of type 'QuestionData'.
+  Type '{}' is missing the following properties from type 'QuestionData': id, text, gap_info, context
+tests/unit/composables/useAdaptiveQuestions.spec.ts(168,9): error TS2345: Argument of type '{ id: string; }' is not assignable to parameter of type 'QuestionData'.
+  Type '{ id: string; }' is missing the following properties from type 'QuestionData': text, gap_info, context
+tests/unit/composables/useAdaptiveQuestions.spec.ts(203,9): error TS2345: Argument of type '{ id: string; }' is not assignable to parameter of type 'QuestionData'.
+  Type '{ id: string; }' is missing the following properties from type 'QuestionData': text, gap_info, context
+tests/unit/composables/useAdaptiveQuestions.spec.ts(229,11): error TS2345: Argument of type '{ id: string; }' is not assignable to parameter of type 'QuestionData'.
+  Type '{ id: string; }' is missing the following properties from type 'QuestionData': text, gap_info, context
+tests/unit/composables/useAdaptiveQuestions.spec.ts(351,49): error TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type 'GapInfo'.
+  Type '{ title: string; description: string; }' is missing the following properties from type 'GapInfo': category, impact
+tests/unit/composables/useAdaptiveQuestions.spec.ts(383,34): error TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type 'GapInfo'.
+  Type '{ title: string; description: string; }' is missing the following properties from type 'GapInfo': category, impact
+tests/unit/composables/useAdaptiveQuestions.spec.ts(404,30): error TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type 'GapInfo'.
+  Type '{ title: string; description: string; }' is missing the following properties from type 'GapInfo': category, impact
+tests/unit/composables/useAdaptiveQuestions.spec.ts(424,57): error TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type 'GapInfo'.
+  Type '{ title: string; description: string; }' is missing the following properties from type 'GapInfo': category, impact
+tests/unit/composables/useAdaptiveQuestions.spec.ts(452,42): error TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type 'GapInfo'.
+  Type '{ title: string; description: string; }' is missing the following properties from type 'GapInfo': category, impact
+tests/unit/composables/useAdaptiveQuestions.spec.ts(472,38): error TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type 'GapInfo'.
+  Type '{ title: string; description: string; }' is missing the following properties from type 'GapInfo': category, impact
+tests/unit/composables/useAnalysisState.spec.ts(142,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(143,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(144,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(145,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(146,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(147,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(148,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(149,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(159,11): error TS2353: Object literal may only specify known properties, and 'should_apply' does not exist in type 'ApplicationViability'.
+tests/unit/composables/useAnalysisState.spec.ts(279,9): error TS2322: Type 'null' is not assignable to type 'string | undefined'.
+tests/unit/composables/useAnalysisState.spec.ts(280,9): error TS2322: Type 'null' is not assignable to type 'number | undefined'.
+tests/unit/composables/useAnalysisState.spec.ts(300,9): error TS2353: Object literal may only specify known properties, and 'status' does not exist in type 'AdaptiveQuestionState'.
+tests/unit/composables/useAnalysisState.spec.ts(324,9): error TS2322: Type 'null' is not assignable to type 'string | undefined'.
+tests/unit/composables/useAnalysisState.spec.ts(325,9): error TS2322: Type 'null' is not assignable to type 'number | undefined'.
+tests/unit/composables/useAnalysisState.spec.ts(528,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(529,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(530,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(531,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(532,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(533,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(534,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(535,11): error TS2322: Type 'number' is not assignable to type 'CategoryScore'.
+tests/unit/composables/useAnalysisState.spec.ts(540,11): error TS2353: Object literal may only specify known properties, and 'should_apply' does not exist in type 'ApplicationViability'.
+tests/unit/stores/useQuestionsStore.spec.ts(273,37): error TS2345: Argument of type '"some"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/unit/stores/useQuestionsStore.spec.ts(280,37): error TS2345: Argument of type '"none"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/unit/stores/useQuestionsStore.spec.ts(289,37): error TS2345: Argument of type '"none"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/unit/stores/useQuestionsStore.spec.ts(290,37): error TS2345: Argument of type '"some"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/unit/stores/useQuestionsStore.spec.ts(291,37): error TS2345: Argument of type '"intermediate"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/unit/stores/useQuestionsStore.spec.ts(318,31): error TS2345: Argument of type 'QuestionData' is not assignable to parameter of type 'QuestionItem'.
+  Type 'QuestionData' is missing the following properties from type 'QuestionItem': number, title, priority, impact, and 2 more.
+tests/unit/stores/useQuestionsStore.spec.ts(337,31): error TS2345: Argument of type 'QuestionData' is not assignable to parameter of type 'QuestionItem'.
+  Type 'QuestionData' is missing the following properties from type 'QuestionItem': number, title, priority, impact, and 2 more.
+tests/unit/stores/useQuestionsStore.spec.ts(420,37): error TS2345: Argument of type '"some"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/unit/stores/useQuestionsStore.spec.ts(452,9): error TS2353: Object literal may only specify known properties, and 'text' does not exist in type 'QuestionItem'.
+tests/unit/stores/useQuestionsStore.spec.ts(490,37): error TS2345: Argument of type '"some"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/unit/stores/useQuestionsStore.spec.ts(491,37): error TS2345: Argument of type '"none"' is not assignable to parameter of type 'ExperienceLevel'.
+tests/unit/stores/useQuestionsStore.spec.ts(583,31): error TS2345: Argument of type 'QuestionData' is not assignable to parameter of type 'QuestionItem'.
+  Type 'QuestionData' is missing the following properties from type 'QuestionItem': number, title, priority, impact, and 2 more.
+tests/unit/stores/useQuestionsStore.spec.ts(587,37): error TS2345: Argument of type '"some"' is not assignable to parameter of type 'ExperienceLevel'.
+
+ ERROR  Process exited with non-zero status (2)
+
+    at G._waitForOutput (node_modules/tinyexec/dist/main.js:574:92)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Object.run (node_modules/@nuxt/cli/dist/typecheck-egvrxpjV.mjs:37:52)
+    at async runCommand (node_modules/citty/dist/index.mjs:316:16)
+    at async runCommand (node_modules/citty/dist/index.mjs:307:11)
+    at async runMain (node_modules/citty/dist/index.mjs:445:7) 
+
+
+
+ ERROR  Process exited with non-zero status (2)
+

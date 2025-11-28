@@ -1,11 +1,13 @@
 <template>
-  <span 
-    class="hb-badge" 
+  <span
+    class="hb-badge"
     :class="[
       `hb-badge--${variant}`,
       `hb-badge--${size}`,
-      { 
-        'hb-badge--rounded': rounded,
+      `hb-badge--${mode}`,
+      `hb-badge--rounded-${rounded}`,
+      props.class,
+      {
         'hb-badge--outline': outline,
         'hb-badge--dot': dot,
         'hb-badge--with-icon': $slots.icon
@@ -25,23 +27,29 @@
 
 type BadgeVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark' | 'gray'
 type BadgeSize = 'sm' | 'md' | 'lg'
+type BadgeMode = 'solid' | 'light'
+type BadgeRounded = 'sm' | 'md' | 'lg' | 'full'
 
 interface Props {
   variant?: BadgeVariant
   size?: BadgeSize
+  mode?: BadgeMode
   label?: string
-  rounded?: boolean
+  rounded?: BadgeRounded
   outline?: boolean
   dot?: boolean
+  class?: string | object | any[]
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   variant: 'primary',
   size: 'md',
+  mode: 'solid',
   label: '',
-  rounded: false,
+  rounded: 'md',
   outline: false,
-  dot: false
+  dot: false,
+  class: ''
 });
 </script>
 
@@ -53,31 +61,42 @@ withDefaults(defineProps<Props>(), {
   font-weight: var(--font-medium);
   white-space: nowrap;
   vertical-align: middle;
-  border-radius: var(--radius-md);
 }
 
 /* Sizes */
 .hb-badge--sm {
   font-size: var(--text-xs);
-  padding: 0.125rem 0.375rem;
+  padding: 0.25rem 0.5rem;
   line-height: 1.2;
 }
 
 .hb-badge--md {
   font-size: var(--text-xs);
-  padding: 0.25rem 0.5rem;
+  padding: 0.375rem 0.625rem;
   line-height: 1.2;
 }
 
 .hb-badge--lg {
   font-size: var(--text-sm);
-  padding: 0.375rem 0.75rem;
+  padding: 0.5rem 0.875rem;
   line-height: 1.2;
 }
 
-/* Rounded variant */
-.hb-badge--rounded {
-  border-radius: var(--radius-full);
+/* Rounded variants */
+.hb-badge--rounded-sm {
+  border-radius: 0.25rem; /* 4px - subtle rounded */
+}
+
+.hb-badge--rounded-md {
+  border-radius: var(--radius-md); /* default from var.css */
+}
+
+.hb-badge--rounded-lg {
+  border-radius: 0.5rem; /* 8px - large rounded */
+}
+
+.hb-badge--rounded-full {
+  border-radius: var(--radius-full); /* 9999px - pill shape */
 }
 
 /* With icon */
@@ -210,5 +229,81 @@ withDefaults(defineProps<Props>(), {
   background-color: transparent;
   color: var(--gray-500);
   border: 1px solid var(--gray-500);
+}
+
+/* ============================================ */
+/* Light Mode Variants */
+/* ============================================ */
+
+/* Primary - Light Mode */
+.hb-badge--primary.hb-badge--light {
+  background-color: var(--primary-50, #f5f3ff);
+  color: var(--primary-500, #8b5cf6);
+}
+
+.hb-badge--primary.hb-badge--light.hb-badge--outline {
+  background-color: transparent;
+  color: var(--primary-500, #8b5cf6);
+  border: 1px solid var(--primary-500, #8b5cf6);
+}
+
+/* Secondary - Light Mode */
+.hb-badge--secondary.hb-badge--light {
+  background-color: var(--secondary-50, #fdf4ff);
+  color: var(--secondary-500, #d946ef);
+}
+
+.hb-badge--secondary.hb-badge--light.hb-badge--outline {
+  background-color: transparent;
+  color: var(--secondary-500, #d946ef);
+  border: 1px solid var(--secondary-500, #d946ef);
+}
+
+/* Success - Light Mode */
+.hb-badge--success.hb-badge--light {
+  background-color: #f0fdf4; /* green-50 */
+  color: #22c55e; /* green-500 */
+}
+
+.hb-badge--success.hb-badge--light.hb-badge--outline {
+  background-color: transparent;
+  color: #22c55e;
+  border: 1px solid #22c55e;
+}
+
+/* Danger - Light Mode */
+.hb-badge--danger.hb-badge--light {
+  background-color: #fef2f2; /* red-50 */
+  color: #ef4444; /* red-500 */
+}
+
+.hb-badge--danger.hb-badge--light.hb-badge--outline {
+  background-color: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+/* Warning - Light Mode */
+.hb-badge--warning.hb-badge--light {
+  background-color: #fff7ed; /* orange-50 */
+  color: #f97316; /* orange-500 */
+}
+
+.hb-badge--warning.hb-badge--light.hb-badge--outline {
+  background-color: transparent;
+  color: #f97316;
+  border: 1px solid #f97316;
+}
+
+/* Info - Light Mode */
+.hb-badge--info.hb-badge--light {
+  background-color: #eff6ff; /* blue-50 */
+  color: #3b82f6; /* blue-500 */
+}
+
+.hb-badge--info.hb-badge--light.hb-badge--outline {
+  background-color: transparent;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
 }
 </style>

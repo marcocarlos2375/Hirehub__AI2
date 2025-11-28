@@ -1,39 +1,23 @@
 <template>
   <div class="questions-wrapper" ref="containerRef">
     <div class="questions-content">
-    <!-- Header with Stats -->
-    <transition name="slide-up">
-      <div v-if="!hideHeader" class="bg-white">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex-1">
-            <h2 class="text-2xl font-bold text-gray-900">Land your dream job in {{ questionsData.total_questions }} steps</h2>
-            <p class="text-sm text-gray-600 mt-1">
-             Answer to improve your score by +15-25%
-            </p>
-          </div>
-
-          <div class="text-right">
-           <!-- Stats Row -->
-        <div class="flex gap-3">
-          <div class="flex items-center gap-1.5 px-2 py-1 bg-red-50 rounded-lg">
-            <div class="text-lg font-semibold text-red-600">{{ questionsData.critical_count }}</div>
-            <div class="text-xs text-red-600">Critical</div>
-          </div>
-          <div class="flex items-center gap-1.5 px-2 py-1 bg-orange-50 rounded-lg">
-            <div class="text-lg font-semibold text-orange-600">{{ questionsData.high_count }}</div>
-            <div class="text-xs text-orange-600">High</div>
-          </div>
-          <div class="flex items-center gap-1.5 px-2 py-1 bg-yellow-50 rounded-lg">
-            <div class="text-lg font-semibold text-yellow-600">{{ questionsData.medium_count }}</div>
-            <div class="text-xs text-yellow-600">Medium</div>
-          </div>
-          <!-- Debug button -->
-          <button @click="hideHeader = true" class="text-xs px-2 py-1 bg-gray-200 rounded">Hide (test)</button>
-        </div>
-          </div>
-        </div>
-      </div>
-    </transition>
+    <!-- Header with Stats (animated with VueUse Motion) -->
+    <div
+      v-if="currentQuestionStepState === 'initial' && currentQuestionIndex === 0 && showHeader"
+      v-motion
+      :initial="{ opacity: 1, height: 'auto' }"
+      :enter="{ opacity: 1, height: 'auto', transition: { duration: 250 } }"
+      :leave="{ opacity: 0, height: 0, transition: { duration: 250 } }"
+      class="bg-white overflow-hidden"
+    >
+      <QuestionsHeader
+        :title="`Land your dream job in ${questionsData.total_questions} steps`"
+        subtitle="Answer to improve your score by +15-25%"
+        :critical-count="questionsData.critical_count"
+        :high-count="questionsData.high_count"
+        :medium-count="questionsData.medium_count"
+      />
+    </div>
 
     <!-- Questions Stepper -->
     <HbStepper
@@ -45,128 +29,53 @@
       size="md"
       :allowSkip="true"
       :showNavigation="false"
+      :showHeader="currentQuestionStepState === 'initial'"
       @update:modelValue="handleStepChange"
       @complete="submitAllAnswers"
     >
       <template #default="{ index }">
         <div class="min-h-[400px]">
-          <!-- Get the current question based on index -->
-          <div v-if="currentQuestion" class="space-y-4">
-            <!-- BEFORE Evaluation: Show Question Context -->
-            <QuestionContextCard
-              v-if="!activeAdaptiveFlows.has(currentQuestion.id) && !answerEvaluations.has(currentQuestion.id)"
-              :question="currentQuestion"
-              variant="full"
-              :show-impact="true"
-              :show-context-why="true"
-              :show-examples="true"
-              :show-previous="currentQuestionIndex > 0"
-              :show-next="currentQuestionIndex < questionsData.questions.length - 1"
-              :is-last-question="currentQuestionIndex === questionsData.questions.length - 1"
-              :all-answered="allQuestionsAnswered"
-              @need-help="handleNeedHelp(currentQuestion)"
-              @navigate="handleNavigation"
-              @submit-all="submitAllAnswers"
-            />
-
-
-            <!-- AFTER Evaluation: Show Single Tab "Answer Refinement" -->
-            <div v-if="answerEvaluations.has(currentQuestion.id)" class="bg-white overflow-hidden">
-              
-
-              <!-- Tab Content -->
-              <div class="space-y-6">
-              
-                <!-- Answer Quality Display -->
-                <AnswerQualityDisplay
-                    :generated-answer="answerEvaluations.get(currentQuestion.id)!.answer_text"
-                    :quality-score="answerEvaluations.get(currentQuestion.id)!.quality_score"
-                    :quality-issues="answerEvaluations.get(currentQuestion.id)!.quality_issues"
-                    :quality-strengths="answerEvaluations.get(currentQuestion.id)!.quality_strengths"
-                    :improvement-suggestions="answerEvaluations.get(currentQuestion.id)!.improvement_suggestions.map(s => ({ issue: s, suggestion: s, priority: 'medium' }))"
-                    :is-acceptable="answerEvaluations.get(currentQuestion.id)!.is_acceptable"
-                    :show-refine-button="false"
-                    @accept-answer="handleAcceptAnswer(currentQuestion.id)"
-                  />
-
-                <!-- Improvement Questions Section (only if score < 7) -->
-                <div v-if="!answerEvaluations.get(currentQuestion.id)!.is_acceptable && refinementData.has(currentQuestion.id)" class="bg-white ">
-                  <h3 class="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                   
-                   Improve Your Answer
-                  </h3>
-                  <p class="text-sm text-gray-700 mb-3">
-                    Answer the questions below to address the specific issues identified in your response:
-                  </p>
-
-                  <div class="space-y-4">
-                    <RefinementSuggestionCard
-                      v-for="(suggestion, index) in answerEvaluations.get(currentQuestion.id)?.improvement_suggestions || []"
-                      :key="index"
-                      :suggestion="suggestion"
-                      :index="index"
-                      :model-value="refinementData.get(currentQuestion.id)?.[`suggestion_${index}`] || ''"
-                      @update:model-value="updateRefinementField(currentQuestion.id, `suggestion_${index}`, $event)"
-                      :disabled="evaluatingQuestionId === currentQuestion.id"
-                    />
-
-                    <div class="flex gap-3 pt-4">
-                      <HbButton
-                        @click="submitRefinement(currentQuestion.id)"
-                        :disabled="evaluatingQuestionId === currentQuestion.id"
-                        :loading="evaluatingQuestionId === currentQuestion.id"
-                        variant="primary"
-                        size="lg"
-                        class="flex-1"
-                      >
-                        
-                        {{ evaluatingQuestionId === currentQuestion.id ? 'Submitting Improvements...' : 'Submit Improvements' }}
-                      </HbButton>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Evaluation loading now handled by AnswerEvaluationModal -->
-            <!-- Adaptive Flow (shown inline after modal choice) -->
-            <div v-if="activeAdaptiveFlows.has(currentQuestion.id)" class="ml-4 pl-4 border-l-4 border-indigo-300">
-              <AdaptiveQuestionFlow
-                :question-id="currentQuestion.id"
-                :question-text="currentQuestion.question_text"
-                :question-data="currentQuestion"
-                :gap-info="{ title: currentQuestion.title, description: currentQuestion.context_why }"
-                :user-id="getUserId()"
-                :parsed-cv="parsedCV"
-                :parsed-jd="parsedJD"
-                :language="language"
-                :initial-experience-level="activeAdaptiveFlows.get(currentQuestion.id)"
-                @complete="(state) => handleAdaptiveComplete(currentQuestion!.id, state)"
-                @cancel="() => cancelAdaptiveFlow(currentQuestion!.id)"
-              />
-            </div>
-          </div>
-
+          <!-- QuestionSlider with 2 slides (Original + Refinement) -->
+          <QuestionSlider
+            v-if="currentQuestion"
+            :question="currentQuestion"
+            :question-index="currentQuestionIndex"
+            :is-active="true"
+            :parsed-cv="parsedCV"
+            :parsed-jd="parsedJD"
+            :language="language"
+            @need-help="handleNeedHelp"
+            @navigate="handleNavigation"
+            @submit-all="submitAllAnswers"
+            @slide-changed="handleSlideChanged"
+            @refinement-submitted="handleRefinementSubmitted"
+          />
         </div>
       </template>
     </HbStepper>
     </div>
 
-    <!-- Fixed AnswerInput Footer - Only show when answering -->
-    <div v-if="currentQuestion && !hasSubmitted && !activeAdaptiveFlows.has(currentQuestion.id) && !answerEvaluations.has(currentQuestion.id)"
-         class="questions-footer">
-        <AnswerInput
-          :modelValue="questionsStore.getAnswerDraft(currentQuestion.id)"
-          @update:modelValue="(val) => questionsStore.setAnswerDraft(currentQuestion!.id, val)"
-          :question-id="currentQuestion.id"
-          :question-text="currentQuestion.question_text"
-          :placeholder="`Share your experience for: ${currentQuestion.title}`"
-          :disabled="isSubmitting || hasSubmitted || evaluatingQuestionId === currentQuestion.id"
-          :submit-button-text="evaluatingQuestionId === currentQuestion.id ? 'Evaluating...' : 'Submit Answer'"
-          :show-examples="!!currentQuestion.examples"
-          :examples="currentQuestion.examples"
-          @submit="(text, type, time) => handleAnswerSubmit(currentQuestion!.id, text, type, time)"
-        />
+    <!-- Fixed AnswerInput Footer (animated with VueUse Motion) -->
+    <div
+      v-if="currentQuestion && !hasSubmitted && !activeAdaptiveFlows.has(currentQuestion.id) && !answerEvaluations.has(currentQuestion.id) && currentQuestionStepState === 'initial'"
+      v-motion
+      :initial="{ opacity: 1, y: 0 }"
+      :enter="{ opacity: 1, y: 0, transition: { duration: 300 } }"
+      :leave="{ opacity: 0, y: 20, transition: { duration: 200 } }"
+      class="questions-footer"
+    >
+      <AnswerInput
+        :modelValue="questionsStore.getAnswerDraft(currentQuestion.id)"
+        @update:modelValue="(val) => questionsStore.setAnswerDraft(currentQuestion!.id, val)"
+        :question-id="currentQuestion.id"
+        :question-text="currentQuestion.question_text"
+        :placeholder="`Share your experience for: ${currentQuestion.title}`"
+        :disabled="isSubmitting || hasSubmitted || evaluatingQuestionId === currentQuestion.id"
+        :submit-button-text="evaluatingQuestionId === currentQuestion.id ? 'Evaluating...' : 'Submit Answer'"
+        :show-examples="!!currentQuestion.examples"
+        :examples="currentQuestion.examples"
+        @submit="(text, type, time) => handleAnswerSubmit(currentQuestion!.id, text, type, time)"
+      />
     </div>
 
     <!-- Adaptive Modal (opens when user clicks "Zero Experience" button) -->
@@ -250,155 +159,11 @@
       </div>
     </div>
 
-    <!-- Evaluation Loading Box (Centered, Voice-Modal Style) -->
-    <Transition name="fade">
-      <div v-if="showLoadingBox" class="evaluation-loading-box">
-        <HbSpinner size="lg" class="loading-spinner" />
-        <p class="loading-text">Evaluating your answer...</p>
-        <p v-if="showTimeoutWarning" class="timeout-warning">
-          This is taking longer than expected. Please wait...
-        </p>
-      </div>
-    </Transition>
-
-    <!-- Evaluation Slider (2 Slides: Evaluation + Improved Answer) -->
-    <Transition name="fade">
-      <div v-if="showEvaluationSlider" class="evaluation-slider">
-        <div class="slider-container">
-          <div
-            class="slides-wrapper"
-            :style="{ transform: `translateX(-${currentSlide * 100}%)` }"
-            @touchstart="handleTouchStart"
-            @touchmove="handleTouchMove"
-            @touchend="handleTouchEnd"
-          >
-            <!-- Slide 1: Evaluation + Refinement -->
-            <div class="slide">
-              <div class="slide-inner">
-                <h3 class="slide-title">Answer Evaluation</h3>
-                <p class="text-sm text-gray-500 mb-4">Review your answer quality and refine if needed</p>
-
-                <div v-if="currentEvaluation" class="evaluation-container">
-                  <!-- Quality Score Badge -->
-                  <div class="quality-score-badge">
-                    <div :class="['score-circle', scoreColorClass]">
-                      <span class="score-number">{{ currentEvaluation.quality_score }}</span>
-                      <span class="score-max">/10</span>
-                    </div>
-                    <p class="score-label">{{ scoreLabel }}</p>
-                  </div>
-
-                  <!-- Quality Strengths -->
-                  <div v-if="currentEvaluation.quality_strengths?.length" class="quality-section strengths">
-                    <h4 class="section-title">✓ Strengths</h4>
-                    <ul class="quality-list">
-                      <li v-for="(strength, index) in currentEvaluation.quality_strengths" :key="index">
-                        {{ strength }}
-                      </li>
-                    </ul>
-                  </div>
-
-                  <!-- Quality Issues -->
-                  <div v-if="currentEvaluation.quality_issues?.length" class="quality-section issues">
-                    <h4 class="section-title">✗ Areas to Improve</h4>
-                    <ul class="quality-list">
-                      <li v-for="(issue, index) in currentEvaluation.quality_issues" :key="index">
-                        {{ issue }}
-                      </li>
-                    </ul>
-                  </div>
-
-                  <!-- Refinement Form -->
-                  <div v-if="!currentEvaluation.is_acceptable" class="refinement-form">
-                    <h4 class="form-title">Help us improve your answer:</h4>
-
-                    <div class="form-field">
-                      <label>Duration/Timeline Details:</label>
-                      <textarea
-                        v-model="refinementFields.duration_detail"
-                        placeholder="e.g., 'Led this project for 18 months from Jan 2022 to June 2023'"
-                        rows="2"
-                        :disabled="isRefining"
-                      ></textarea>
-                    </div>
-
-                    <div class="form-field">
-                      <label>Specific Tools/Technologies:</label>
-                      <textarea
-                        v-model="refinementFields.specific_tools"
-                        placeholder="e.g., 'Used React, Node.js, PostgreSQL, Docker, AWS ECS'"
-                        rows="2"
-                        :disabled="isRefining"
-                      ></textarea>
-                    </div>
-
-                    <div class="form-field">
-                      <label>Metrics/Measurable Outcomes:</label>
-                      <textarea
-                        v-model="refinementFields.metrics"
-                        placeholder="e.g., 'Increased page load speed by 40%, reduced bounce rate from 35% to 18%'"
-                        rows="2"
-                        :disabled="isRefining"
-                      ></textarea>
-                    </div>
-
-                    <HbButton
-                      variant="primary"
-                      @click="handleRefinementSubmit"
-                      :disabled="isRefining || !hasRefinementData"
-                      class="mt-4"
-                    >
-                      {{ isRefining ? 'Improving...' : 'Submit Improvements →' }}
-                    </HbButton>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Slide 2: AI-Improved Response -->
-            <div class="slide">
-              <div class="slide-inner">
-                <h3 class="slide-title">Improved Answer</h3>
-                <p class="text-sm text-gray-500 mb-4">AI-enhanced version based on your refinements</p>
-
-                <div class="improved-answer-display">
-                  <label class="answer-label">Enhanced Response:</label>
-                  <div class="answer-box improved">
-                    {{ currentImprovedAnswer }}
-                  </div>
-                </div>
-
-                <div class="action-buttons">
-                  <HbButton
-                    variant="secondary"
-                    @click="currentSlide = 0"
-                  >
-                    ← Edit More
-                  </HbButton>
-                  <HbButton
-                    variant="primary"
-                    @click="handleUseImprovedAnswer"
-                  >
-                    Use This Answer
-                  </HbButton>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Dot Navigation -->
-        <div class="dot-navigation">
-          <button
-            v-for="index in 2"
-            :key="index"
-            :class="['dot', { active: currentSlide === index - 1 }]"
-            @click="currentSlide = index - 1"
-            :disabled="isRefining"
-          ></button>
-        </div>
-      </div>
-    </Transition>
+    <!-- Evaluation Loading Overlay -->
+    <HbLoadingOverlay
+      :show="evaluatingQuestionId === currentQuestion?.id"
+      message="Evaluating your answer..."
+    />
 
   </div>
 </template>
@@ -407,6 +172,7 @@
 import type { GenerateQuestionsResult, QuestionAnswer, QuestionItem } from '~/composables/analysis/useAnalysisState'
 import type { AdaptiveQuestionState, ExperienceLevel } from '~/types/adaptive-questions'
 import type { QuestionData } from '~/types/api-responses'
+import type { QuestionStepState } from '~/types/question-state'
 import { useAnswerSubmitter } from '~/composables/adaptive-questions/useAnswerSubmitter'
 import { useAdaptiveQuestions } from '~/composables/adaptive-questions/useAdaptiveQuestions'
 import { useQuestionsStore } from '~/stores/questions/useQuestionsStore'
@@ -416,6 +182,8 @@ import AnswerQualityDisplay from './AnswerQualityDisplay.vue'
 import AnswerInput from './AnswerInput.vue'
 import QuestionContextCard from './QuestionContextCard.vue'
 import RefinementSuggestionCard from './RefinementSuggestionCard.vue'
+import QuestionSlider from './QuestionSlider.vue'
+import QuestionsHeader from './QuestionsHeader.vue'
 import HbStepper from '~/components/base/HbStepper.vue'
 import HbButton from '~/components/base/HbButton.vue'
 import HbSpinner from '~/components/base/HbSpinner.vue'
@@ -442,7 +210,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>()
 
-// Use Pinia store instead of local refs
+// Use Pinia stores
 const questionsStore = useQuestionsStore()
 
 // Computed properties from store
@@ -461,102 +229,16 @@ const currentAdaptiveQuestion = computed(() => questionsStore.currentAdaptiveQue
 const { submitAnswers: submitAnswersAPI } = useAnswerSubmitter()
 const { evaluateAnswer, refineAnswer } = useAdaptiveQuestions()
 
-// Timeout tracking for loading states
-const evaluationStartTime = ref<number | null>(null)
-const showTimeoutWarning = computed(() => {
-  if (!evaluationStartTime.value) return false
-  return (Date.now() - evaluationStartTime.value) > 10000 // 10 seconds
-})
-
 const allQuestionsAnswered = computed(() => {
   return questionsStore.allQuestionsAnswered(props.questionsData.questions.length)
 })
 
 // Stepper state management
 const currentQuestionIndex = ref(0)
-const currentSlide = ref(0)
-const showLoadingBox = ref(false)
-const showEvaluationSlider = ref(false)
-const refinementFields = ref({
-  duration_detail: '',
-  specific_tools: '',
-  metrics: ''
-})
-const isRefining = ref(false)
-const currentImprovedAnswer = ref('')
 
-// Touch handling for slider
-const touchStartX = ref(0)
-const touchEndX = ref(0)
+// Header visibility control (auto-hide after 3s)
+const showHeader = ref(true)
 
-const handleTouchStart = (e: TouchEvent) => {
-  if (e.changedTouches.length > 0) {
-    touchStartX.value = e.changedTouches[0]?.screenX ?? 0
-  }
-}
-
-const handleTouchMove = (e: TouchEvent) => {
-  if (e.changedTouches.length > 0) {
-    touchEndX.value = e.changedTouches[0]?.screenX ?? 0
-  }
-}
-
-const handleTouchEnd = () => {
-  if (touchStartX.value - touchEndX.value > 50) {
-    // Swipe left
-    if (currentSlide.value < 1) currentSlide.value++
-  }
-  if (touchEndX.value - touchStartX.value > 50) {
-    // Swipe right
-    if (currentSlide.value > 0) currentSlide.value--
-  }
-}
-
-// Computed properties for evaluation display
-const currentEvaluation = computed(() => {
-  if (!currentQuestion.value) return null
-  return answerEvaluations.value.get(currentQuestion.value.id)
-})
-
-const scoreColorClass = computed(() => {
-  const score = currentEvaluation.value?.quality_score || 0
-  if (score >= 8) return 'bg-green-100 text-green-800'
-  if (score >= 5) return 'bg-yellow-100 text-yellow-800'
-  return 'bg-red-100 text-red-800'
-})
-
-const scoreLabel = computed(() => {
-  const score = currentEvaluation.value?.quality_score || 0
-  if (score >= 8) return 'Excellent'
-  if (score >= 5) return 'Average'
-  return 'Needs Improvement'
-})
-
-const hasRefinementData = computed(() => {
-  return refinementFields.value.duration_detail || refinementFields.value.specific_tools || refinementFields.value.metrics
-})
-
-const handleRefinementSubmit = async () => {
-  if (!currentQuestion.value) return
-  isRefining.value = true
-  
-  try {
-    // Simulate API call or use store action
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    currentImprovedAnswer.value = "This is a simulated improved answer based on your refinements. It incorporates the details about duration, tools, and metrics you provided."
-    currentSlide.value = 1 // Move to improved answer slide
-  } catch (e) {
-    console.error(e)
-  } finally {
-    isRefining.value = false
-  }
-}
-
-const handleUseImprovedAnswer = () => {
-  if (!currentQuestion.value) return
-  questionsStore.setAnswer(currentQuestion.value.id, currentImprovedAnswer.value, 'text')
-  showEvaluationSlider.value = false
-}
 
 const questionSteps = computed(() => {
   return props.questionsData.questions.map((q, idx) => ({
@@ -570,27 +252,15 @@ const currentQuestion = computed(() => {
   return props.questionsData.questions[currentQuestionIndex.value]
 })
 
-// Hide header on any user interaction
-const hideHeader = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
-
-// Simple approach: hide header when user starts answering or after first step
-const handleUserInteraction = () => {
-  if (!hideHeader.value) {
-    console.log('User interaction detected - hiding header')
-    hideHeader.value = true
-  }
-}
-
-// Watch for step changes - hide header after moving past first question
-watch(currentQuestionIndex, (newIndex) => {
-  if (newIndex > 0) {
-    hideHeader.value = true
-  }
-})
 
 // Keyboard navigation for steps
 const handleKeyDown = (event: KeyboardEvent) => {
+  // Block navigation if current question is in feedback state
+  if (currentQuestionStepState.value === 'feedback') {
+    return // Don't allow keyboard navigation in feedback state
+  }
+
   // Arrow Right or Arrow Down = Next question
   if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
     if (currentQuestionIndex.value < props.questionsData.questions.length - 1) {
@@ -607,51 +277,19 @@ const handleKeyDown = (event: KeyboardEvent) => {
   }
 }
 
-// Also hide on mount after a short delay to detect any scroll
+// Initialize answer drafts and keyboard navigation on mount
 onMounted(() => {
   // Initialize answer drafts for all questions
   const questionIds = props.questionsData.questions.map(q => q.id)
   questionsStore.initializeAnswerDrafts(questionIds)
 
-  nextTick(() => {
-    console.log('Setting up scroll detection...')
+  // Add keyboard navigation
+  window.addEventListener('keydown', handleKeyDown)
 
-    // Approach 1: Listen to wheel events (mouse scroll) globally
-    window.addEventListener('wheel', handleUserInteraction, { once: true, passive: true })
-    console.log('Wheel listener attached to window')
-
-    // Approach 2: Listen to any scroll event on document
-    document.addEventListener('scroll', handleUserInteraction, { once: true, passive: true })
-    console.log('Scroll listener attached to document')
-
-    // Approach 3: Listen on the container
-    if (containerRef.value) {
-      containerRef.value.addEventListener('wheel', handleUserInteraction, { once: true, passive: true })
-      console.log('Wheel listener attached to container')
-    }
-
-    // Approach 4: Listen to parent scroll
-    const contentParent = document.querySelector('.content')
-    if (contentParent) {
-      contentParent.addEventListener('scroll', handleUserInteraction, { once: true, passive: true })
-      contentParent.addEventListener('wheel', handleUserInteraction, { once: true, passive: true })
-      console.log('Scroll and wheel listeners attached to .content parent')
-    }
-
-    // Approach 5: Find all scrollable elements
-    const allElements = document.querySelectorAll('*')
-    allElements.forEach(el => {
-      const style = window.getComputedStyle(el)
-      if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-        el.addEventListener('scroll', handleUserInteraction, { once: true, passive: true })
-        console.log('Scroll listener attached to scrollable element:', el.className)
-      }
-    })
-
-    // Add keyboard navigation
-    window.addEventListener('keydown', handleKeyDown)
-    console.log('Keyboard navigation enabled')
-  })
+  // Auto-hide header after 3 seconds
+  setTimeout(() => {
+    showHeader.value = false
+  }, 3000)
 })
 
 onBeforeUnmount(() => {
@@ -671,8 +309,19 @@ const currentQuestionState = computed(() => {
   return 'unanswered'
 })
 
+// Get current question step state (for header visibility)
+const currentQuestionStepState = computed<QuestionStepState>(() => {
+  if (!currentQuestion.value) return 'initial'
+  return questionsStore.getQuestionState(currentQuestion.value.id)
+})
+
 // Handle navigation from arrow buttons
 const handleNavigation = (direction: 'previous' | 'next') => {
+  // Block navigation if current question is in feedback state
+  if (currentQuestionStepState.value === 'feedback') {
+    return // Don't allow navigation in feedback state
+  }
+
   if (direction === 'previous' && currentQuestionIndex.value > 0) {
     currentQuestionIndex.value--
   } else if (direction === 'next' && currentQuestionIndex.value < props.questionsData.questions.length - 1) {
@@ -680,8 +329,24 @@ const handleNavigation = (direction: 'previous' | 'next') => {
   }
 }
 
+// Handle slide changed event from QuestionSlider
+const handleSlideChanged = (questionId: string, slideIndex: number) => {
+  console.log(`Slide changed for question ${questionId} to slide ${slideIndex}`)
+}
+
+// Handle refinement submitted event from QuestionSlider
+const handleRefinementSubmitted = (questionId: string, refinementData: Record<string, any>) => {
+  // Delegate to existing submitRefinement function
+  submitRefinement(questionId)
+}
+
 // Handle step navigation
 const handleStepChange = (newIndex: number) => {
+  // Block navigation if current question is in feedback state
+  if (currentQuestionStepState.value === 'feedback') {
+    return // Don't allow step changes in feedback state
+  }
+
   const oldIndex = currentQuestionIndex.value
   const oldQuestion = props.questionsData.questions[oldIndex]
 
@@ -706,11 +371,6 @@ const handleStepChange = (newIndex: number) => {
   currentQuestionIndex.value = newIndex
 }
 
-const getUserId = (): string => {
-  // Generate a session-based user ID
-  return `user-${Date.now()}`
-}
-
 // Helper to convert QuestionItem to QuestionData format
 const convertQuestionItemToQuestionData = (question: QuestionItem): QuestionData => {
   return {
@@ -728,26 +388,6 @@ const convertQuestionItemToQuestionData = (question: QuestionItem): QuestionData
   }
 }
 
-const getAnswerStatus = (questionId: string): string => {
-  if (hasSubmitted.value) return 'Submitted'
-  if (questionsStore.isQuestionAnswered(questionId)) return 'Update Answer'
-  return 'Submit Answer'
-}
-
-// Tab management helpers - now use store getters/actions
-const getActiveTab = (questionId: string): 'original' | 'followup' => {
-  return questionsStore.getActiveTab(questionId)
-}
-
-const setActiveTab = (questionId: string, tab: 'original' | 'followup') => {
-  questionsStore.setActiveTab(questionId, tab)
-}
-
-const getFollowupCount = (questionId: string): number => {
-  const evaluation = questionsStore.getEvaluationById(questionId)
-  if (!evaluation || evaluation.is_acceptable) return 0
-  return evaluation.improvement_suggestions?.length || 0
-}
 
 const handleAnswerSubmit = async (
   questionId: string,
@@ -759,9 +399,8 @@ const handleAnswerSubmit = async (
   const question = props.questionsData.questions.find(q => q.id === questionId)
   if (!question) return
 
-  // Set evaluating state using store and start timeout tracking
+  // Set evaluating state using store
   questionsStore.startEvaluation(questionId)
-  evaluationStartTime.value = Date.now()
 
   try {
     // Call evaluation API
@@ -785,16 +424,12 @@ const handleAnswerSubmit = async (
     // Initialize tab to 'original' when evaluation completes
     questionsStore.setActiveTab(questionId, 'original')
 
-    // Clear timeout tracking
-    evaluationStartTime.value = null
-
     // Only store answer if evaluation was successful and quality is acceptable
     // User will need to accept the answer before it counts
   } catch (error: any) {
     console.error('Failed to evaluate answer:', error)
     alert('Failed to evaluate answer. Please try again.')
     questionsStore.clearEvaluation()
-    evaluationStartTime.value = null
   }
 }
 
@@ -881,16 +516,14 @@ const submitRefinement = async (questionId: string) => {
     })
   }
 
-  // Start evaluation using store and start timeout tracking
+  // Start evaluation using store
   questionsStore.startEvaluation(questionId)
-  evaluationStartTime.value = Date.now()
 
   try {
     // Get question data
     const question = props.questionsData.questions.find(q => q.id === questionId)
     if (!question) {
       alert('Question not found')
-      evaluationStartTime.value = null
       return
     }
 
@@ -908,7 +541,6 @@ const submitRefinement = async (questionId: string) => {
 
     if (response.error) {
       alert('Failed to refine answer: ' + response.error)
-      evaluationStartTime.value = null
       return
     }
 
@@ -928,16 +560,12 @@ const submitRefinement = async (questionId: string) => {
     // Increment refinement iteration counter
     questionsStore.incrementRefinementIteration(questionId)
 
-    // Clear timeout tracking
-    evaluationStartTime.value = null
-
     console.log(`Answer refined successfully for question ${questionId}`)
   } catch (error: any) {
     console.error('Failed to refine answer:', error)
     alert('Failed to refine answer. Please try again.')
   } finally {
     questionsStore.clearEvaluation()
-    evaluationStartTime.value = null
   }
 }
 
@@ -992,33 +620,6 @@ const submitAllAnswers = async () => {
 </script>
 
 <style scoped>
-.slide-up-enter-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.slide-up-leave-active {
-  transition: all 0.5s cubic-bezier(0.4, 0, 1, 1);
-}
-
-.slide-up-enter-from {
-  transform: translateY(-30px);
-  opacity: 0;
-  margin-bottom: -100px;
-}
-
-.slide-up-leave-to {
-  transform: translateY(-30px);
-  opacity: 0;
-  margin-bottom: -100px;
-}
-
-.slide-up-enter-to,
-.slide-up-leave-from {
-  transform: translateY(0);
-  opacity: 1;
-  margin-bottom: 0;
-}
-
 /* Flex container matching jetable.vue pattern */
 .questions-wrapper {
   display: flex;
@@ -1031,11 +632,11 @@ const submitAllAnswers = async () => {
 .questions-content {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem;  /* Restore padding (removed from parent .content) */
+  padding: 2px;  /* Restore padding (removed from parent .content) */
 
   /* Add spacing between elements inside */
   > * + * {
-    margin-top: 1.5rem;  /* space-y-6 equivalent */
+    margin-top: 5px;  /* space-y-6 equivalent */
   }
 }
 

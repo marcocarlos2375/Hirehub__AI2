@@ -1,86 +1,89 @@
 <template>
   <div class="hb-stepper" :class="rootClasses">
-    <!-- Label -->
-    <div v-if="label" class="hb-stepper__label">{{ label }}</div>
+    <!-- Stepper Header (steps navigation) - controlled by showHeader prop -->
+    <div v-if="showHeader">
+      <!-- Label -->
+      <div v-if="label" class="hb-stepper__label">{{ label }}</div>
 
-    <!-- Progress Bar (optional) -->
-    <div v-if="showProgress" class="hb-stepper__progress-wrapper">
-      <slot name="progress" :current="currentIndex" :total="visibleSteps.length" :percentage="progressPercentage">
-        <HbProgressBar :value="progressPercentage" size="sm" />
-      </slot>
-    </div>
+      <!-- Progress Bar (optional) -->
+      <div v-if="showProgress" class="hb-stepper__progress-wrapper">
+        <slot name="progress" :current="currentIndex" :total="visibleSteps.length" :percentage="progressPercentage">
+          <HbProgressBar :value="progressPercentage" size="sm" />
+        </slot>
+      </div>
 
-    <!-- Step Count (optional) -->
-    <div v-if="showStepCount" class="hb-stepper__count">
-      Step {{ currentStepNumber }} of {{ totalSteps }}
-    </div>
+      <!-- Step Count (optional) -->
+      <div v-if="showStepCount" class="hb-stepper__count">
+        Step {{ currentStepNumber }} of {{ totalSteps }}
+      </div>
 
-    <!-- Steps Container -->
-    <div class="hb-stepper__steps" :class="stepsClasses">
-      <div
-        v-for="(step, index) in visibleSteps"
-        :key="step.id || index"
-        class="hb-stepper__step"
-        :class="getStepClasses(index)"
-      >
-        <!-- BORDER TYPE: Border-top indicator + label below -->
-        <template v-if="stepperType === 'border'">
-          <button
-            class="hb-stepper__border-step"
-            :class="getBorderStepClasses(index)"
-            :disabled="!isStepClickable(index)"
-            @click="handleStepClick(index)"
-            :aria-current="index === currentIndex ? 'step' : undefined"
-          >
-            <div class="hb-stepper__border-top"></div>
+      <!-- Steps Container -->
+      <div class="hb-stepper__steps" :class="stepsClasses">
+        <div
+          v-for="(step, index) in visibleSteps"
+          :key="step.id || index"
+          class="hb-stepper__step"
+          :class="getStepClasses(index)"
+        >
+          <!-- BORDER TYPE: Border-top indicator + label below -->
+          <template v-if="stepperType === 'border'">
+            <button
+              class="hb-stepper__border-step"
+              :class="getBorderStepClasses(index)"
+              :disabled="!isStepClickable(index)"
+              @click="handleStepClick(index)"
+              :aria-current="index === currentIndex ? 'step' : undefined"
+            >
+              <div class="hb-stepper__border-top"></div>
+              <div class="hb-stepper__content">
+                <slot name="step-label" :step="step" :index="index">
+                  <div class="hb-stepper__title">{{ step.label }}</div>
+                  <div v-if="step.description" class="hb-stepper__description">
+                    {{ step.description }}
+                  </div>
+                </slot>
+              </div>
+            </button>
+          </template>
+
+          <!-- NUMBER TYPE: Original circular indicator style -->
+          <template v-else>
+            <!-- Step Indicator -->
+            <button
+              class="hb-stepper__indicator"
+              :disabled="!isStepClickable(index)"
+              @click="handleStepClick(index)"
+              :aria-current="index === currentIndex ? 'step' : undefined"
+            >
+              <slot name="step-number" :step="step" :index="index" :state="getStepState(index)">
+                <span class="hb-stepper__number">
+                  <HbIcon v-if="step.icon" :name="step.icon" />
+                  <template v-else-if="step.completed">
+                    <svg class="hb-stepper__check" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                  </template>
+                  <template v-else-if="showStepNumber">{{ index + 1 }}</template>
+                </span>
+              </slot>
+            </button>
+
+            <!-- Step Label -->
             <div class="hb-stepper__content">
               <slot name="step-label" :step="step" :index="index">
                 <div class="hb-stepper__title">{{ step.label }}</div>
-                <div v-if="step.description" class="hb-stepper__description">
-                  {{ step.description }}
-                </div>
+                <div v-if="step.description" class="hb-stepper__description">{{ step.description }}</div>
               </slot>
             </div>
-          </button>
-        </template>
 
-        <!-- NUMBER TYPE: Original circular indicator style -->
-        <template v-else>
-          <!-- Step Indicator -->
-          <button
-            class="hb-stepper__indicator"
-            :disabled="!isStepClickable(index)"
-            @click="handleStepClick(index)"
-            :aria-current="index === currentIndex ? 'step' : undefined"
-          >
-            <slot name="step-number" :step="step" :index="index" :state="getStepState(index)">
-              <span class="hb-stepper__number">
-                <HbIcon v-if="step.icon" :name="step.icon" />
-                <template v-else-if="step.completed">
-                  <svg class="hb-stepper__check" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                  </svg>
-                </template>
-                <template v-else-if="showStepNumber">{{ index + 1 }}</template>
-              </span>
-            </slot>
-          </button>
-
-          <!-- Step Label -->
-          <div class="hb-stepper__content">
-            <slot name="step-label" :step="step" :index="index">
-              <div class="hb-stepper__title">{{ step.label }}</div>
-              <div v-if="step.description" class="hb-stepper__description">{{ step.description }}</div>
-            </slot>
-          </div>
-
-          <!-- Connector (only for number type) -->
-          <div v-if="index < visibleSteps.length - 1 && showConnector" class="hb-stepper__connector">
-            <slot name="connector" :fromStep="step" :toStep="visibleSteps[index + 1]" :completed="step.completed">
-              <div class="hb-stepper__connector-line" :class="{ 'is-completed': step.completed }"></div>
-            </slot>
-          </div>
-        </template>
+            <!-- Connector (only for number type) -->
+            <div v-if="index < visibleSteps.length - 1 && showConnector" class="hb-stepper__connector">
+              <slot name="connector" :fromStep="step" :toStep="visibleSteps[index + 1]" :completed="step.completed">
+                <div class="hb-stepper__connector-line" :class="{ 'is-completed': step.completed }"></div>
+              </slot>
+            </div>
+          </template>
+        </div>
       </div>
     </div>
 
@@ -180,6 +183,7 @@ interface Props {
   linear?: boolean
   clickable?: boolean
   showNavigation?: boolean
+  showHeader?: boolean
   nextLabel?: string
   backLabel?: string
   finishLabel?: string
@@ -205,6 +209,7 @@ const props = withDefaults(defineProps<Props>(), {
   linear: false,
   clickable: true,
   showNavigation: false,
+  showHeader: true,
   nextLabel: 'Next',
   backLabel: 'Back',
   finishLabel: 'Finish',
@@ -822,7 +827,7 @@ watch(() => props.modelValue, (newVal) => {
       background: var(--primary-500);
     }
 
-    // Completed step - success-500 color
+    // Completed step - success color
     .hb-stepper__border-step--completed .hb-stepper__border-top {
       background: var(--success-500);
     }

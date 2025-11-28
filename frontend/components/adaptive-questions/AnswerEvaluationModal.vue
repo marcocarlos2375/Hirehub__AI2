@@ -205,23 +205,10 @@
 </template>
 
 <script setup lang="ts">
-import type { QuestionItem } from '~/composables/analysis/useAnalysisState'
-import type { AnswerEvaluation } from '~/stores/questions/useQuestionsStore'
+import type { AnswerEvaluationModalProps, AnswerEvaluationModalEmits } from '~/types/component-props'
 
-interface Props {
-  modelValue: boolean
-  question: QuestionItem | null
-  userAnswer: string
-  evaluation: AnswerEvaluation | null
-}
-
-interface Emits {
-  (e: 'update:modelValue', value: boolean): void
-  (e: 'use-improved-answer', questionId: string, improvedText: string): void
-}
-
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<AnswerEvaluationModalProps>()
+const emit = defineEmits<AnswerEvaluationModalEmits>()
 
 // Modal state
 const modalState = ref<'loading' | 'slider' | 'closed'>('loading')

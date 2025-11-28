@@ -21,7 +21,7 @@
           <HbBadge
             :variant="impactBadgeVariant"
             size="sm"
-            rounded
+            rounded="full"
             :aria-label="`Impact level: ${gap.impact}`"
             class="gap-card__badge"
           >

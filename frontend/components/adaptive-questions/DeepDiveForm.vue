@@ -133,20 +133,13 @@
 </template>
 
 <script setup lang="ts">
-import type { DeepDivePrompt } from '~/types/adaptive-questions'
+import type { DeepDiveFormProps, DeepDiveFormEmits } from '~/types/component-props'
 
-interface Props {
-  prompts: DeepDivePrompt[]
-  loading?: boolean
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<DeepDiveFormProps>(), {
   loading: false
 })
 
-const emit = defineEmits<{
-  'submit-inputs': [data: Record<string, any>]
-}>()
+const emit = defineEmits<DeepDiveFormEmits>()
 
 // Initialize form data based on prompts
 const formData = ref<Record<string, any>>({})

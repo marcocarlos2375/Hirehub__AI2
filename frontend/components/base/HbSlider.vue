@@ -45,7 +45,7 @@
         v-if="showArrows"
         class="hb-slider__arrow hb-slider__arrow--next"
         @click="next"
-        :disabled="disabled || (!loop && currentSlide === slideCount - 1)"
+        :disabled="disabled || (!loop && currentSlide === props.slideCount - 1)"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -62,7 +62,7 @@
         ]"
       >
         <button
-          v-for="(_, index) in slideCount"
+          v-for="(_, index) in props.slideCount"
           :key="index"
           class="hb-slider__dot"
           :class="{ 'hb-slider__dot--active': currentSlide === index }"
@@ -165,7 +165,7 @@
 
 <script setup lang="ts">
 // @ts-strict
-import { computed, ref, onMounted, onUnmounted, watch, useSlots } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 
 interface SliderTick {
   value: number
@@ -178,6 +178,7 @@ interface Props {
   modelValue?: number | number[]
 
   // CAROUSEL MODE PROPS
+  slideCount?: number
   autoplay?: boolean
   interval?: number
   loop?: boolean
@@ -219,6 +220,7 @@ const props = withDefaults(defineProps<Props>(), {
   modelValue: 0,
 
   // Carousel defaults
+  slideCount: 0,
   autoplay: false,
   interval: 3000,
   loop: true,
@@ -263,7 +265,6 @@ const emit = defineEmits<Emits>()
 
 // ===== CAROUSEL STATE =====
 const currentSlide = ref(props.mode === 'carousel' ? (props.modelValue as number) : 0)
-const slideCount = ref(0)
 const autoplayTimer = ref<number | null>(null)
 const isHovering = ref(false)
 const touchStartX = ref(0)
@@ -403,7 +404,7 @@ const ticksArray = computed<SliderTick[]>(() => {
 const next = () => {
   if (props.disabled || props.mode !== 'carousel') return
   const nextIndex = currentSlide.value + 1
-  if (nextIndex < slideCount.value) {
+  if (nextIndex < props.slideCount) {
     goToSlide(nextIndex)
   } else if (props.loop) {
     goToSlide(0)
@@ -416,7 +417,7 @@ const prev = () => {
   if (prevIndex >= 0) {
     goToSlide(prevIndex)
   } else if (props.loop) {
-    goToSlide(slideCount.value - 1)
+    goToSlide(props.slideCount - 1)
   }
 }
 
@@ -532,8 +533,6 @@ const isTickActive = (value: number): boolean => {
 // ===== LIFECYCLE =====
 onMounted(() => {
   if (props.mode === 'carousel') {
-    const slots = useSlots()
-    slideCount.value = slots.default?.().length || 0
     startAutoplay()
   }
 })
@@ -609,7 +608,7 @@ watch(() => props.autoplay, (newVal) => {
       transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    ::v-deep > * {
+    :deep(> *) {
       flex-shrink: 0;
       width: 100%;
     }

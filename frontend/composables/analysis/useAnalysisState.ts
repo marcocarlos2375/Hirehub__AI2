@@ -1,5 +1,6 @@
 import type { ScoreResponse } from './useScoreCalculator'
 import type { AdaptiveQuestionState } from '~/types/adaptive-questions'
+import type { QuestionAnswer } from '~/types/question-state'
 
 export interface AnalysisStep {
   id: string
@@ -98,12 +99,9 @@ export interface QuestionItem {
   examples: string[]
 }
 
-export interface QuestionAnswer {
-  question_id: string
-  answer_text: string
-  answer_type: 'text' | 'voice'
-  transcription_time?: number
-}
+// QuestionAnswer imported from ~/types/question-state (removed duplicate)
+// Re-export for backward compatibility
+export type { QuestionAnswer }
 
 export interface GenerateQuestionsResult {
   success: boolean

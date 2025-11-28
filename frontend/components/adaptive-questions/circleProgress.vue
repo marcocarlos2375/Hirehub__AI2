@@ -77,9 +77,9 @@ export default {
       return Math.round(this.totalSegments * (this.score / 10))
     },
     currentColor() {
-      if (this.score <= 3) return '#e55a4e' // Red
-      if (this.score <= 6) return '#f0a500' // Yellow/Orange
-      return '#4caf50' // Green
+      if (this.score < 5) return '#ef4444' // red-500
+      if (this.score < 7) return '#f59e0b' // amber-500
+      return '#10b981' // success-500 (green-500)
     }
   },
   methods: {
@@ -102,9 +102,9 @@ export default {
       }
     },
     getInactiveColor() {
-      if (this.score <= 3) return '#fdd' // Light red
-      if (this.score <= 6) return '#fef3cd' // Light yellow
-      return '#d4edda' // Light green
+      if (this.score < 5) return '#fecaca' // red-200
+      if (this.score < 7) return '#fde68a' // amber-200
+      return '#a7f3d0' // green-200
     }
   }
 }

@@ -13,8 +13,10 @@
           <!-- Priority Badge -->
           <HbBadge
             :variant="priorityBadgeVariant(question.priority)"
+            mode="light"
             size="sm"
-            rounded
+            rounded="md"
+            class="p-1"
           >
             {{ question.priority }}
           </HbBadge>
