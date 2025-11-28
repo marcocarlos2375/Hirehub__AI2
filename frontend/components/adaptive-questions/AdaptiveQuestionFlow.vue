@@ -73,7 +73,7 @@
     <!-- Black Loading Overlay -->
     <HbLoadingOverlay
       :show="showRefinementLoading"
-      message="Generating the best answer..."
+      message="Formatting your professional answer..."
       text-size="xl"
     />
 
@@ -143,7 +143,8 @@ import type {
   LearningResource,
   TimelineStep,
   QualityEvaluation,
-  AdaptiveQuestionState
+  AdaptiveQuestionState,
+  FormattedAnswer
 } from '~/types/adaptive-questions'
 import type { QuestionData, GapInfo, ParsedCV, ParsedJobDescription } from '~/types/api-responses'
 
@@ -179,7 +180,7 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
-const { startAdaptiveQuestion, submitStructuredInputs, refineAnswer, saveLearningPlan } = useAdaptiveQuestions()
+const { startAdaptiveQuestion, submitStructuredInputs, refineAnswer, saveLearningPlan, formatAnswer } = useAdaptiveQuestions()
 
 // State
 const showExperienceModal = ref(!props.initialExperienceLevel)
@@ -216,6 +217,34 @@ const loadingMessage = computed(() => {
 const hasRefinementData = computed(() => {
   return Object.values(refinementData.value).some(v => v && v.trim())
 })
+
+// Helper function to convert FormattedAnswer to display text
+const formatAnswerToText = (formatted: FormattedAnswer): string => {
+  let text = `${formatted.name}\n\n`
+
+  if (formatted.description) text += `${formatted.description}\n\n`
+
+  // Metadata
+  if (formatted.company) text += `Company: ${formatted.company}\n`
+  if (formatted.provider) text += `Provider: ${formatted.provider}\n`
+  if (formatted.duration) text += `Duration: ${formatted.duration}\n`
+  if (formatted.team_size) text += `Team Size: ${formatted.team_size}\n`
+
+  text += `\nKey Achievements:\n`
+  formatted.bullet_points.forEach((bullet, i) => {
+    text += `${i + 1}. ${bullet}\n`
+  })
+
+  if (formatted.technologies.length > 0) {
+    text += `\nTechnologies: ${formatted.technologies.join(', ')}\n`
+  }
+
+  if (formatted.skills_gained && formatted.skills_gained.length > 0) {
+    text += `\nSkills Gained: ${formatted.skills_gained.join(', ')}\n`
+  }
+
+  return text
+}
 
 // Methods
 const handleExperienceSelection = async (level: ExperienceLevel) => {
@@ -347,6 +376,7 @@ const handleRefinementSubmit = async (refinementData: Record<string, any>) => {
   showRefinementLoading.value = true
 
   try {
+    // Step 1: Refine the answer
     const response = await refineAnswer(
       props.questionId,
       props.questionText,
@@ -365,15 +395,29 @@ const handleRefinementSubmit = async (refinementData: Record<string, any>) => {
 
     // Store the AI-rewritten answer
     const rewrittenAnswer = response.refined_answer
+    state.value.generatedAnswer = rewrittenAnswer
+
+    // Step 2: Format the answer with AI
+    const formattedAnswer = await formatAnswer(
+      props.questionText,
+      rewrittenAnswer,
+      props.gapInfo as { title: string; description: string },
+      refinementData,
+      props.language
+    )
+
+    // Store formatted answer in state
+    state.value.formattedAnswer = formattedAnswer
+
+    // Convert to readable text for display
+    const formattedText = formatAnswerToText(formattedAnswer)
 
     // Hide loading overlay
     showRefinementLoading.value = false
 
-    // Return to answer_generation step (which doesn't exist in this flow)
-    // Instead, complete the workflow with the rewritten answer
-    state.value.generatedAnswer = rewrittenAnswer
+    // Complete the workflow with formatted answer
     state.value.refinementIteration = 1  // Mark as refined (blocks further refinement)
-    state.value.finalAnswer = rewrittenAnswer
+    state.value.finalAnswer = formattedText
     state.value.currentStep = 'complete'
 
   } catch (error: any) {

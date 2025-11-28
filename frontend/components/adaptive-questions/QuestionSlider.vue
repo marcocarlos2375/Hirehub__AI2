@@ -41,10 +41,20 @@
           </div>
         </div>
 
-        <!-- Slide 2 (or 1): Refinement (only shown after evaluation) -->
-        <div v-if="hasEvaluation" class="slide">
+        <!-- Slide 2 (or 1): Refinement OR Feedback Submitted (only shown after evaluation) -->
+        <div v-if="hasEvaluation || showFeedbackSubmittedSlide" class="slide">
           <div class="slide-content">
+            <!-- Show FeedbackSubmittedSlide when in feedback_submitted state -->
+            <FeedbackSubmittedSlide
+              v-if="showFeedbackSubmittedSlide"
+              :formatted-answer="questionsStore.getImprovedResponse(question.id)"
+              :loading="evaluatingQuestion"
+              :is-active="currentSlide === 1"
+              @continue="handleFeedbackContinue"
+            />
+            <!-- Show RefinementSlide when in feedback state -->
             <RefinementSlide
+              v-else
               :question="question"
               :evaluation="evaluation"
               :is-active="currentSlide === 1"
@@ -66,6 +76,7 @@ import { useQuestionsStore } from '~/stores/questions/useQuestionsStore'
 import OriginalQuestionSlide from '../adaptive-questions/OriginalQuestionSlide.vue'
 import RefinementSlide from '../adaptive-questions/RefinementSlide.vue'
 import NoExperienceSlide from '../adaptive-questions/NoExperienceSlide.vue'
+import FeedbackSubmittedSlide from '../adaptive-questions/FeedbackSubmittedSlide.vue'
 
 const props = withDefaults(defineProps<QuestionSliderProps>(), {
   language: 'english'
@@ -92,6 +103,17 @@ const hasEvaluation = computed(() => {
 const showNoExperienceSlide = computed(() => {
   const state = questionsStore.getQuestionState(props.question.id)
   return state === QUESTION_STEP_STATES.NO_EXPERIENCE
+})
+
+// Show feedback submitted slide when in feedback_submitted state
+const showFeedbackSubmittedSlide = computed(() => {
+  const state = questionsStore.getQuestionState(props.question.id)
+  return state === QUESTION_STEP_STATES.FEEDBACK_SUBMITTED
+})
+
+// Check if question is being evaluated
+const evaluatingQuestion = computed(() => {
+  return questionsStore.evaluatingQuestionId === props.question.id
 })
 
 // Total slides to show
@@ -149,12 +171,21 @@ const handleSlideChange = (slideIndex: number) => {
 
 // Handle refinement submission
 const handleRefinementSubmit = (questionId: string, refinementData: Record<string, any>) => {
+  // Emit event to parent - parent will handle state change
   emit('refinement-submitted', questionId, refinementData)
 
-  // After refinement submission, return to initial state
+  // Set state to feedback_submitted (parent will update with formatted answer)
+  questionsStore.setQuestionState(questionId, QUESTION_STEP_STATES.FEEDBACK_SUBMITTED)
+}
+
+// Handle continue button click from FeedbackSubmittedSlide
+const handleFeedbackContinue = () => {
+  const questionId = props.question.id
+
+  // Return to initial state
   questionsStore.setQuestionState(questionId, QUESTION_STEP_STATES.INITIAL)
 
-  // Navigate back to slide 1
+  // Navigate back to slide 0
   currentSlide.value = 0
   questionsStore.setCurrentSlide(questionId, 0)
   handleSlideChange(0)
@@ -194,10 +225,6 @@ const handleLearningChoice = (questionId: string, choice: 'learn-now' | 'open-la
   display: flex;
   width: 100%;
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  /* GPU acceleration for smooth animations */
-  will-change: transform;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 .slide {

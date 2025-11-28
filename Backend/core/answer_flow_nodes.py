@@ -30,12 +30,26 @@ class DeepDivePromptsOutput(BaseModel):
     prompts: List[Dict[str, Any]] = Field(description="List of structured prompts")
 
 
+class FeedbackItem(BaseModel):
+    """Structured feedback item with label and description."""
+    label: str = Field(description="Category label (e.g., 'Relevance', 'Specificity', 'Professional Tone')")
+    description: str = Field(description="Detailed description of the feedback")
+
+
+class ImprovementSuggestion(BaseModel):
+    """Structured improvement suggestion with title and examples."""
+    type: str = Field(description="Input type: 'text' | 'textarea' | etc.")
+    title: str = Field(description="Short action phrase (3-6 words)")
+    examples: List[str] = Field(description="Array of concrete example sentences user can copy/adapt")
+    help_text: str = Field(description="Brief guidance on what to include")
+
+
 class QualityEvaluationOutput(BaseModel):
     """Structured output for quality evaluation."""
     quality_score: int = Field(description="Score from 1-10", ge=1, le=10)
-    issues: List[str] = Field(description="List of quality issues")
-    strengths: List[str] = Field(description="List of strengths")
-    suggestions: List[Dict[str, Any]] = Field(description="Improvement suggestions")
+    issues: List[FeedbackItem] = Field(description="List of quality issues with labels")
+    strengths: List[FeedbackItem] = Field(description="List of strengths with labels")
+    suggestions: List[ImprovementSuggestion] = Field(description="Improvement suggestions with title and examples")
     is_acceptable: bool = Field(description="True if score >= 7")
 
 
@@ -345,39 +359,63 @@ def evaluate_quality_node(state: AdaptiveAnswerState) -> AdaptiveAnswerState:
     prompt = ChatPromptTemplate.from_messages([
         ("system", """You are an expert evaluating resume content quality.
 
+**CRITICAL - Output Format Requirements:**
+Your response MUST be valid JSON matching this exact structure.
+
+For "suggestions" array, each suggestion MUST include ALL 4 fields:
+1. "type": Always use "text" for input type
+2. "title": Short action phrase (3-6 words, e.g., "Add quantifiable metrics")
+3. "examples": Concrete examples separated by "or" (e.g., "Add details like 'X' or 'Y' or 'Z'")
+4. "help_text": Brief guidance (e.g., "Include specific numbers and percentages")
+
+DO NOT return suggestions as plain strings. ALWAYS use the 4-field object format.
+
+---
+
 Evaluate this answer for a professional resume:
 
 Question: {question_text}
 Answer: {answer}
 
-Criteria:
-1. Specificity (not vague, includes technologies/tools)
-2. Evidence (metrics, results, timeframes)
-3. Professional language (action verbs, clear)
-4. Relevance (addresses the question/gap)
+Evaluation Criteria:
+- Specificity: Includes specific technologies, tools, versions
+- Evidence: Has metrics, results, timeframes
+- Professional tone: Uses action verbs, clear language
+- Relevance: Directly addresses the question
 
 Score 1-10:
-- 1-3: Very weak (too vague, no details)
-- 4-6: Needs improvement (some details but missing key elements)
-- 7-8: Good (specific, professional)
-- 9-10: Excellent (detailed, with metrics, compelling)
+- 1-3: Very weak
+- 4-6: Needs improvement
+- 7-8: Good
+- 9-10: Excellent
 
-Return JSON:
+Return JSON exactly matching this structure:
 {{
-  "quality_score": 7,
-  "issues": ["Issue 1", "Issue 2"],
-  "strengths": ["Strength 1", "Strength 2"],
+  "quality_score": 6,
+  "issues": [
+    {{"label": "Lacks Metrics", "description": "No quantifiable results provided"}},
+    {{"label": "Vague Tools", "description": "Doesn't specify which LLM framework was used"}}
+  ],
+  "strengths": [
+    {{"label": "Relevance", "description": "Addresses the chatbot development question"}},
+    {{"label": "Context", "description": "Mentions customer service application"}}
+  ],
   "suggestions": [
     {{
       "type": "text",
-      "prompt": "What specific achievement did you accomplish?",
-      "help_text": "Add a measurable result"
+      "title": "Add quantifiable metrics",
+      "examples": "Add details like 'achieved 92% accuracy rate' or 'resolved 65% of inquiries automatically' or 'reduced response time to 2 seconds'",
+      "help_text": "Include specific numbers and percentages"
+    }},
+    {{
+      "type": "text",
+      "title": "Specify the LLM framework",
+      "examples": "Add details like 'built with Rasa framework' or 'implemented using Dialogflow' or 'developed with LangChain and GPT-4'",
+      "help_text": "Name the specific framework or library used"
     }}
   ],
-  "is_acceptable": true
-}}
-
-{format_instructions}"""),
+  "is_acceptable": false
+}}"""),
         ("human", "Evaluate quality")
     ])
 
@@ -388,8 +426,7 @@ Return JSON:
 
         result = chain.invoke({
             "question_text": state["question_text"],
-            "answer": answer,
-            "format_instructions": parser.get_format_instructions()
+            "answer": answer
         })
 
         state["quality_score"] = result["quality_score"]

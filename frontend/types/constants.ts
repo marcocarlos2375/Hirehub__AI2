@@ -15,6 +15,7 @@
 export const QUESTION_STEP_STATES = {
   INITIAL: 'initial',
   FEEDBACK: 'feedback',
+  FEEDBACK_SUBMITTED: 'feedback_submitted',
   NO_EXPERIENCE: 'no_experience'
 } as const
 

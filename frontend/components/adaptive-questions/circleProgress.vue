@@ -9,9 +9,9 @@
         :style="getSegmentStyle(index)"
       />
       <div class="center-content">
-        <div class="center-label" :style="{ fontSize: labelFontSize }">{{ label }}</div>
+        <div class="center-label" :style="{ fontSize: labelFontSize,color: currentColor }">{{ label }}</div>
         <div class="center-value" :style="{ color: currentColor, fontSize: valueFontSize }">
-          {{ score }}
+          {{ score }}<span class="small text-sm">/10</span>
         </div>
       </div>
     </div>
@@ -137,6 +137,9 @@ export default {
 
 .center-label {
   color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
   margin-bottom: 4px;
 }
 

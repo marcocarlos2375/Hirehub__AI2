@@ -92,9 +92,6 @@ const isLastQuestion = computed(() => {
 
 <style scoped>
 .original-question-slide {
-  /* GPU acceleration for smooth animations */
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  backface-visibility: hidden;
+  /* Container for original question content */
 }
 </style>

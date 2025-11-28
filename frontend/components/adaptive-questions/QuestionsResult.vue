@@ -227,7 +227,7 @@ const showAdaptiveModal = computed(() => questionsStore.showAdaptiveModal)
 const currentAdaptiveQuestion = computed(() => questionsStore.currentAdaptiveQuestion)
 
 const { submitAnswers: submitAnswersAPI } = useAnswerSubmitter()
-const { evaluateAnswer, refineAnswer } = useAdaptiveQuestions()
+const { evaluateAnswer, refineAnswer, formatAnswer } = useAdaptiveQuestions()
 
 const allQuestionsAnswered = computed(() => {
   return questionsStore.allQuestionsAnswered(props.questionsData.questions.length)
@@ -496,12 +496,6 @@ const submitRefinement = async (questionId: string) => {
   const refinement = questionsStore.getRefinementData(questionId)
   if (!refinement) return
 
-  // Check if user provided any refinement data using store getter
-  if (!questionsStore.hasRefinementData(questionId)) {
-    alert('Please provide at least one additional detail to improve your answer.')
-    return
-  }
-
   // Map suggestion indices to labels for better backend processing
   const evaluation = questionsStore.getEvaluationById(questionId)
   const labeledRefinement: Record<string, string> = {}
@@ -535,35 +529,73 @@ const submitRefinement = async (questionId: string) => {
       questionData,
       { title: question.title, description: question.context_why },
       evaluation!.answer_text,
-      evaluation!.quality_issues,
+      evaluation!.quality_issues.map(qi => qi.label),  // Convert objects to strings
       labeledRefinement
     )
 
     if (response.error) {
       alert('Failed to refine answer: ' + response.error)
+      questionsStore.clearEvaluation()
       return
     }
 
-    // Update evaluation with refined answer and new score
+    // Store the refined answer
+    const refinedAnswerText = response.refined_answer || evaluation!.answer_text
+
+    // Format the refined answer with AI
+    const formattedAnswer = await formatAnswer(
+      question.question_text,
+      refinedAnswerText,
+      { title: question.title, description: question.context_why },
+      labeledRefinement,
+      props.language
+    )
+
+    // Convert formatted answer to readable text
+    const formatAnswerToText = (formatted: any): string => {
+      let text = `${formatted.name}\n\n`
+      if (formatted.description) text += `${formatted.description}\n\n`
+      if (formatted.company) text += `Company: ${formatted.company}\n`
+      if (formatted.provider) text += `Provider: ${formatted.provider}\n`
+      if (formatted.duration) text += `Duration: ${formatted.duration}\n`
+      if (formatted.team_size) text += `Team Size: ${formatted.team_size}\n`
+      text += `\nKey Achievements:\n`
+      formatted.bullet_points.forEach((bullet: string, i: number) => {
+        text += `${i + 1}. ${bullet}\n`
+      })
+      if (formatted.technologies.length > 0) {
+        text += `\nTechnologies: ${formatted.technologies.join(', ')}\n`
+      }
+      if (formatted.skills_gained && formatted.skills_gained.length > 0) {
+        text += `\nSkills Gained: ${formatted.skills_gained.join(', ')}\n`
+      }
+      return text
+    }
+
+    const formattedText = formatAnswerToText(formattedAnswer)
+
+    // Store the formatted answer in the store for display
+    questionsStore.setImprovedResponse(questionId, formattedText)
+
+    // Update evaluation with refined answer
     if (evaluation) {
       const updatedEvaluation = {
         ...evaluation,
-        answer_text: response.refined_answer || evaluation.answer_text,
+        answer_text: refinedAnswerText,
         quality_score: response.quality_score || evaluation.quality_score,
         is_acceptable: (response.quality_score || 0) >= 7
       }
-
-      // Update the evaluation using store
       questionsStore.setEvaluation(questionId, updatedEvaluation)
     }
 
     // Increment refinement iteration counter
     questionsStore.incrementRefinementIteration(questionId)
 
-    console.log(`Answer refined successfully for question ${questionId}`)
+    console.log(`Answer refined and formatted successfully for question ${questionId}`)
   } catch (error: any) {
     console.error('Failed to refine answer:', error)
     alert('Failed to refine answer. Please try again.')
+    questionsStore.clearEvaluation()
   } finally {
     questionsStore.clearEvaluation()
   }

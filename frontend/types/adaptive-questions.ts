@@ -46,16 +46,26 @@ export interface TimelineStep {
   duration_days: number
 }
 
+// Quality feedback item with label and description
+export interface QualityFeedbackItem {
+  label: string
+  description: string
+}
+
+// Improvement suggestion with title and examples
+export interface ImprovementSuggestion {
+  type: string
+  title: string
+  examples: string[]
+  help_text: string
+}
+
 // Quality evaluation
 export interface QualityEvaluation {
   quality_score: number
-  quality_issues?: string[]
-  quality_strengths?: string[]
-  improvement_suggestions?: Array<{
-    issue: string
-    suggestion: string
-    priority: string
-  }>
+  quality_issues?: QualityFeedbackItem[]
+  quality_strengths?: QualityFeedbackItem[]
+  improvement_suggestions?: ImprovementSuggestion[]
   is_acceptable: boolean
 }
 
@@ -74,14 +84,15 @@ export interface AdaptiveQuestionState {
   qualityEvaluation?: QualityEvaluation
   // Flattened quality evaluation properties (for backward compatibility)
   qualityScore?: number
-  qualityIssues?: string[]
-  qualityStrengths?: string[]
+  qualityIssues?: QualityFeedbackItem[]
+  qualityStrengths?: QualityFeedbackItem[]
   improvementSuggestions?: Array<{
     issue: string
     suggestion: string
     priority: string
   }>
   finalAnswer?: string
+  formattedAnswer?: FormattedAnswer
 
   // Learning resources path
   suggestedResources?: LearningResource[]
@@ -130,13 +141,9 @@ export interface SubmitInputsResponse {
   question_id: string
   generated_answer: string
   quality_score: number
-  quality_issues?: string[]
-  quality_strengths?: string[]
-  improvement_suggestions?: Array<{
-    issue: string
-    suggestion: string
-    priority: string
-  }>
+  quality_issues: QualityFeedbackItem[]
+  quality_strengths: QualityFeedbackItem[]
+  improvement_suggestions?: ImprovementSuggestion[]
   final_answer?: string
   current_step: string
   error?: string
@@ -181,6 +188,42 @@ export interface LearningPlanItem {
   status: string
   created_at: string
   notes?: string
+}
+
+// Formatted answer with AI-generated structure - supports multiple CV entry types
+export interface FormattedAnswer {
+  type: 'project' | 'job' | 'course' | 'research' | 'volunteer' | 'publication' | 'certification' | 'award' | 'conference' | 'patent' | 'other'
+  name: string  // Generated name/title appropriate for the type
+  description?: string  // 2-3 sentence description (15-30 words)
+
+  // Common metadata (all types)
+  duration?: string  // Timeframe (e.g., "3 months", "2 years")
+  date?: string  // Specific date (e.g., "June 2024", "2023")
+  bullet_points: string[]  // 3-5 professional bullet points
+  technologies: string[]  // Tech stack, tools, or relevant technologies
+
+  // Job-specific
+  company?: string  // Company name for jobs
+  team_size?: string  // Team size for projects/jobs
+
+  // Course-specific
+  provider?: string  // Education provider for courses
+  skills_gained?: string[]  // Skills learned from courses
+
+  // Publication-specific
+  publisher?: string  // Publisher/venue for publications
+  authors?: string[]  // Co-authors for publications/patents
+
+  // Certification/Award-specific
+  issuer?: string  // Issuing organization
+  credential_id?: string  // Credential ID for certifications
+
+  // Conference-specific
+  venue?: string  // Conference/event venue
+
+  // General
+  url?: string  // Verification/reference URL
+  raw_answer: string  // Original refined answer
 }
 
 // Helper type for form validation

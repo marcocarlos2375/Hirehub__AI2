@@ -802,14 +802,24 @@ class EvaluateAnswerRequest(BaseModel):
     gap_info: dict  # {title: str, description: str}
     language: str = "english"
 
+class QualityFeedbackItem(BaseModel):
+    label: str
+    description: str
+
+class ImprovementSuggestion(BaseModel):
+    type: str
+    title: str
+    examples: list[str]
+    help_text: str
+
 class EvaluateAnswerResponse(BaseModel):
     success: bool
     question_id: str
     answer_text: str
     quality_score: int  # 1-10
-    quality_issues: list[str]
-    quality_strengths: list[str]
-    improvement_suggestions: list[str]
+    quality_issues: list[QualityFeedbackItem]
+    quality_strengths: list[QualityFeedbackItem]
+    improvement_suggestions: list[ImprovementSuggestion]  # Changed from list[str] to structured objects
     is_acceptable: bool  # score >= 7
     time_seconds: float
     model: str
@@ -2414,36 +2424,131 @@ Evaluate this answer on a scale of 1-10 based on:
 - 7-8: Good (specific, has evidence, professional)
 - 9-10: Excellent (highly specific, strong metrics, exemplary)
 
+**CRITICAL - Suggestion Quality Requirements:**
+
+Each improvement suggestion MUST be PERSONALIZED and SPECIFIC to the candidate's answer, NOT generic templates.
+
+❌ WEAK (Generic): "Add metrics"
+✅ STRONG (Personalized): "Quantify the chatbot's impact with metrics like response accuracy or user satisfaction"
+
+❌ WEAK: "Specify the framework"
+✅ STRONG: "Name the specific LLM model (e.g., GPT-4, Claude, Llama) and frameworks used (e.g., LangChain, Rasa)"
+
+Your examples field should contain 2-4 REALISTIC, DETAILED examples that directly relate to the question context.
+
+**CRITICAL - Issue-to-Suggestion Mapping:**
+- Generate ONE improvement suggestion for EACH quality issue identified
+- If you identify 4 issues, provide 4 suggestions
+- Each suggestion should directly address ONE specific issue
+- Title should reference the issue (e.g., if issue is "Lacks Specificity" → title "Add specific technical details")
+
+**Suggestion Generation Best Practices:**
+
+1. **Be Specific**: Instead of "Add technologies", say "Specify which LLM model and frameworks you used (e.g., GPT-4, LangChain)"
+
+2. **Use Real Numbers**: Examples should have realistic metrics
+   - ✅ "Reduced response time from 12 min to 45 sec, handling 200+ queries/day"
+   - ❌ "Improved response time significantly"
+
+3. **Context-Aware**: Tailor suggestions to the question
+   - For chatbot questions → mention LLMs, conversation flow, training data
+   - For ML questions → mention models, datasets, performance metrics
+   - For web dev → mention frameworks, scale, performance
+
+4. **Actionable Titles**: Use clear action verbs
+   - ✅ "Specify LLM and framework used"
+   - ✅ "Add measurable impact metrics"
+   - ❌ "More details needed"
+
+5. **Multiple Examples**: Provide 3 concise but detailed examples per suggestion
+   - Each example should be 12-18 words with 2-3 specific metrics
+   - Balance detail with readability - avoid overly long examples
+   - Include specific numbers, technologies, and one timeframe or scale metric
+
+**CRITICAL - Output Format:**
 Return a JSON object with:
 {{
   "quality_score": <number 1-10>,
-  "quality_issues": [<list of specific issues found>],
-  "quality_strengths": [<list of positive aspects>],
-  "improvement_suggestions": [<concrete suggestions for improvement>]
+  "quality_issues": [
+    {{"label": "Category", "description": "Specific issue explanation"}},
+    ...
+  ],
+  "quality_strengths": [
+    {{"label": "Category", "description": "Specific strength explanation"}},
+    ...
+  ],
+  "improvement_suggestions": [
+    {{
+      "type": "text",
+      "title": "Short action phrase (3-6 words)",
+      "examples": ["Example 1 with specific numbers", "Example 2 with details", "Example 3..."],
+      "help_text": "Brief guidance text"
+    }},
+    ...
+  ]
 }}
 
-**CRITICAL: Provide STRONG, SPECIFIC examples with REAL numbers, NOT generic placeholders:**
+DO NOT return improvement_suggestions as plain strings. Each suggestion MUST be an object with 4 fields: type, title, examples (as ARRAY), help_text.
 
-Examples of WEAK vs STRONG suggestions:
+For quality_issues and quality_strengths, use dynamic category labels like:
+- "Specificity", "Lacks Specificity", "Evidence", "Professional Tone", "Relevance", "Context", "Quantifiable", "Action Verbs", "Depth"
 
-❌ WEAK: "Add metrics (e.g., number of users, success rate)"
-✅ STRONG: "Add specific metrics like 'Tested with 50 beta users achieving 87% query resolution rate' or 'Processed 2,000+ daily requests with <300ms average response time'"
+**Complete example response:**
 
-❌ WEAK: "Quantify the impact"
-✅ STRONG: "Specify measurable business outcomes like 'Reduced support tickets by 42% (from 120 to 70 per week)' or 'Saved team 15 hours/week in manual customer responses'"
-
-❌ WEAK: "Mention the timeline"
-✅ STRONG: "Add project scope and duration like '6-month development across 3 agile sprints' or 'Delivered MVP in 8 weeks, scaled to production in 4 months'"
-
-❌ WEAK: "Include technical details"
-✅ STRONG: "Specify architecture and scale like 'Built microservices handling 10K requests/sec using Node.js + Redis' or 'Deployed on AWS ECS with auto-scaling (5-20 containers based on load)'"
-
-**Rules for every suggestion:**
-1. Use ACTION VERBS (Add, Specify, Include, Describe)
-2. Provide REALISTIC NUMBERS (42%, 500 users, 8 weeks, $85K, 15 hours/week)
-3. Show PROFESSIONAL SCALE (team size, business impact, technical metrics)
-4. Give 2-3 specific example formats candidate can copy/adapt
-5. Avoid vague terms: "many", "some", "significant", "various"
+{{
+  "quality_score": 4,
+  "quality_issues": [
+    {{"label": "Lacks Specificity", "description": "Answer mentions 'a chatbot' and 'AI' but doesn't specify which LLM or framework was used"}},
+    {{"label": "Lacks Evidence", "description": "No metrics, results, or indication of success"}},
+    {{"label": "Missing Context", "description": "Doesn't specify project timeframe or dataset size"}},
+    {{"label": "Shallow Depth", "description": "Describes it as 'proof-of-concept' without technical details"}}
+  ],
+  "quality_strengths": [
+    {{"label": "Relevance", "description": "Addresses chatbot development for customer service"}}
+  ],
+  "improvement_suggestions": [
+    {{
+      "type": "text",
+      "title": "Specify LLM and framework used",
+      "examples": [
+        "Built using OpenAI's GPT-4 API with LangChain for conversation orchestration and 5-turn memory management",
+        "Leveraged Llama 2 13B model fine-tuned on 5,000 support conversations, deployed on AWS SageMaker",
+        "Implemented with Google's PaLM 2 API and Dialogflow CX, handling 15 custom intent types"
+      ],
+      "help_text": "Name the specific LLM model and frameworks/tools you used"
+    }},
+    {{
+      "type": "text",
+      "title": "Add measurable impact metrics",
+      "examples": [
+        "Achieved 82% resolution rate across 1,500 conversations, reducing support tickets from 450 to 180 weekly",
+        "Reduced response time from 12 minutes to 38 seconds while handling 250+ daily queries",
+        "Processed 15,000+ inquiries over 6 months with 78% autonomous resolution, saving 60 hours weekly"
+      ],
+      "help_text": "Include specific numbers showing the chatbot's performance or business impact"
+    }},
+    {{
+      "type": "text",
+      "title": "Provide project scope and timeline",
+      "examples": [
+        "Developed over 12 weeks using 800 FAQ articles and 2,000 labeled conversations for training",
+        "Built 6-week MVP for 50 common inquiries, expanded to 300+ intents over 4 months",
+        "8-week development: 3 weeks training, 2 weeks testing, pilot with 100 users generating 500+ queries"
+      ],
+      "help_text": "Specify development duration and dataset/scope size"
+    }},
+    {{
+      "type": "text",
+      "title": "Elaborate on technical implementation",
+      "examples": [
+        "Implemented RAG architecture with Pinecone vector DB storing 1,200+ embedded articles at 0.85 similarity threshold",
+        "Built BERT intent classifier fine-tuned on 3,000 examples, achieving 94% accuracy across 15 categories",
+        "Deployed on AWS Lambda with DynamoDB state management, handling 200ms latency at 95th percentile"
+      ],
+      "help_text": "Describe specific technical approaches, architectures, or challenges overcome"
+    }}
+  ]
+}}
 
 Language: {request.language}
 """
@@ -2498,7 +2603,7 @@ Language: {request.language}
             question_id=request.question_id,
             answer_text=request.answer_text,
             quality_score=5,
-            quality_issues=["Failed to parse evaluation response"],
+            quality_issues=[QualityFeedbackItem(label="System Error", description="Failed to parse evaluation response")],
             quality_strengths=[],
             improvement_suggestions=["Try providing more specific details"],
             is_acceptable=False,
@@ -3329,13 +3434,19 @@ class SubmitStructuredInputsRequest(BaseModel):
     structured_data: dict  # User's responses to deep dive prompts
 
 
+class FeedbackItem(BaseModel):
+    """Structured feedback item with label and description."""
+    label: str
+    description: str
+
+
 class SubmitStructuredInputsResponse(BaseModel):
     question_id: str
     generated_answer: str
     quality_score: int = None
-    quality_issues: list[str] = None
-    quality_strengths: list[str] = None
-    improvement_suggestions: list[dict] = None
+    quality_issues: list[FeedbackItem] = None
+    quality_strengths: list[FeedbackItem] = None
+    improvement_suggestions: list[ImprovementSuggestion] = None
     final_answer: str = None  # Set if quality is acceptable
     current_step: str
     error: str = None
@@ -3461,6 +3572,45 @@ async def refine_answer(request: SubmitRefinementDataRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Refinement error: {str(e)}")
+
+
+class FormatAnswerRequest(BaseModel):
+    question_text: str
+    answer_text: str
+    gap_info: dict  # {title, description}
+    refinement_data: dict  # User's detailed answers to suggestions
+    language: str = "english"
+
+
+@app.post("/api/format-answer")
+async def format_answer_endpoint(request: FormatAnswerRequest):
+    """
+    Format user answer into professional CV entry with AI.
+
+    Detects type (project/job/course/etc.) and generates:
+    - Professional name/title
+    - Bullet points with metrics
+    - Technologies
+    - Metadata (duration, company, etc.)
+    """
+    try:
+        from core.answer_formatter import format_answer, FormattedAnswer
+
+        # Format answer with AI
+        formatted = format_answer(
+            question_text=request.question_text,
+            answer_text=request.answer_text,
+            gap_info=request.gap_info,
+            refinement_data=request.refinement_data,
+            language=request.language
+        )
+
+        return formatted
+
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Formatting error: {str(e)}")
 
 
 class GetLearningResourcesRequest(BaseModel):

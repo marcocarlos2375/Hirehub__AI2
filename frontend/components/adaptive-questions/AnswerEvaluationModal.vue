@@ -433,7 +433,6 @@ const useImprovedAnswer = () => {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;

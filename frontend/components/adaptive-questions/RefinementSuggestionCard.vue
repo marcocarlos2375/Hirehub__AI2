@@ -8,40 +8,42 @@
       </div>
 
       <div class="flex-1">
-        <p class="text-base text-gray-800 font-medium mb-1">
-          {{ title }}
-        </p>
+        <!-- Title with icon for clarity -->
+        <div class="flex items-center gap-2 mb-2">
 
-        <p v-if="detail" class="text-xs text-gray-600">
-          {{ detail }}
-        </p>
+          <p class="text-base text-gray-900 font-semibold">
+            {{ title }}
+          </p>
+        </div>
+
+
+      </div>
+    </div>
+    <!-- Examples as dash list -->
+    <div v-if="examplesList.length > 0" class="space-y-1 mb-2">
+      <div v-for="(example, idx) in examplesList" :key="idx" class="example-item">
+        <span class="text-xs text-gray-600">{{ example }}</span>
       </div>
     </div>
 
     <!-- Textarea -->
-    <HbInput
-      :model-value="modelValue"
-      @update:model-value="handleInput"
-      type="text"
-      :placeholder="placeholder"
-      appearance="white"
-      size="md"
-      :disabled="disabled"
-      class="w-full"
-    />
+    <HbInput :model-value="modelValue" @update:model-value="handleInput" type="text" :placeholder="placeholder"
+      appearance="white" size="md" :disabled="disabled" class="w-full" />
 
     <!-- Character counter -->
     <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
       <span>{{ characterCount }} characters</span>
 
       <span v-if="characterCount < 40" class="text-amber-500 flex items-center gap-1">
-       
+
         Add more details (min 40 chars)
       </span>
 
       <span v-else class="text-green-600 flex items-center gap-1">
         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          <path fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+            clip-rule="evenodd" />
         </svg>
         Good detail level
       </span>
@@ -50,11 +52,13 @@
 </template>
 
 <script setup lang="ts">
+import type { ImprovementSuggestion } from '~/types/adaptive-questions'
+
 interface Props {
-  suggestion: string        // Full suggestion text from AI
-  index: number            // 0-based index for numbering
-  modelValue: string       // v-model binding for textarea
-  disabled?: boolean       // Disable during API calls
+  suggestion: ImprovementSuggestion | string  // Structured suggestion object from AI or legacy string
+  index: number                               // 0-based index for numbering
+  modelValue: string                          // v-model binding for textarea
+  disabled?: boolean                          // Disable during API calls
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -65,26 +69,81 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-// Parse suggestion into title and detail
+// Check if suggestion is a string (legacy format) or object (new format)
+const isLegacyFormat = computed(() => typeof props.suggestion === 'string')
+
+// Get title - handle both formats
 const title = computed(() => {
-  const colonIndex = props.suggestion.indexOf(':')
-  if (colonIndex > 0) {
-    return props.suggestion.substring(0, colonIndex).trim()
+  if (isLegacyFormat.value) {
+    // Legacy format: parse string by splitting on first period or colon
+    const str = props.suggestion as string
+    const periodIndex = str.indexOf('.')
+    const colonIndex = str.indexOf(':')
+
+    if (periodIndex > 0 && (colonIndex === -1 || periodIndex < colonIndex)) {
+      return str.substring(0, periodIndex).trim()
+    } else if (colonIndex > 0) {
+      return str.substring(0, colonIndex).trim()
+    }
+    return str
+  } else {
+    // New format: get from object
+    return (props.suggestion as ImprovementSuggestion).title
   }
-  return props.suggestion
 })
 
+// Get examples - handle both formats
 const detail = computed(() => {
-  const colonIndex = props.suggestion.indexOf(':')
-  if (colonIndex > 0 && colonIndex < props.suggestion.length - 1) {
-    return props.suggestion.substring(colonIndex + 1).trim()
+  if (isLegacyFormat.value) {
+    // Legacy format: get text after first period or colon
+    const str = props.suggestion as string
+    const periodIndex = str.indexOf('.')
+    const colonIndex = str.indexOf(':')
+
+    if (periodIndex > 0 && periodIndex < str.length - 1 && (colonIndex === -1 || periodIndex < colonIndex)) {
+      return str.substring(periodIndex + 1).trim()
+    } else if (colonIndex > 0 && colonIndex < str.length - 1) {
+      return str.substring(colonIndex + 1).trim()
+    }
+    return ''
+  } else {
+    // New format: get from object
+    return (props.suggestion as ImprovementSuggestion).examples
   }
-  return ''
 })
 
-// Simple placeholder
+// Parse examples into list for display
+const examplesList = computed(() => {
+  if (!detail.value) return []
+
+  // If detail is already an array (new format), return it directly
+  if (Array.isArray(detail.value)) {
+    return detail.value
+  }
+
+  // Legacy string format: split by ' or ' to separate multiple examples
+  // Remove leading "Add details like " if present
+  const cleanedDetail = detail.value.replace(/^Add details like ['"]?/i, '').replace(/['"]?$/, '')
+
+  // Split on patterns like:
+  // - " or '"
+  // - "' or '"
+  // - "or"
+  const examples = cleanedDetail.split(/['"]?\s+or\s+['"]/i)
+
+  return examples
+    .map(ex => ex.trim())
+    .map(ex => ex.replace(/^['"]|['"]$/g, '')) // Remove leading/trailing quotes
+    .filter(ex => ex.length > 0)
+})
+
+// Get placeholder from help_text
 const placeholder = computed(() => {
-  return 'Share additional relevant information...'
+  if (isLegacyFormat.value) {
+    return 'Share additional relevant information...'
+  } else {
+    return (props.suggestion as ImprovementSuggestion).help_text || 'Share additional relevant information...'
+  }
 })
 
 // Character count
@@ -113,5 +172,19 @@ const handleInput = (value: string | number) => {
   color: white;
   flex-shrink: 0;
   position: relative;
+}
+
+/* Example item with dash before */
+.example-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.example-item::before {
+  content: "-";
+  color: var(--primary-400);
+  flex-shrink: 0;
+  line-height: 1;
 }
 </style>

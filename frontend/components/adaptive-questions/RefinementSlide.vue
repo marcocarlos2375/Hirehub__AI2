@@ -6,7 +6,7 @@
     :enter="slideAnimations.slideLeft.value.enter"
     :leave="slideAnimations.slideLeft.value.leave"
   >
-    <div v-if="evaluation" class="bg-white overflow-hidden space-y-6">
+    <div v-if="evaluation" class="bg-white  space-y-6">
       <!-- Answer Quality Display with Stagger Animation -->
       <AnswerQualityDisplay
         :generated-answer="evaluation.answer_text"
@@ -27,7 +27,7 @@
         :enter="{ opacity: 1, y: 0, transition: { delay: 400 } }"
         class="bg-white"
       >
-        <h3 class="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+        <h3 class="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
           Improve Your Answer
         </h3>
         <p class="text-sm text-gray-700 mb-3">
@@ -183,9 +183,6 @@ const handleAcceptAnswer = () => {
 
 <style scoped>
 .refinement-slide {
-  /* GPU acceleration for smooth animations */
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  backface-visibility: hidden;
+  /* Container for refinement content */
 }
 </style>

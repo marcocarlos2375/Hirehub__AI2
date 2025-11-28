@@ -17,7 +17,8 @@ import type {
   StartWorkflowResponse,
   SubmitInputsResponse,
   RefineAnswerResponse,
-  LearningPlanItem
+  LearningPlanItem,
+  FormattedAnswer
 } from '~/types/adaptive-questions'
 import type {
   ParsedCV,
@@ -48,13 +49,18 @@ interface LearningPlansResponse {
   total: number
 }
 
+interface QualityFeedbackItem {
+  label: string
+  description: string
+}
+
 interface AnswerEvaluationResponse {
   success: boolean
   question_id: string
   answer_text: string
   quality_score: number
-  quality_issues: string[]
-  quality_strengths: string[]
+  quality_issues: QualityFeedbackItem[]
+  quality_strengths: QualityFeedbackItem[]
   improvement_suggestions: string[]
   is_acceptable: boolean
   time_seconds: number
@@ -157,7 +163,7 @@ export const useAdaptiveQuestions = () => {
     questionData: QuestionData,
     gapInfo: { title: string; description: string },
     generatedAnswer: string,
-    qualityIssues: string[],
+    qualityIssues: QualityFeedbackItem[],
     refinementData: Record<string, string | number | boolean>
   ): Promise<RefineAnswerResponse> => {
     try {
@@ -314,6 +320,43 @@ export const useAdaptiveQuestions = () => {
     }
   }
 
+  /**
+   * Format user answer into professional CV entry with AI.
+   * Detects type (project/job/course) and generates structured output.
+   *
+   * @param questionText - The question that was asked
+   * @param answerText - User's refined answer
+   * @param gapInfo - Gap information {title, description}
+   * @param refinementData - Additional details from refinement suggestions
+   * @param language - Target language (default: "english")
+   */
+  const formatAnswer = async (
+    questionText: string,
+    answerText: string,
+    gapInfo: { title: string; description: string },
+    refinementData: Record<string, string>,
+    language: string = 'english'
+  ): Promise<FormattedAnswer> => {
+    try {
+      const data = await $fetch<FormattedAnswer>('/api/format-answer', {
+        method: 'POST',
+        baseURL: config.public.apiBase,
+        body: {
+          question_text: questionText,
+          answer_text: answerText,
+          gap_info: gapInfo,
+          refinement_data: refinementData,
+          language
+        }
+      })
+
+      return data
+    } catch (error) {
+      console.error('Error formatting answer:', error)
+      throw error
+    }
+  }
+
   return {
     startAdaptiveQuestion,
     submitStructuredInputs,
@@ -321,6 +364,7 @@ export const useAdaptiveQuestions = () => {
     getLearningResources,
     saveLearningPlan,
     getLearningPlans,
-    evaluateAnswer
+    evaluateAnswer,
+    formatAnswer
   }
 }

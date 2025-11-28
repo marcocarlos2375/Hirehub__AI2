@@ -9,7 +9,7 @@
  */
 
 import type { ParsedCV } from './api-responses'
-import type { ExperienceLevel } from './adaptive-questions'
+import type { ExperienceLevel, QualityFeedbackItem } from './adaptive-questions'
 
 // ============================================================================
 // Core State Enums and Types
@@ -19,8 +19,10 @@ import type { ExperienceLevel } from './adaptive-questions'
  * Question step state - controls navigation locking and UI visibility
  * - 'initial': Normal state, navigation allowed
  * - 'feedback': Refinement mode, navigation locked until submission
+ * - 'feedback_submitted': Showing formatted answer after refinement submission
+ * - 'no_experience': User selected "I have no experience" option
  */
-export type QuestionStepState = 'initial' | 'feedback' | 'no_experience'
+export type QuestionStepState = 'initial' | 'feedback' | 'feedback_submitted' | 'no_experience'
 
 /**
  * Modal state for answer evaluation modal
@@ -61,8 +63,8 @@ export interface AnswerEvaluation {
   question_id: string
   answer_text: string
   quality_score: number  // 0-10, >= 7 is acceptable
-  quality_issues: string[]
-  quality_strengths: string[]
+  quality_issues: QualityFeedbackItem[]
+  quality_strengths: QualityFeedbackItem[]
   improvement_suggestions: string[]
   is_acceptable: boolean  // true if quality_score >= 7
   time_seconds: number

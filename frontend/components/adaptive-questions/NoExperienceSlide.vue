@@ -117,9 +117,6 @@ watch(selectedOption, (newValue) => {
 
 <style scoped>
 .no-experience-slide {
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  backface-visibility: hidden;
   padding: 1.7rem 0.8rem;
 }
 
