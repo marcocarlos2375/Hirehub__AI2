@@ -148,12 +148,12 @@ import type {
 } from '~/types/adaptive-questions'
 import type { QuestionData, GapInfo, ParsedCV, ParsedJobDescription } from '~/types/api-responses'
 
-import ExperienceCheckModal from '../modals/ExperienceCheckModal.vue'
-import DeepDiveForm from './DeepDiveForm.vue'
-import AnswerQualityDisplay from './AnswerQualityDisplay.vue'
-import RefinementSlider from './RefinementSlider.vue'
-import LearningResourcesDisplay from '../learning/LearningResourcesDisplay.vue'
-import LearningTimeline from '../learning/LearningTimeline.vue'
+import ExperienceCheckModal from '../../modals/ExperienceCheckModal.vue'
+import DeepDiveForm from '../forms/DeepDiveForm.vue'
+import AnswerQualityDisplay from '../cards/AnswerQualityDisplay.vue'
+import RefinementSlider from '../sliders/RefinementSlider.vue'
+import LearningResourcesDisplay from '../../learning/LearningResourcesDisplay.vue'
+import LearningTimeline from '../../learning/LearningTimeline.vue'
 
 interface Props {
   questionId: string

@@ -86,11 +86,7 @@ export interface AdaptiveQuestionState {
   qualityScore?: number
   qualityIssues?: QualityFeedbackItem[]
   qualityStrengths?: QualityFeedbackItem[]
-  improvementSuggestions?: Array<{
-    issue: string
-    suggestion: string
-    priority: string
-  }>
+  improvementSuggestions?: ImprovementSuggestion[]
   finalAnswer?: string
   formattedAnswer?: FormattedAnswer
 

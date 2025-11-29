@@ -22,6 +22,35 @@ export default defineNuxtConfig({
       prefix: 'Hb',
       pathPrefix: false,
       global: true
+    },
+    // Adaptive questions nested folders for auto-import
+    {
+      path: '~/components/adaptive-questions/containers',
+      pathPrefix: false
+    },
+    {
+      path: '~/components/adaptive-questions/slides',
+      pathPrefix: false
+    },
+    {
+      path: '~/components/adaptive-questions/forms',
+      pathPrefix: false
+    },
+    {
+      path: '~/components/adaptive-questions/cards',
+      pathPrefix: false
+    },
+    {
+      path: '~/components/adaptive-questions/utils',
+      pathPrefix: false
+    },
+    {
+      path: '~/components/adaptive-questions/modals',
+      pathPrefix: false
+    },
+    {
+      path: '~/components/adaptive-questions/sliders',
+      pathPrefix: false
     }
   ],
 

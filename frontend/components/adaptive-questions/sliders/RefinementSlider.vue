@@ -118,6 +118,7 @@
 
 <script setup lang="ts">
 import type { QualityFeedbackItem } from '~/types/adaptive-questions'
+import AnswerQualityDisplay from '../cards/AnswerQualityDisplay.vue'
 
 interface Props {
   generatedAnswer: string

@@ -170,20 +170,20 @@
 
 <script setup lang="ts">
 import type { GenerateQuestionsResult, QuestionAnswer, QuestionItem } from '~/composables/analysis/useAnalysisState'
-import type { AdaptiveQuestionState, ExperienceLevel } from '~/types/adaptive-questions'
+import type { AdaptiveQuestionState, ExperienceLevel, ImprovementSuggestion } from '~/types/adaptive-questions'
 import type { QuestionData } from '~/types/api-responses'
 import type { QuestionStepState } from '~/types/question-state'
 import { useAnswerSubmitter } from '~/composables/adaptive-questions/useAnswerSubmitter'
 import { useAdaptiveQuestions } from '~/composables/adaptive-questions/useAdaptiveQuestions'
 import { useQuestionsStore } from '~/stores/questions/useQuestionsStore'
-import ExperienceCheckModal from '../modals/ExperienceCheckModal.vue'
+import ExperienceCheckModal from '../../modals/ExperienceCheckModal.vue'
 import AdaptiveQuestionFlow from './AdaptiveQuestionFlow.vue'
-import AnswerQualityDisplay from './AnswerQualityDisplay.vue'
-import AnswerInput from './AnswerInput.vue'
-import QuestionContextCard from './QuestionContextCard.vue'
-import RefinementSuggestionCard from './RefinementSuggestionCard.vue'
+import AnswerQualityDisplay from '../cards/AnswerQualityDisplay.vue'
+import AnswerInput from '../forms/AnswerInput.vue'
+import QuestionContextCard from '../cards/QuestionContextCard.vue'
+import RefinementSuggestionCard from '../forms/RefinementSuggestionCard.vue'
 import QuestionSlider from './QuestionSlider.vue'
-import QuestionsHeader from './QuestionsHeader.vue'
+import QuestionsHeader from '../utils/QuestionsHeader.vue'
 import HbStepper from '~/components/base/HbStepper.vue'
 import HbButton from '~/components/base/HbButton.vue'
 import HbSpinner from '~/components/base/HbSpinner.vue'
@@ -479,13 +479,10 @@ const handleAcceptAnswer = (questionId: string) => {
   console.log(`Answer accepted for question ${questionId}`)
 }
 
-// Helper to extract label from suggestion (the part before the colon)
-const extractLabelFromSuggestion = (suggestion: string): string => {
-  const colonIndex = suggestion.indexOf(':')
-  if (colonIndex > 0) {
-    return suggestion.substring(0, colonIndex).trim()
-  }
-  return suggestion.length > 50 ? suggestion.substring(0, 50) + '...' : suggestion
+// Helper to extract label from ImprovementSuggestion object
+const extractLabelFromSuggestion = (suggestion: ImprovementSuggestion): string => {
+  // For ImprovementSuggestion objects, use the title as the label
+  return suggestion.title || suggestion.type
 }
 
 const updateRefinementField = (questionId: string, field: string, value: string) => {
@@ -529,7 +526,7 @@ const submitRefinement = async (questionId: string) => {
       questionData,
       { title: question.title, description: question.context_why },
       evaluation!.answer_text,
-      evaluation!.quality_issues.map(qi => qi.label),  // Convert objects to strings
+      evaluation!.quality_issues,  // Pass full QualityFeedbackItem[] as expected
       labeledRefinement
     )
 

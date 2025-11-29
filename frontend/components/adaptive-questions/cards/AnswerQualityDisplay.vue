@@ -56,19 +56,16 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { QualityEvaluation, QualityFeedbackItem } from '~/types/adaptive-questions'
+import type { QualityEvaluation, QualityFeedbackItem, ImprovementSuggestion } from '~/types/adaptive-questions'
 import { usePriorityStyles } from '~/composables/ui/usePriorityStyles'
+import circleProgress from '../utils/circleProgress.vue'
 
 interface Props {
   generatedAnswer: string
   qualityScore: number
   qualityIssues?: QualityFeedbackItem[]
   qualityStrengths?: QualityFeedbackItem[]
-  improvementSuggestions?: Array<{
-    issue: string
-    suggestion: string
-    priority: string
-  }>
+  improvementSuggestions?: ImprovementSuggestion[]
   isAcceptable: boolean
   showRefineButton?: boolean
 }

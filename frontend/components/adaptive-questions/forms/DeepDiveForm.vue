@@ -134,6 +134,7 @@
 
 <script setup lang="ts">
 import type { DeepDiveFormProps, DeepDiveFormEmits } from '~/types/component-props'
+import type { DeepDivePrompt } from '~/types/adaptive-questions'
 
 const props = withDefaults(defineProps<DeepDiveFormProps>(), {
   loading: false
@@ -182,7 +183,7 @@ const getSelectOptions = (prompt: DeepDivePrompt) => {
   ]
 
   // Convert array of strings to {value, label} format
-  prompt.options.forEach(option => {
+  prompt.options.forEach((option: string) => {
     options.push({ value: option, label: option })
   })
 

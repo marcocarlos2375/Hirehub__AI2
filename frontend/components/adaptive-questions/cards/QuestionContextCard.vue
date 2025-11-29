@@ -143,16 +143,7 @@
             </li>
           </ul>
 
-          <!-- "Need Help" Button -->
-          <div class="mt-2 mb-2">
-            <HbButton
-              @click="emit('need-help')"
-              variant="link"
-              size="sm"
-            >
-              I have no experience
-            </HbButton>
-          </div>
+         
         </div>
       </transition>
     </div>

@@ -86,6 +86,8 @@ import { useQuestionsStore } from '~/stores/questions/useQuestionsStore'
 import { useSlideAnimations } from '~/composables/animation/useSlideAnimations'
 import { useHapticFeedback } from '~/composables/ui/useHapticFeedback'
 import type { QuestionItem } from '~/composables/analysis/useAnalysisState'
+import AnswerQualityDisplay from '../cards/AnswerQualityDisplay.vue'
+import RefinementSuggestionCard from '../forms/RefinementSuggestionCard.vue'
 
 interface Props {
   question: QuestionItem

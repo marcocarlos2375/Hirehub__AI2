@@ -85,10 +85,10 @@ import { useQuestionsStore } from '~/stores/questions/useQuestionsStore'
 import { useSkillGapAnalysis } from '~/composables/adaptive-questions/useSkillGapAnalysis'
 import type { SkillGapAnalysis } from '~/types/adaptive-questions'
 
-import OriginalQuestionSlide from '../adaptive-questions/OriginalQuestionSlide.vue'
-import RefinementSlide from '../adaptive-questions/RefinementSlide.vue'
-import NoExperienceSlide from '../adaptive-questions/NoExperienceSlide.vue'
-import FeedbackSubmittedSlide from '../adaptive-questions/FeedbackSubmittedSlide.vue'
+import OriginalQuestionSlide from '../slides/OriginalQuestionSlide.vue'
+import RefinementSlide from '../slides/RefinementSlide.vue'
+import NoExperienceSlide from '../slides/NoExperienceSlide.vue'
+import FeedbackSubmittedSlide from '../slides/FeedbackSubmittedSlide.vue'
 
 const props = withDefaults(defineProps<QuestionSliderProps>(), {
   language: 'english'

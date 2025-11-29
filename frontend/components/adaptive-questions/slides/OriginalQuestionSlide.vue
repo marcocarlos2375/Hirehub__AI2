@@ -47,6 +47,8 @@ import { computed } from 'vue'
 import type { OriginalQuestionSlideProps, OriginalQuestionSlideEmits } from '~/types/component-props'
 import { useQuestionsStore } from '~/stores/questions/useQuestionsStore'
 import { useSlideAnimations } from '~/composables/animation/useSlideAnimations'
+import QuestionContextCard from '../cards/QuestionContextCard.vue'
+import AdaptiveQuestionFlow from '../containers/AdaptiveQuestionFlow.vue'
 
 const props = withDefaults(defineProps<OriginalQuestionSlideProps>(), {
   language: 'english',

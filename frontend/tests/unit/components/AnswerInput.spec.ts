@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import AnswerInput from '~/components/adaptive-questions/AnswerInput.vue'
+import AnswerInput from '~/components/adaptive-questions/forms/AnswerInput.vue'
 
 // Mock composables
 vi.mock('~/composables/audio/useVoiceRecorder', () => ({

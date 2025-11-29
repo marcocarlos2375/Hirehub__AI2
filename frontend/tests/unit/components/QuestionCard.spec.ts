@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import QuestionContextCard from '~/components/adaptive-questions/QuestionContextCard.vue'
+import QuestionContextCard from '~/components/adaptive-questions/cards/QuestionContextCard.vue'
 import type { QuestionItem } from '~/composables/analysis/useAnalysisState'
 
 describe('QuestionContextCard Component', () => {

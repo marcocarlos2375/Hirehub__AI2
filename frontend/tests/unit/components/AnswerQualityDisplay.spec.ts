@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import AnswerQualityDisplay from '~/components/adaptive-questions/AnswerQualityDisplay.vue'
+import AnswerQualityDisplay from '~/components/adaptive-questions/cards/AnswerQualityDisplay.vue'
 
 describe('AnswerQualityDisplay Component', () => {
   const createWrapper = (props: any) => {

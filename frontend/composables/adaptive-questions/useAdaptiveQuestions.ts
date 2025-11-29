@@ -18,7 +18,8 @@ import type {
   SubmitInputsResponse,
   RefineAnswerResponse,
   LearningPlanItem,
-  FormattedAnswer
+  FormattedAnswer,
+  ImprovementSuggestion
 } from '~/types/adaptive-questions'
 import type {
   ParsedCV,
@@ -61,7 +62,7 @@ interface AnswerEvaluationResponse {
   quality_score: number
   quality_issues: QualityFeedbackItem[]
   quality_strengths: QualityFeedbackItem[]
-  improvement_suggestions: string[]
+  improvement_suggestions: ImprovementSuggestion[]
   is_acceptable: boolean
   time_seconds: number
   model: string

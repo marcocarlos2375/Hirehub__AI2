@@ -9,7 +9,7 @@
  */
 
 import type { ParsedCV } from './api-responses'
-import type { ExperienceLevel, QualityFeedbackItem } from './adaptive-questions'
+import type { ExperienceLevel, QualityFeedbackItem, ImprovementSuggestion } from './adaptive-questions'
 
 // ============================================================================
 // Core State Enums and Types
@@ -65,7 +65,7 @@ export interface AnswerEvaluation {
   quality_score: number  // 0-10, >= 7 is acceptable
   quality_issues: QualityFeedbackItem[]
   quality_strengths: QualityFeedbackItem[]
-  improvement_suggestions: string[]
+  improvement_suggestions: ImprovementSuggestion[]
   is_acceptable: boolean  // true if quality_score >= 7
   time_seconds: number
   model: string  // AI model used for evaluation
