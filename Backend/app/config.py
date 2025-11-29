@@ -852,6 +852,7 @@ def get_question_generation_prompt(cv_toon: str, jd_toon: str, gaps: dict, rag_c
     critical_gaps = gaps.get('critical', [])
     important_gaps = gaps.get('important', [])
     nice_to_have_gaps = gaps.get('nice_to_have', [])
+    logistical_gaps = gaps.get('logistical', [])
 
     gaps_summary = f"""
 CRITICAL GAPS ({len(critical_gaps)}):
@@ -867,6 +868,11 @@ CRITICAL GAPS ({len(critical_gaps)}):
         gaps_summary += f"\nNICE-TO-HAVE GAPS ({len(nice_to_have_gaps)}):\n"
         for gap in nice_to_have_gaps[:3]:  # Limit to top 3
             gaps_summary += f"  - {gap.get('title', 'Unknown')}: {gap.get('impact', 'N/A')}\n"
+
+    if logistical_gaps:
+        gaps_summary += f"\nLOGISTICAL GAPS ({len(logistical_gaps)}):\n"
+        for gap in logistical_gaps:
+            gaps_summary += f"  - {gap.get('title', 'Unknown')}: {gap.get('description', 'N/A')}\n"
 
     return f"""You are an expert career advisor helping a candidate uncover "hidden experience" to improve their job match.
 
@@ -899,25 +905,46 @@ QUESTION GENERATION RULES:
    - Focus on CRITICAL gaps first (+10% to +20% potential impact)
    - Then HIGH priority gaps (+6% to +9% impact)
    - Include 1-2 MEDIUM priority questions (+3% to +5% impact)
+   - ALWAYS include 1 LOW priority question if nice-to-have gaps exist (+1% to +3% impact)
+   - ALWAYS include 1 LOGISTICAL question if logistical gaps exist (non-technical barriers)
 
 2. ADAPTIVE TARGET COUNT (based on overall score from Phase 3):
    {f'''⚠️ Score <30% (POOR FIT): YOU MUST GENERATE EXACTLY 9-11 QUESTIONS (MINIMUM 9 REQUIRED!)
-     * 4 CRITICAL priority questions (MANDATORY - address biggest gaps)
-     * 4-5 HIGH priority questions (MANDATORY - uncover hidden relevant experience)
+     * 3-4 CRITICAL priority questions (address biggest gaps)
+     * 3-4 HIGH priority questions (uncover hidden relevant experience)
      * 1-2 MEDIUM priority questions
-     ❗ If you generate fewer than 9 questions, YOU ARE DOING IT WRONG!''' if overall_score and overall_score < 30 else f'''- Score 30-50% (WEAK FIT): Generate 7-9 questions
+     * 1 LOW priority question if nice-to-have gaps exist (MANDATORY - DO NOT SKIP!)
+     * 1 LOGISTICAL question if logistical gaps exist (MANDATORY - DO NOT SKIP!)
+     ❗ IMPORTANT: LOW and LOGISTICAL questions are MANDATORY! Reduce CRITICAL/HIGH counts if needed to fit these in!''' if overall_score and overall_score < 30 else f'''- Score 30-50% (WEAK FIT): Generate 7-9 questions
      * 3 CRITICAL priority questions
      * 3-4 HIGH priority questions
-     * 1-2 MEDIUM priority questions''' if overall_score and overall_score < 50 else f'''- Score 51-70% (MODERATE FIT): Generate 5-7 questions
+     * 1-2 MEDIUM priority questions
+     * 1 LOW priority question if nice-to-have gaps exist (MANDATORY)
+     * 1 LOGISTICAL question if logistical gaps exist (MANDATORY)''' if overall_score and overall_score < 50 else f'''- Score 51-70% (MODERATE FIT): Generate 5-7 questions
      * 2 CRITICAL priority questions
      * 2-3 HIGH priority questions
-     * 1-2 MEDIUM priority questions''' if overall_score and overall_score < 70 else f'''- Score >70% (GOOD FIT): Generate 3-5 questions
-     * 0-1 CRITICAL priority questions
-     * 2-3 HIGH priority questions
-     * 1 MEDIUM priority question''' if overall_score and overall_score >= 70 else '''- Default: Generate 6-11 questions
+     * 1-2 MEDIUM priority questions
+     * 1 LOW priority question if nice-to-have gaps exist (MANDATORY)
+     * 1 LOGISTICAL question if logistical gaps exist (MANDATORY)''' if overall_score and overall_score < 70 else f'''- Score >70% (GOOD FIT): Generate 3-6 questions
+     * 0-1 CRITICAL priority questions (only if critical gaps exist)
+     * 1-2 HIGH priority questions
+     * 1 MEDIUM priority question
+     * 1-3 LOW priority questions (1 for each nice-to-have gap, max 3)
+     * 1 LOGISTICAL question if logistical gaps exist (MANDATORY)
+     ❗ HIGH SCORE STRATEGY: Since the candidate is a good fit, ask about nice-to-have skills (max 3) to help them stand out even more!''' if overall_score and overall_score >= 70 else '''- Default: Generate 6-11 questions
      * 2-4 CRITICAL priority questions
      * 3-5 HIGH priority questions
-     * 1-2 MEDIUM priority questions'''}
+     * 1-2 MEDIUM priority questions
+     * 1 LOW priority question if nice-to-have gaps exist (MANDATORY)
+     * 1 LOGISTICAL question if logistical gaps exist (MANDATORY)'''}
+
+   ⚠️  CRITICAL REQUIREMENT - ALWAYS INCLUDE THESE IF GAPS EXIST:
+   - If NICE-TO-HAVE gaps are present in the gaps summary above:
+     * Score <70%: Generate 1-2 LOW priority questions (max 3 total)
+     * Score ≥70%: Generate 1 LOW question per nice-to-have gap (max 3 total)
+     * IMPORTANT: If there are 4+ nice-to-have gaps, prioritize the top 3 most impactful ones
+   - If LOGISTICAL gaps are present in the gaps summary above → YOU MUST generate at least 1 LOGISTICAL question
+   - These are NOT optional! Check the gaps summary and ensure you include these question types.
 
 3. QUESTION STRUCTURE:
    Each question must uncover experiences the candidate might have but didn't list on their CV:
@@ -943,28 +970,188 @@ QUESTION GENERATION RULES:
    - Reference similar situations from past candidates
    - Learn from what questions successfully uncovered hidden experience
 
+6.5. EXAMPLE GENERATION VALIDATION (MANDATORY CHECK BEFORE FINALIZING):
+   Before finalizing the examples for each question, verify ALL of the following:
+
+   ✅ Relevance Check:
+   - Does each example use SPECIFIC tools/libraries/frameworks from THIS skill domain?
+   - Would a candidate immediately see how this relates to the gap being asked about?
+   - Have I avoided generic/vague examples that could apply to ANY skill?
+
+   ✅ Topic Match:
+   - Are all 3 examples about THIS SPECIFIC skill, not copy-pasted from other questions?
+   - Does the 3rd example use "Publication:", "Hackathon:", "Conference:", or "Competition:" prefix?
+   - Have I avoided speculative language like "could have", "might have", "possibly"?
+
+   ✅ Personalization:
+   - Does at least 1 example reference a company name from the candidate's CV?
+   - Does at least 1 example mention technologies the candidate already knows?
+   - Have I included realistic metrics (time, impact, scale) in at least 2 examples?
+
+   ⚠️  If you cannot generate 3 highly relevant examples for a skill:
+   - It's better to generate 1-2 STRONG, RELEVANT examples than 3 weak/irrelevant ones
+   - DO NOT use generic template examples that don't match the skill domain
+   - DO NOT copy-paste examples from other questions
+
 7. EXAMPLES FIELD (CRITICAL - NOT QUESTIONS!):
+   ⚠️⚠️⚠️ MANDATORY: The 3rd example MUST start with "Publication:", "Hackathon:", "Conference:", or "Competition:"
+   ⚠️⚠️⚠️ NEVER EVER use "Learning:", "Completed an online course", "Studied", or "Experimented" in the 3rd example!
+
    - Provide 3 concrete examples of work/projects/experiences the candidate MIGHT have done
    - Examples should be SPECIFIC scenarios describing actual work, NOT questions
    - Each example should be 1-2 sentences describing a realistic project/task
    - Examples help jog the candidate's memory about similar experiences they've had
    - Format as statements, not questions: "Built X using Y" NOT "Have you built X?"
-   - Make examples diverse:
-     * 1 professional work example (production systems, client projects)
-     * 1 side project or hackathon example (personal learning, experiments)
-     * 1 academic or learning example (courses, tutorials, practice projects)
+   - Make examples diverse and PERSONALIZED using candidate's CV data:
+     * Example 1: Professional work (use company names, job titles, technologies from CV)
+     * Example 2: Side project (reference skills/tech from CV, personal projects)
+     * Example 3: Publication/Hackathon/Conference/Competition (start with one of these prefixes!)
    - Examples should be realistic and achievable at the candidate's level
    - Use action verbs: "Built", "Implemented", "Optimized", "Developed", "Architected", "Designed"
 
-   GOOD EXAMPLES:
-   - "Optimized database queries reducing response time from 2s to 200ms using query analysis and indexing"
-   - "Built a real-time chat application with WebSockets, Redis pub/sub, and React for a hackathon"
-   - "Implemented caching layer with Redis for a high-traffic API serving 50K requests/hour"
+   - RELEVANCE (CRITICAL - EXAMPLES MUST MATCH THE SKILL BEING ASKED ABOUT):
+     * Every example MUST directly demonstrate experience with the SPECIFIC skill/technology in THIS question
+     * Use specific tools, libraries, frameworks, or concepts from that skill domain
+     * Avoid vague/generic examples that could apply to any skill
+     * Avoid speculative language: NO "could have", "might have", "possibly involved"
 
-   BAD EXAMPLES (Don't do this - these are questions, not examples):
-   - "Have you worked with Redis caching?"
-   - "Did you optimize database queries before?"
-   - "Were you involved in performance improvements?"
+     Example Quality Check:
+     * Docker question ❌ "worked on team that used containers" ✅ "wrote Dockerfile for Node.js app with multi-stage builds"
+     * NLP question ❌ "worked with text data" ✅ "used spaCy for named entity extraction from 10K documents"
+     * Computer Vision ❌ "displayed images in gallery" ✅ "implemented face detection with OpenCV Haar Cascades"
+     * GraphQL ❌ "worked on API" ✅ "built GraphQL schema with resolvers for user queries"
+
+     ⚠️  If an example doesn't mention specific technologies/techniques from the skill domain, it's BAD!
+
+   - PERSONALIZATION (CRITICAL):
+     * Extract relevant data from CV in TOON format above
+     * Use company names: "at [CompanyName]" or "during your time at [Company]"
+     * Reference job titles: "As a [JobTitle]" or "While working as [Title]"
+     * Connect to existing skills: "leveraging your [Skill] experience", "building on your [Technology] knowledge"
+     * Mention existing projects if relevant: "Extended your [ProjectName] to include..."
+     * Make examples feel SPECIFIC to this candidate, not generic templates
+
+   - DETAILED METRICS (include 2-3 in each example):
+     * Impact/Results: Quantify improvements, savings, efficiency gains
+       - "reducing response time by 40%", "improving conversion rate by 15%", "saving $50K annually"
+     * Time/Duration: When did it happen, how long did it take
+       - "over 6 months", "in Q2 2023", "during a 3-week sprint", "between 2021-2022"
+     * Scale/Volume: How big, how many users/requests/data
+       - "serving 10K daily users", "processing 5GB data/day", "handling 100K API calls/hour"
+     * Team/Collaboration: Who was involved
+       - "led team of 4 engineers", "collaborated with 2 data scientists", "solo project", "pair programming with senior dev"
+
+   GOOD EXAMPLES (PERSONALIZED + DETAILED):
+
+   Professional:
+   - "As a Backend Engineer at TechCorp (2020-2023), optimized PostgreSQL queries in your inventory management system, reducing response time from 3s to 150ms using indexing strategies, impacting 5K daily warehouse operations"
+   - "At StartupX, leveraging your Python and Redis experience, implemented a multi-layer caching strategy for the recommendation API, reducing database load by 60% and serving 200K requests/day"
+   - "While working as a Full-stack Developer at FinanceApp (2021-2023), built a real-time dashboard using your React and WebSocket skills, processing 50K transactions/day and deployed to 10K+ users over 4 months"
+
+   Side Project:
+   - "Built a real-time multiplayer game using your WebSocket knowledge from work, deployed on AWS (leveraging your cloud experience), attracting 2K players in the first month with 50ms avg latency"
+   - "Created an open-source CLI tool in Go (new skill) for automating Docker deployments, gaining 500 GitHub stars over 6 months and adopted by 3 companies"
+   - "Developed a personal finance tracker leveraging your MongoDB and Node.js expertise, implementing budgeting algorithms that helped 100+ beta users save an average of $200/month"
+
+   Publication/Hackathon (ALWAYS use this format - NOT "Learning"):
+   - "Publication: Published paper 'Efficient Caching Strategies for Microservices' at ICSE 2024, presenting novel approach reducing cache miss rate by 25% across 100+ services, cited 15 times in first 6 months"
+   - "Hackathon: Won 2nd place at TechCrunch Disrupt Hackathon 2023 with an AI-powered code review tool, processing 10K LOC in under 30 seconds using GPT-4 API, leading a team of 3 developers"
+   - "Conference: Presented talk on 'Database Optimization at Scale' at PyConf 2023, sharing insights from your work optimizing PostgreSQL for 1M+ queries/day, attended by 200+ developers"
+   - "Competition: Competed in Google Hash Code 2023, ranking in top 5% globally, solving distributed system optimization problems in under 4 hours with a team of 2"
+
+   SKILL-SPECIFIC EXAMPLE TEMPLATES (Use these as inspiration - adapt to candidate's CV):
+
+   For Docker questions:
+   - Professional: "Containerized Python backend at TechCorp using Docker, creating multi-stage Dockerfiles that reduced image size from 1.2GB to 400MB"
+   - Side Project: "Learned Docker basics by containerizing your MediTrack app, writing a Docker Compose setup with PostgreSQL and Redis services"
+   - Hackathon: "Won hackathon by deploying microservices with Docker Swarm, orchestrating 5 containers with automatic load balancing"
+
+   For NLP questions:
+   - Professional: "Built sentiment analysis feature at StartupX using VADER library to classify 10K customer reviews monthly, improving product feedback pipeline"
+   - Side Project: "Created chatbot using NLTK for tokenization and intent matching, deployed on Telegram with 50+ test users"
+   - Conference: "Attended NLP workshop at PyCon 2023, implemented word embeddings demo with spaCy for 1K text samples"
+
+   For Computer Vision questions:
+   - Professional: "Implemented QR code scanner in mobile app at FinanceApp using OpenCV, processing 1K scans daily with 99% accuracy"
+   - Side Project: "Built basic face detection for photo app using Haar Cascades, tagging faces in 100+ images with bounding boxes"
+   - Hackathon: "Created object detection prototype with YOLO model, identifying 20 product categories at 15 FPS in real-time video"
+
+   For GraphQL questions:
+   - Professional: "Migrated REST API to GraphQL at TechCorp, defining schema with 50+ types and implementing resolvers for complex queries"
+   - Side Project: "Built GraphQL API for personal project with Apollo Server, reducing over-fetching by 60% compared to previous REST version"
+   - Conference: "Presented talk on 'GraphQL Best Practices' at local meetup, demonstrating N+1 query optimization with DataLoader"
+
+   ⚠️  CRITICAL: These are TEMPLATES! You MUST customize them with:
+   - Actual company names from the candidate's CV
+   - Technologies the candidate already knows
+   - Realistic metrics based on candidate's experience level
+   - The SPECIFIC skill being asked about in THIS question
+
+   BAD EXAMPLES (Don't do this - generic, not personalized):
+   - "Developed a chatbot using OpenAI API" ❌ (No connection to CV, no metrics, no context)
+   - "Built a mobile app with React Native" ❌ (Could be anyone's project, no details)
+   - "Took a course on machine learning" ❌ (Learning doesn't prove ability to do the work)
+   - "Completed an online course on..." ❌ (NEVER use "Learning" category!)
+   - "Studied X in a tutorial" ❌ (NEVER use "Learning" category!)
+   - "Experimented with X" ❌ (NEVER use "Learning" category!)
+   - "Worked on a team project" ❌ (Too vague, no specifics)
+   - "Have you worked with Redis caching?" ❌ (This is a question, not an example)
+
+   BAD EXAMPLES - IRRELEVANT TO QUESTION SKILL:
+
+   For NLP question:
+   ❌ "Worked with text files and CSV data" (too vague, not NLP-specific)
+   ❌ "Built admin dashboard that displayed user comments" (displaying ≠ analyzing text)
+   ❌ "Published paper on caching strategies" (COMPLETELY UNRELATED - wrong topic!)
+   ❌ "Collaborated on frontend that could have included text processing" (speculative, no NLP techniques)
+
+   For Computer Vision question:
+   ❌ "Displayed images in a gallery" (showing images ≠ analyzing them)
+   ❌ "Worked on frontend that could have included image previews" (speculative, vague, not CV)
+   ❌ "Built authentication system with profile pictures" (storing images ≠ Computer Vision)
+   ❌ "Published paper on database optimization" (COMPLETELY UNRELATED - wrong topic!)
+
+   For Docker question:
+   ❌ "Worked on team that used containerization" (too vague, no hands-on Docker)
+   ❌ "Deployed app to cloud platform that used Docker internally" (not hands-on)
+   ❌ "Published paper on microservices architecture" (not about Docker specifically)
+
+   For GraphQL question:
+   ❌ "Built REST API endpoints" (REST ≠ GraphQL)
+   ❌ "Worked on API that could have used GraphQL" (speculative)
+   ❌ "Published paper on caching" (COMPLETELY UNRELATED!)
+
+   WHY IRRELEVANT EXAMPLES ARE BAD:
+   - No direct connection to the SPECIFIC skill being asked about
+   - Speculative/vague language ("could have", "might have") suggests weak relevance
+   - Wrong topic entirely (copy-pasted from different question's examples)
+   - Would confuse candidate rather than help them recall actual experiences
+   - Demonstrates AI didn't understand the question context
+
+   WHY GENERIC EXAMPLES ARE BAD:
+   - No reference to candidate's actual companies, projects, or skills
+   - No metrics (time, impact, scale, team size)
+   - Could apply to any candidate (not personalized)
+   - Don't demonstrate actual work done (just learning or too vague)
+
+8. QUESTION PRIORITY MAPPING:
+   - CRITICAL priority → Critical gaps (deal-breakers, 10-20% score impact)
+   - HIGH priority → Important gaps (required but compensatable, 6-9% score impact)
+   - MEDIUM priority → Important gaps (3-5% score impact)
+   - LOW priority → Nice-to-have gaps (bonus skills, 1-3% score impact)
+   - LOGISTICAL → Logistical gaps (non-technical barriers like location, visa, availability)
+
+9. LOGISTICAL QUESTIONS:
+   - If logistical gaps exist, generate 1 question to clarify the situation
+   - These are typically yes/no or short answer questions
+   - Keep logistical questions brief and factual
+   - Don't ask for detailed experiences - just clarify the logistical constraint
+   - Examples:
+     * "Are you authorized to work in [country]?" (if work visa gap)
+     * "Are you willing to relocate to [location]?" (if location gap)
+     * "What is your earliest available start date?" (if availability gap)
+   - Logistical questions don't need the same depth as skill questions
+   - Focus on identifying dealbreakers vs addressable situations
 
 OUTPUT FORMAT (JSON):
 {{

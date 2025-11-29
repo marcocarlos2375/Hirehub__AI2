@@ -742,6 +742,14 @@ class CoverLetterResponse(BaseModel):
     model: str
 
 
+# ===== QUALITY FEEDBACK MODELS =====
+
+class QualityFeedbackItem(BaseModel):
+    """Quality feedback item with label and description."""
+    label: str
+    description: str
+
+
 # ===== PHASE 4: SMART QUESTIONS MODELS =====
 
 class QuestionItem(BaseModel):
@@ -2188,8 +2196,11 @@ async def generate_questions(request: GenerateQuestionsRequest):
         rag_context = []
         rag_used = False
 
-        # Search for experiences related to each critical and important gap
-        for gap in critical_gaps + important_gaps[:3]:  # Limit to avoid too much context
+        # Extract nice-to-have gaps for RAG search
+        nice_to_have_gaps = gaps.get("nice_to_have", [])
+
+        # Search for experiences related to critical, important, AND nice-to-have gaps
+        for gap in critical_gaps + important_gaps[:3] + nice_to_have_gaps[:2]:  # Limit to avoid too much context
             gap_title = gap.get("title", "")
             gap_description = gap.get("description", "")
             search_query = f"{gap_title}: {gap_description}"
@@ -3513,7 +3524,7 @@ class SubmitRefinementDataRequest(BaseModel):
     gap_info: dict
     additional_data: dict  # Additional data from user
     generated_answer: str
-    quality_issues: list[str] = []
+    quality_issues: list[QualityFeedbackItem] = []
 
 
 class SubmitRefinementDataResponse(BaseModel):

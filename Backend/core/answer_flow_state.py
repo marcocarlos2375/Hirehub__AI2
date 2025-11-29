@@ -3,7 +3,7 @@ State definitions for LangGraph adaptive question workflow.
 Defines the state machine structure for intelligent question answering.
 """
 
-from typing import TypedDict, Literal, Optional, List, Dict, Any
+from typing import TypedDict, Literal, Optional, List, Dict, Any, Union
 from datetime import datetime
 
 
@@ -59,7 +59,7 @@ class AdaptiveAnswerState(TypedDict, total=False):
 
     # Quality validation
     quality_score: Optional[int]  # 1-10
-    quality_issues: Optional[List[str]]  # ["Too vague", "No metrics", etc.]
+    quality_issues: Optional[List[Union[str, Dict[str, str]]]]  # List of {label, description} objects or strings for backwards compatibility
     quality_strengths: Optional[List[str]]  # What's good about the answer
     improvement_suggestions: Optional[List[Dict[str, Any]]]  # Structured prompts for improvement
     # Example suggestions: [

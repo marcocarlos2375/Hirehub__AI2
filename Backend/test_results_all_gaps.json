@@ -1,0 +1,607 @@
+{
+  "score_result": {
+    "success": true,
+    "overall_score": 19,
+    "overall_status": "Needs Work",
+    "score_message": {
+      "title": "Significant Technical Mismatch",
+      "subtitle": "Your JavaScript, Python, React, and AWS EC2 skills are noted, but a major gap exists in the required 5 years experience and Kubernetes expertise."
+    },
+    "category_scores": {
+      "hard_skills": {
+        "score": 0,
+        "weight": 0.3,
+        "status": "Poor"
+      },
+      "soft_skills": {
+        "score": 0,
+        "weight": 0.1,
+        "status": "Poor"
+      },
+      "experience_level": {
+        "score": 0,
+        "weight": 0.15,
+        "status": "Poor"
+      },
+      "domain_expertise": {
+        "score": 50,
+        "weight": 0.1,
+        "status": "Fair"
+      },
+      "industry_match": {
+        "score": 50,
+        "weight": 0.15,
+        "status": "Fair"
+      },
+      "role_similarity": {
+        "score": 50,
+        "weight": 0.1,
+        "status": "Fair"
+      },
+      "portfolio_quality": {
+        "score": 0,
+        "weight": 0.07,
+        "status": "Poor"
+      },
+      "location_logistics": {
+        "score": 50,
+        "weight": 0.03,
+        "status": "Fair"
+      }
+    },
+    "gaps": {
+      "critical": [
+        {
+          "id": "gap_001",
+          "title": "Experience Level Mismatch",
+          "current": "2 years of experience",
+          "required": "5 years of experience",
+          "impact": "-20%",
+          "severity": "CRITICAL",
+          "description": "The JD explicitly requires 5 years of experience for a Senior Backend Engineer role. The candidate only possesses 2 years, indicating a significant shortfall in the depth and breadth of experience expected for a senior-level position. This gap directly impacts the ability to handle complex challenges and lead initiatives.",
+          "addressability": "time-dependent",
+          "timeframe_to_address": "3 years"
+        },
+        {
+          "id": "gap_002",
+          "title": "Seniority Mismatch",
+          "current": "Junior Full-stack Developer",
+          "required": "Senior Backend Engineer",
+          "impact": "-18%",
+          "severity": "CRITICAL",
+          "description": "The candidate self-identifies as a 'Junior Full-stack Developer'. The role demands a 'Senior Backend Engineer' with leadership and advanced system design capabilities. This fundamental mismatch in seniority level suggests a lack of proven experience in leading complex projects, mentoring, and making high-level architectural decisions.",
+          "addressability": "time-dependent",
+          "timeframe_to_address": "3 years"
+        },
+        {
+          "id": "gap_003",
+          "title": "Kubernetes Expertise",
+          "current": "Not mentioned",
+          "required": "Kubernetes (critical)",
+          "impact": "-15%",
+          "severity": "CRITICAL",
+          "description": "Kubernetes is a critical requirement for managing containerized applications and is essential for modern backend infrastructure. The candidate's CV does not mention any experience with Kubernetes, which is a significant gap for a senior role focused on microservices and scalable systems.",
+          "addressability": "learnable",
+          "timeframe_to_address": "3-6 months"
+        },
+        {
+          "id": "gap_004",
+          "title": "Docker Expertise",
+          "current": "Not mentioned",
+          "required": "Docker (critical)",
+          "impact": "-15%",
+          "severity": "CRITICAL",
+          "description": "Docker is a foundational technology for containerization, crucial for building, shipping, and running applications. The absence of Docker experience in the CV is a critical gap, especially given its critical priority in the job description for managing backend services.",
+          "addressability": "learnable",
+          "timeframe_to_address": "1-3 months"
+        },
+        {
+          "id": "gap_005",
+          "title": "System Design Experience",
+          "current": "Not explicitly mentioned",
+          "required": "System Design (important)",
+          "impact": "-12%",
+          "severity": "CRITICAL",
+          "description": "The JD emphasizes 'System Design' and 'Architecture Design' as important skills, crucial for a senior engineer. The candidate's experience focuses on building web applications and implementing APIs, but lacks specific evidence of designing complex systems from the ground up or making high-level architectural decisions.",
+          "addressability": "time-dependent",
+          "timeframe_to_address": "2-3 years"
+        },
+        {
+          "id": "gap_006",
+          "title": "Architecture Design Experience",
+          "current": "Not explicitly mentioned",
+          "required": "Architecture Design (important)",
+          "impact": "-12%",
+          "severity": "CRITICAL",
+          "description": "Similar to System Design, 'Architecture Design' is a key requirement for a senior role. The candidate's experience is limited to implementing features and APIs within existing architectures, rather than defining or significantly contributing to the overall system architecture.",
+          "addressability": "time-dependent",
+          "timeframe_to_address": "2-3 years"
+        },
+        {
+          "id": "gap_007",
+          "title": "High-traffic Systems Experience",
+          "current": "Not mentioned",
+          "required": "High-traffic Systems (important)",
+          "impact": "-10%",
+          "severity": "CRITICAL",
+          "description": "The JD requires experience with 'High-traffic Systems' and mentions 'over 1 million requests per day'. The candidate's work experience does not provide any indication of handling such scale, which is a critical requirement for ensuring system reliability and performance.",
+          "addressability": "time-dependent",
+          "timeframe_to_address": "2-3 years"
+        },
+        {
+          "id": "gap_008",
+          "title": "Healthcare Domain Expertise",
+          "current": "No mention of Healthcare projects or work",
+          "required": "Healthcare (domain expertise)",
+          "impact": "-10%",
+          "severity": "CRITICAL",
+          "description": "The job requires domain expertise in Healthcare. The candidate's CV shows no projects, certifications, or work experience related to the healthcare industry. This lack of domain knowledge is a critical barrier to understanding industry-specific challenges and requirements.",
+          "addressability": "learnable|time-dependent",
+          "timeframe_to_address": "6-12 months"
+        },
+        {
+          "id": "gap_009",
+          "title": "Fintech Domain Expertise",
+          "current": "No mention of Fintech projects or work",
+          "required": "Fintech (domain expertise)",
+          "impact": "-10%",
+          "severity": "CRITICAL",
+          "description": "The job requires domain expertise in Fintech. The candidate's CV shows no projects, certifications, or work experience related to the financial technology sector. This absence of domain knowledge is a critical gap for a role that may involve sensitive financial data or complex financial workflows.",
+          "addressability": "learnable|time-dependent",
+          "timeframe_to_address": "6-12 months"
+        },
+        {
+          "id": "gap_010",
+          "title": "Microservices Architecture Leadership",
+          "current": "Experience building web apps with React/Node.js",
+          "required": "Lead the design and implementation of microservices architecture",
+          "impact": "-15%",
+          "severity": "CRITICAL",
+          "description": "While the candidate has experience with Node.js and Express, the JD specifically calls for leading the design and implementation of microservices architecture. The CV does not demonstrate experience in designing, building, or leading the development of a microservices-based system.",
+          "addressability": "time-dependent",
+          "timeframe_to_address": "2-3 years"
+        },
+        {
+          "id": "gap_011",
+          "title": "Serverless Computing (AWS Lambda)",
+          "current": "Deployed applications to AWS EC2",
+          "required": "AWS Lambda, Serverless Architecture (important)",
+          "impact": "-12%",
+          "severity": "CRITICAL",
+          "description": "The JD requires experience with AWS Lambda and Serverless Architecture. The candidate's AWS experience is limited to EC2, which is IaaS. There is no mention of serverless technologies, a critical component for modern backend development as outlined in the job description.",
+          "addressability": "learnable",
+          "timeframe_to_address": "3-6 months"
+        },
+        {
+          "id": "gap_012",
+          "title": "CI/CD Pipeline Setup",
+          "current": "Deployed applications to AWS EC2",
+          "required": "CI/CD Pipeline Setup, Jenkins, GitHub Actions (important)",
+          "impact": "-10%",
+          "severity": "CRITICAL",
+          "description": "The JD lists CI/CD pipeline setup, Jenkins, and GitHub Actions as important requirements. The candidate's CV mentions deployment but lacks any specific experience in setting up, managing, or optimizing CI/CD pipelines, which is crucial for efficient software delivery.",
+          "addressability": "learnable",
+          "timeframe_to_address": "3-6 months"
+        },
+        {
+          "id": "gap_013",
+          "title": "PostgreSQL Optimization",
+          "current": "Worked with MongoDB databases",
+          "required": "PostgreSQL, Optimize PostgreSQL database performance (important)",
+          "impact": "-10%",
+          "severity": "CRITICAL",
+          "description": "The candidate has experience with MongoDB but not PostgreSQL, which is a critical database requirement for this role. Furthermore, the JD emphasizes optimizing PostgreSQL performance for high-traffic applications, a skill not demonstrated by the candidate.",
+          "addressability": "learnable",
+          "timeframe_to_address": "3-6 months"
+        },
+        {
+          "id": "gap_014",
+          "title": "Redis Caching Strategies",
+          "current": "Not mentioned",
+          "required": "Redis, Implement and manage Redis caching strategies (important)",
+          "impact": "-10%",
+          "severity": "CRITICAL",
+          "description": "Redis is listed as an important skill, and the JD specifically mentions implementing and managing caching strategies with it. The candidate's CV does not include any experience with Redis or caching mechanisms, which is a critical omission for performance optimization.",
+          "addressability": "learnable",
+          "timeframe_to_address": "2-4 months"
+        },
+        {
+          "id": "gap_015",
+          "title": "GraphQL APIs",
+          "current": "Implemented REST APIs with Express",
+          "required": "GraphQL APIs (important)",
+          "impact": "-8%",
+          "severity": "CRITICAL",
+          "description": "The candidate has experience with REST APIs, but the JD requires experience with GraphQL APIs. While related, GraphQL is a distinct technology with different query mechanisms and benefits, and its absence is a critical gap for a role that lists it as important.",
+          "addressability": "learnable",
+          "timeframe_to_address": "2-4 months"
+        },
+        {
+          "id": "gap_016",
+          "title": "Leadership Qualities",
+          "current": "Junior role experience",
+          "required": "Exhibit leadership qualities in guiding technical decisions and mentoring junior engineers.",
+          "impact": "-10%",
+          "severity": "CRITICAL",
+          "description": "The JD explicitly requires leadership qualities, including guiding technical decisions and mentoring. The candidate's experience as a junior developer and intern does not provide evidence of these senior-level leadership responsibilities.",
+          "addressability": "time-dependent",
+          "timeframe_to_address": "2-3 years"
+        },
+        {
+          "id": "gap_017",
+          "title": "Go or Rust Proficiency",
+          "current": "Python (basic), JavaScript, Node.js",
+          "required": "Go, Rust (tech stack)",
+          "impact": "-8%",
+          "severity": "CRITICAL",
+          "description": "The job's tech stack includes Go and Rust, which are often used for high-performance backend services. The candidate's listed languages are JavaScript and Python, with no mention of Go or Rust, representing a critical gap in the required technology stack.",
+          "addressability": "learnable",
+          "timeframe_to_address": "4-8 months"
+        }
+      ],
+      "important": [
+        {
+          "id": "gap_imp_001",
+          "title": "Backend Focus",
+          "current": "Junior Full-stack Developer",
+          "required": "Senior Backend Engineer",
+          "impact": "-7%",
+          "severity": "MEDIUM",
+          "description": "While the candidate has full-stack experience, the role is specifically for a Backend Engineer. This means a deeper focus on server-side logic, databases, APIs, and system architecture is expected, rather than frontend development.",
+          "addressability": "learnable|time-dependent",
+          "timeframe_to_address": "1-2 years"
+        },
+        {
+          "id": "gap_imp_002",
+          "title": "Problem-Solving Depth",
+          "current": "Fixed bugs and improved UI/UX",
+          "required": "Demonstrate strong problem-solving abilities to effectively diagnose and resolve complex technical challenges.",
+          "impact": "-6%",
+          "severity": "MEDIUM",
+          "description": "The candidate's experience mentions fixing bugs, but the JD requires demonstrating strong problem-solving for complex technical challenges. This implies a need for a higher level of analytical thinking and ability to tackle intricate issues beyond basic bug fixes.",
+          "addressability": "time-dependent",
+          "timeframe_to_address": "1-2 years"
+        },
+        {
+          "id": "gap_imp_003",
+          "title": "Communication Skills",
+          "current": "Not explicitly detailed",
+          "required": "Communicate technical concepts clearly and concisely to both technical and non-technical stakeholders.",
+          "impact": "-5%",
+          "severity": "MEDIUM",
+          "description": "The CV does not provide specific examples or details about the candidate's ability to communicate technical concepts to diverse audiences. This is an important soft skill for a senior role, especially in collaborating with cross-functional teams.",
+          "addressability": "learnable",
+          "timeframe_to_address": "Ongoing"
+        },
+        {
+          "id": "gap_imp_004",
+          "title": "Collaboration Skills",
+          "current": "Worked with MongoDB databases",
+          "required": "Collaborate effectively with cross-functional teams to achieve project goals.",
+          "impact": "-5%",
+          "severity": "MEDIUM",
+          "description": "While working with databases implies some level of teamwork, the CV lacks explicit evidence of effective collaboration with cross-functional teams. This is an important soft skill for a senior engineer who needs to integrate with product, QA, and other departments.",
+          "addressability": "learnable",
+          "timeframe_to_address": "Ongoing"
+        },
+        {
+          "id": "gap_imp_005",
+          "title": "Adaptability to New Technologies",
+          "current": "Experience with React, Vue.js, Node.js, Express, MongoDB",
+          "required": "Adapt quickly to new technologies and evolving project requirements.",
+          "impact": "-4%",
+          "severity": "MEDIUM",
+          "description": "The candidate has experience with multiple technologies, which is good. However, the JD specifically calls out the ability to adapt *quickly* to new technologies. The CV doesn't explicitly demonstrate this agility or a track record of rapidly learning and applying novel tech.",
+          "addressability": "learnable",
+          "timeframe_to_address": "Ongoing"
+        },
+        {
+          "id": "gap_imp_006",
+          "title": "Proactive and Results-Oriented Approach",
+          "current": "Built web applications, Implemented REST APIs",
+          "required": "Maintain a proactive and results-oriented approach to work.",
+          "impact": "-4%",
+          "severity": "MEDIUM",
+          "description": "The candidate's achievements are task-oriented. The JD seeks a proactive individual who identifies opportunities and drives results. The CV doesn't showcase instances of taking initiative beyond assigned tasks or a consistent focus on measurable outcomes.",
+          "addressability": "learnable",
+          "timeframe_to_address": "Ongoing"
+        },
+        {
+          "id": "gap_imp_007",
+          "title": "Security Best Practices",
+          "current": "Not mentioned",
+          "required": "Understanding of security best practices in backend development.",
+          "impact": "-5%",
+          "severity": "MEDIUM",
+          "description": "Security is a crucial aspect of backend development, especially in sensitive industries like Healthcare and Fintech. The candidate's CV does not mention any awareness or application of security best practices, which is an important implicit requirement.",
+          "addressability": "learnable",
+          "timeframe_to_address": "2-4 months"
+        },
+        {
+          "id": "gap_imp_008",
+          "title": "Agile Development Methodologies",
+          "current": "Not mentioned",
+          "required": "Experience with agile development methodologies.",
+          "impact": "-3%",
+          "severity": "MEDIUM",
+          "description": "Agile methodologies are standard in modern software development. The candidate's CV does not mention experience with Agile, Scrum, Kanban, or similar frameworks, which is an important implicit requirement for efficient team collaboration and project delivery.",
+          "addressability": "learnable",
+          "timeframe_to_address": "1-2 months"
+        }
+      ],
+      "nice_to_have": [
+        {
+          "id": "gap_nth_001",
+          "title": "Terraform Expertise",
+          "current": "AWS EC2",
+          "required": "Terraform (nice)",
+          "impact": "-2%",
+          "severity": "LOW",
+          "description": "Terraform is listed as a 'nice-to-have' skill for Infrastructure as Code. While not critical, experience with it would be beneficial for managing cloud resources efficiently.",
+          "addressability": "learnable",
+          "timeframe_to_address": "2-3 months"
+        },
+        {
+          "id": "gap_nth_002",
+          "title": "Event-driven Architecture",
+          "current": "Not mentioned",
+          "required": "Event-driven Architecture (nice)",
+          "impact": "-1%",
+          "severity": "LOW",
+          "description": "Event-driven architecture is a 'nice-to-have' skill. While the candidate has experience with Node.js and Express, which can be used in event-driven systems, there's no explicit mention of designing or implementing such architectures.",
+          "addressability": "learnable",
+          "timeframe_to_address": "3-5 months"
+        }
+      ],
+      "logistical": [
+        {
+          "id": "gap_log_001",
+          "title": "Location Mismatch",
+          "current": "San Francisco, CA",
+          "required": "New York, NY",
+          "impact": "-5%",
+          "severity": "HIGH",
+          "description": "The candidate is located in San Francisco, CA, while the job requires the candidate to be in New York, NY. This represents a significant logistical challenge requiring relocation, which may not be feasible or desired by the candidate.",
+          "addressability": "logistical",
+          "timeframe_to_address": "N/A"
+        },
+        {
+          "id": "gap_log_002",
+          "title": "Work Mode Mismatch",
+          "current": "Not specified (assumed remote/hybrid based on location)",
+          "required": "Onsite",
+          "impact": "-5%",
+          "severity": "HIGH",
+          "description": "The job requires an onsite presence in New York, NY. The candidate's current location suggests they may be seeking remote or hybrid work. This mismatch in work mode requires a significant lifestyle adjustment and commitment to being physically present at the office.",
+          "addressability": "logistical",
+          "timeframe_to_address": "N/A"
+        }
+      ]
+    },
+    "strengths": [
+      {
+        "title": "Core Web Development Skills",
+        "description": "The candidate possesses foundational skills in modern web development technologies, which are transferable to backend development.",
+        "evidence": "Proficient in JavaScript, Python, HTML, CSS, React, Vue.js, Node.js, Express, and MongoDB. Built web applications and implemented REST APIs."
+      },
+      {
+        "title": "Cloud Deployment Experience",
+        "description": "Demonstrates practical experience in deploying applications to a cloud environment, indicating an understanding of operational aspects.",
+        "evidence": "Deployed applications to AWS EC2. Worked with Git, npm, and AWS EC2."
+      },
+      {
+        "title": "Database Experience",
+        "description": "Has hands-on experience working with NoSQL databases, which is a valuable skill in backend development.",
+        "evidence": "Worked with MongoDB databases."
+      },
+      {
+        "title": "Frontend Feature Development",
+        "description": "Experience in developing frontend features and improving user experience, showing a well-rounded understanding of the development lifecycle.",
+        "evidence": "Developed frontend features using HTML, CSS, JavaScript. Fixed bugs and improved UI/UX."
+      }
+    ],
+    "application_viability": {
+      "current_likelihood": "5-10%",
+      "key_blockers": [
+        "Significant experience gap (2 years vs 5 years required)",
+        "Lack of critical backend technologies (Kubernetes, Docker, PostgreSQL, Redis, GraphQL, Go/Rust)",
+        "Absence of senior-level experience (System Design, Architecture Design, Leadership)",
+        "No domain expertise in Healthcare or Fintech",
+        "Logistical mismatch (Location and Onsite requirement)"
+      ]
+    },
+    "similarity_metrics": {
+      "overall_embedding_similarity": 0.0,
+      "skills_cosine_similarity": 0.0,
+      "experience_cosine_similarity": 0.0,
+      "experience_weighted_similarity": 0.0,
+      "critical_skills_match": 0.0,
+      "important_skills_match": 0.0,
+      "exact_keyword_match": 0.0,
+      "fuzzy_keyword_match": 0.0,
+      "semantic_skills_match": 0.0,
+      "missing_critical_skills": [],
+      "missing_important_skills": [],
+      "matched_skills": [],
+      "cache_stats": {
+        "l1_hits": 0,
+        "l2_hits": 0,
+        "misses": 3,
+        "total_requests": 3,
+        "hit_rate": 0.0,
+        "l1_hit_rate": 0.0,
+        "l2_hit_rate": 0.0
+      }
+    },
+    "time_seconds": 0.003,
+    "model": "gemini-2.5-flash-lite"
+  },
+  "questions_result": {
+    "success": true,
+    "questions": [
+      {
+        "id": "q1",
+        "number": 1,
+        "title": "Kubernetes and Docker Orchestration",
+        "priority": "CRITICAL",
+        "impact": "+15% if yes",
+        "question_text": "The Senior Backend Engineer role requires critical expertise in Kubernetes and Docker. While your CV mentions deploying to AWS EC2, it doesn't detail container orchestration. Have you had any experience, even in personal projects or learning environments, with containerizing applications using Docker and orchestrating them with Kubernetes?\n\n- Did you create Dockerfiles for your applications?\n- Have you deployed applications to a Kubernetes cluster (e.g., Minikube, kind, GKE, EKS, AKS)?\n- Did you define Kubernetes manifests (Deployments, Services, Ingress)?",
+        "context_why": "Why this matters: Kubernetes and Docker are critical requirements for managing microservices and ensuring scalability, directly aligning with the JD's emphasis on microservices architecture and high-traffic systems. Demonstrating any experience here significantly closes a major gap.",
+        "examples": [
+          "Professional: Containerized a Node.js backend service using Docker for TechStartup Inc., creating Dockerfiles and a docker-compose.yml for local development, reducing setup time for new team members by 50%.",
+          "Side Project: Built a personal blog platform using React and Node.js, containerized with Docker, and deployed to a local Kubernetes cluster (Minikube) for practice.",
+          "Learning: Completed an online course on Kubernetes fundamentals, including deploying sample applications and managing pods and services."
+        ]
+      },
+      {
+        "id": "q2",
+        "number": 2,
+        "title": "System and Architecture Design for Scalability",
+        "priority": "CRITICAL",
+        "impact": "+12% if yes",
+        "question_text": "The role emphasizes leading design and architecture decisions, particularly for high-traffic systems. Your experience at TechStartup Inc. involved building web applications and implementing APIs. Can you recall any instances where you were involved in the design or architectural decisions for a system, especially one that was intended to scale or handle significant traffic?\n\n- Were you involved in choosing technologies or design patterns for new features or applications?\n- Did you contribute to discussions about system scalability, reliability, or performance?\n- Did you document or present architectural proposals?",
+        "context_why": "Why this matters: System and Architecture Design are important requirements for a Senior Backend Engineer. Your experience in building applications is a foundation, but demonstrating involvement in the design phase, even as a junior, can show potential for growth into a senior role.",
+        "examples": [
+          "Professional: Contributed to the system design for a new user authentication module at TechStartup Inc., proposing a JWT-based approach and discussing its scalability implications with senior engineers.",
+          "Side Project: Architected a scalable backend for a personal project, considering database sharding strategies and load balancing for potential future growth.",
+          "Academic Project: Designed the architecture for a distributed system as part of your B.S. Computer Science degree, focusing on fault tolerance and performance."
+        ]
+      },
+      {
+        "id": "q3",
+        "number": 3,
+        "title": "Serverless Computing and AWS Lambda",
+        "priority": "CRITICAL",
+        "impact": "+12% if yes",
+        "question_text": "The job description highlights the importance of serverless architecture and AWS Lambda. Your CV mentions deploying applications to AWS EC2. Have you had any exposure to serverless technologies, specifically AWS Lambda, even for small tasks or personal projects?\n\n- Did you write and deploy any Lambda functions?\n- Did you integrate Lambda with other AWS services (e.g., API Gateway, S3, DynamoDB)?\n- Did you explore serverless frameworks like SAM or Serverless Framework?",
+        "context_why": "Why this matters: Serverless Computing and AWS Lambda are key technologies for building modern, scalable backend services. While you have AWS EC2 experience, demonstrating familiarity with serverless can bridge a significant gap in this critical area.",
+        "examples": [
+          "Professional: Developed an AWS Lambda function to process image uploads to S3 for TechStartup Inc., triggered by S3 events, reducing processing time by 30%.",
+          "Side Project: Built a simple API endpoint using AWS Lambda and API Gateway for a personal project, handling form submissions.",
+          "Learning: Experimented with AWS Lambda by following tutorials to create a basic serverless application."
+        ]
+      },
+      {
+        "id": "q4",
+        "number": 4,
+        "title": "CI/CD Pipeline Setup and Automation",
+        "priority": "CRITICAL",
+        "impact": "+10% if yes",
+        "question_text": "Setting up and managing CI/CD pipelines is an important requirement. You've deployed applications to AWS EC2, which often involves some level of automation. Have you been involved in setting up or maintaining CI/CD pipelines using tools like Jenkins or GitHub Actions, or even simpler automated deployment scripts?\n\n- Did you configure automated builds, tests, or deployments?\n- Did you use Jenkins, GitHub Actions, GitLab CI, or similar tools?\n- Did you write scripts for automated deployments?",
+        "context_why": "Why this matters: CI/CD is crucial for efficient software development and deployment. Showing experience here, even if not full pipeline management, demonstrates an understanding of automated workflows, which is highly valued for a senior role.",
+        "examples": [
+          "Professional: Contributed to setting up a Jenkins pipeline at TechStartup Inc. to automate the build and deployment of React frontend components, reducing manual deployment time by 75%.",
+          "Side Project: Configured GitHub Actions to automatically build and deploy a Node.js backend to a cloud provider upon code commits.",
+          "Learning: Practiced setting up CI/CD pipelines with Jenkins and Docker for a personal project to understand the workflow."
+        ]
+      },
+      {
+        "id": "q5",
+        "number": 5,
+        "title": "Database Optimization and Caching Strategies",
+        "priority": "CRITICAL",
+        "impact": "+10% if yes",
+        "question_text": "The JD requires optimizing PostgreSQL performance and implementing Redis caching. Your experience includes working with MongoDB. Have you encountered situations where you needed to optimize database performance or implement caching mechanisms, even if with different technologies?\n\n- Did you analyze query performance and implement indexing or query tuning?\n- Did you use any caching layers (e.g., Redis, Memcached, in-memory cache) to improve application speed?\n- Did you work with any relational databases (e.g., MySQL, PostgreSQL) in any capacity?",
+        "context_why": "Why this matters: Database optimization and caching are critical for high-traffic systems. While your experience is with MongoDB, demonstrating an understanding of these concepts, even with other technologies, shows transferable skills and problem-solving abilities.",
+        "examples": [
+          "Professional: Optimized MongoDB queries at TechStartup Inc. by adding indexes and refactoring data retrieval logic, resulting in a 40% reduction in average response time for key API endpoints.",
+          "Side Project: Implemented a Redis cache for frequently accessed data in a personal project, reducing database load by 60% and improving page load times.",
+          "Learning: Studied database indexing techniques and caching patterns through online resources and applied them to a practice project."
+        ]
+      },
+      {
+        "id": "q6",
+        "number": 6,
+        "title": "Leadership and Mentorship Experience",
+        "priority": "CRITICAL",
+        "impact": "+10% if yes",
+        "question_text": "A key aspect of the senior role is exhibiting leadership qualities and mentoring junior engineers. As a Junior Full-stack Developer, you might not have had formal leadership roles, but have you ever guided a peer, onboarded a new team member, or taken the lead on a specific feature or task?\n\n- Did you ever mentor an intern or a less experienced colleague?\n- Did you lead a small feature development effort or a specific task?\n- Did you present technical solutions or best practices to your team?",
+        "context_why": "Why this matters: Leadership and mentorship are crucial for a senior position, indicating the ability to guide technical decisions and foster team growth. Even informal leadership experiences can demonstrate potential.",
+        "examples": [
+          "Professional: Onboarded a new intern at TechStartup Inc., guiding them through the codebase and their first tasks, helping them become productive within two weeks.",
+          "Side Project: Led a small group of friends in a hackathon project, assigning roles and facilitating decision-making.",
+          "Academic Project: Took the initiative to organize and delegate tasks within a university group project, ensuring timely completion."
+        ]
+      },
+      {
+        "id": "q7",
+        "number": 7,
+        "title": "Problem-Solving and Debugging Complex Issues",
+        "priority": "HIGH",
+        "impact": "+6% if yes",
+        "question_text": "The JD emphasizes strong problem-solving abilities to diagnose and resolve complex technical challenges. Your CV mentions fixing bugs and improving UI/UX. Can you describe a time when you faced a particularly challenging bug or technical issue, and how you approached solving it?\n\n- What was the nature of the problem?\n- What steps did you take to diagnose it?\n- What was the eventual solution, and what did you learn?",
+        "context_why": "Why this matters: Strong problem-solving is a core soft skill for any engineering role, especially senior ones. Highlighting your ability to tackle complex issues demonstrates your technical acumen and resilience.",
+        "examples": [
+          "Professional: Debugged a performance bottleneck in the backend API at TechStartup Inc. that was causing intermittent timeouts, tracing it to an inefficient database query and optimizing it to resolve the issue.",
+          "Side Project: Resolved a complex state management issue in a React application that was causing data inconsistencies, requiring deep dives into component lifecycles and event handling.",
+          "Academic Project: Diagnosed and fixed a critical bug in a distributed system simulation for a university course, which involved understanding concurrency issues."
+        ]
+      },
+      {
+        "id": "q8",
+        "number": 8,
+        "title": "Experience with Healthcare or Fintech Domains",
+        "priority": "CRITICAL",
+        "impact": "+10% if yes",
+        "question_text": "The job description lists Healthcare and Fintech as desired domain expertise. While your CV doesn't explicitly mention these, have you worked on any projects, personal or professional, that involved sensitive data, compliance requirements (like HIPAA in healthcare), or financial transactions?\n\n- Did you work on any applications related to patient data, medical records, or health tracking?\n- Did you develop features for financial platforms, payment processing, or investment tools?\n- Were there any specific security or regulatory considerations you had to address?",
+        "context_why": "Why this matters: Domain expertise in Healthcare or Fintech can be a significant advantage. Even if your experience is tangential, it can show an understanding of the unique challenges and requirements of these industries.",
+        "examples": [
+          "Professional: Developed a feature for a client's internal tool at TechStartup Inc. that handled sensitive user data, requiring careful attention to data privacy (though not explicitly HIPAA).",
+          "Side Project: Built a personal budgeting app that tracked income and expenses, requiring careful handling of financial data.",
+          "Academic Project: Worked on a project simulating a secure transaction system for a cybersecurity course."
+        ]
+      },
+      {
+        "id": "q9",
+        "number": 9,
+        "title": "GraphQL API Development",
+        "priority": "CRITICAL",
+        "impact": "+8% if yes",
+        "question_text": "The role requires experience with GraphQL APIs, and your CV mentions implementing REST APIs with Express. Have you had any exposure to GraphQL, perhaps through personal projects, learning, or even just exploring its concepts?\n\n- Did you build any GraphQL schemas or resolvers?\n- Did you consume a GraphQL API?\n- Did you experiment with GraphQL tools like Apollo Server or Relay?",
+        "context_why": "Why this matters: GraphQL is an important skill for modern backend development, offering an alternative to REST. Demonstrating any familiarity can help bridge the gap from REST API experience.",
+        "examples": [
+          "Professional: Explored GraphQL as a potential alternative for a new API at TechStartup Inc., researching its benefits and drawbacks compared to REST.",
+          "Side Project: Built a small GraphQL API using Node.js and Apollo Server for a personal project to manage a content management system.",
+          "Learning: Completed an introductory course on GraphQL and built a sample application to practice its concepts."
+        ]
+      },
+      {
+        "id": "q10",
+        "number": 10,
+        "title": "Logistical Considerations: Relocation to New York, NY",
+        "priority": "LOGISTICAL",
+        "impact": "N/A (Dealbreaker/Enabler)",
+        "question_text": "This role is based in New York, NY, and requires an onsite presence. Given your current location in San Francisco, CA, are you open to relocating to New York, NY for this position?",
+        "context_why": "Why this matters: This is a critical logistical requirement. Understanding your willingness to relocate is essential to determine if this opportunity is feasible.",
+        "examples": []
+      },
+      {
+        "id": "q11",
+        "number": 11,
+        "title": "Terraform for Infrastructure as Code",
+        "priority": "LOW",
+        "impact": "+2% if yes",
+        "question_text": "Terraform is listed as a 'nice-to-have' skill. While your CV mentions AWS EC2 deployment, have you had any exposure to Infrastructure as Code (IaC) tools like Terraform, even for learning purposes or small personal projects?\n\n- Did you write any Terraform configuration files (.tf)?\n- Did you use Terraform to provision or manage cloud resources?",
+        "context_why": "Why this matters: Terraform is a valuable tool for managing cloud infrastructure efficiently and reproducibly. While not critical, any experience here would be a bonus and further align with DevOps best practices.",
+        "examples": [
+          "Side Project: Used Terraform to provision an AWS EC2 instance and set up a basic network for a personal project.",
+          "Learning: Followed tutorials to learn the basics of Terraform and its syntax for managing cloud resources.",
+          "Academic Project: Explored IaC concepts as part of a cloud computing course."
+        ]
+      }
+    ],
+    "total_questions": 11,
+    "critical_count": 8,
+    "high_count": 1,
+    "medium_count": 0,
+    "rag_context_used": false,
+    "time_seconds": 24.0,
+    "model": "gemini-2.5-flash-lite"
+  },
+  "priority_counts": {
+    "CRITICAL": 8,
+    "HIGH": 1,
+    "LOGISTICAL": 1,
+    "LOW": 1
+  }
+}

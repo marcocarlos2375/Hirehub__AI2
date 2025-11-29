@@ -544,9 +544,23 @@ Return JSON:
         if isinstance(tools, list):
             tools = ", ".join(tools) if tools else "Not specified"
 
+        # Format quality_issues for prompt (handle both old string format and new object format)
+        quality_issues = state.get("quality_issues", [])
+        if quality_issues and isinstance(quality_issues[0], dict):
+            # New format: list of {label, description} objects
+            issues_text = "\n".join([f"- {issue['label']}: {issue['description']}" for issue in quality_issues])
+        elif quality_issues and hasattr(quality_issues[0], 'label'):
+            # Pydantic object format
+            issues_text = "\n".join([f"- {issue.label}: {issue.description}" for issue in quality_issues])
+        elif quality_issues:
+            # Old format: list of strings
+            issues_text = "\n".join([f"- {issue}" for issue in quality_issues])
+        else:
+            issues_text = "No specific issues identified"
+
         result = chain.invoke({
             "original_answer": original,
-            "issues": state.get("quality_issues", []),
+            "issues": issues_text,
             "refinement_data": refinement_data,
             "experience_context": experience_context,
             "gap_title": state.get("gap_info", {}).get("title", "Unknown"),
