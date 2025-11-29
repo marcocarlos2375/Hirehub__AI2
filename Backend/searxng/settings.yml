@@ -40,6 +40,17 @@ outgoing:
   pool_maxsize: 10
   enable_http2: true
 
+# Enable custom plugins for learning platform filtering
+plugins:
+  searx.plugins.learning_platform_filter.SXNGPlugin:
+    active: true
+
+  searx.plugins.tracker_url_remover.SXNGPlugin:
+    active: true
+
+  searx.plugins.self_info.SXNGPlugin:
+    active: true
+
 # Enable search engines relevant to learning
 engines:
   - name: google

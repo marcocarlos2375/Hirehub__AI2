@@ -45,22 +45,32 @@ User Level: {user_level}
 Current Year: {current_year}
 
 Requirements for each query:
-1. Include skill name + user level + resource type (course/tutorial/project)
-2. Add year "{current_year}" or "2025" for fresh, up-to-date content
-3. Use site: filters to target trusted learning platforms
-4. Vary queries to cover different resource types:
-   - Query 1: Focus on courses (Udemy, Coursera, Pluralsight)
-   - Query 2: Focus on tutorials/projects (freeCodeCamp, Dev.to, Medium)
-   - Query 3: Focus on videos/docs (YouTube, official documentation)
+1. ALWAYS include educational keywords: "course", "tutorial", "learn", or "bootcamp"
+2. For programming languages (Rust, Python, Go, etc.), ALWAYS add "programming course" or "tutorial"
+3. Add year "{current_year}" or "2025" for fresh, up-to-date content
+4. Use site: filters to target trusted learning platforms (coursera.org, udemy.com, edx.org, linkedin.com/learning)
+5. Vary queries to cover different resource types:
+   - Query 1: Focus on courses (Coursera, edX, Udacity)
+   - Query 2: Focus on tutorials/bootcamps (Udemy, LinkedIn Learning)
+   - Query 3: Focus on specialized platforms (AWS Training, Google Career Certificates)
+
+CRITICAL: Generic terms like "Rust", "Go", "Python" MUST include "course" or "tutorial" to signal educational intent!
 
 Output ONLY a JSON array of strings, nothing else:
 ["query 1", "query 2", "query 3"]
 
 Example for "React" beginner:
 [
-  "React beginner course 2025 site:udemy.com OR site:coursera.org",
-  "React tutorial hands-on project beginner site:freecodecamp.org OR site:dev.to",
-  "React complete guide beginner {current_year} site:youtube.com"
+  "React beginner course 2025 site:coursera.org OR site:edx.org",
+  "React programming tutorial {user_level} site:udemy.com OR site:linkedin.com",
+  "learn React from scratch {current_year} site:aws.amazon.com OR site:grow.google"
+]
+
+Example for "Rust" beginner:
+[
+  "Rust programming course beginner 2025 site:coursera.org OR site:edx.org",
+  "Rust tutorial hands-on project {user_level} site:udacity.com OR site:linkedin.com",
+  "learn Rust from scratch {current_year} site:training.linuxfoundation.org"
 ]
 
 Generate {num_queries} queries for {gap_title} ({user_level} level):"""
@@ -103,7 +113,24 @@ Generate {num_queries} queries for {gap_title} ({user_level} level):"""
             Simple search query string
         """
         current_year = datetime.now().year
-        return f"{skill} {level} course tutorial {current_year} site:udemy.com OR site:coursera.org OR site:freecodecamp.org"
+
+        # Detect if this is a programming language (generic term that needs educational context)
+        programming_languages = {
+            'rust', 'python', 'go', 'java', 'javascript', 'typescript',
+            'c++', 'c#', 'csharp', 'ruby', 'php', 'swift', 'kotlin', 'scala',
+            'perl', 'r', 'julia', 'haskell', 'elixir', 'dart', 'lua',
+            'objective-c', 'assembly', 'fortran', 'cobol', 'lisp', 'erlang'
+        }
+
+        skill_lower = skill.lower()
+        is_programming_language = any(lang in skill_lower for lang in programming_languages)
+
+        if is_programming_language:
+            # For programming languages, ALWAYS add "course" to signal educational intent
+            return f"{skill} programming course {level} {current_year} site:coursera.org OR site:udemy.com OR site:edx.org"
+        else:
+            # For other skills, use generic query
+            return f"{skill} {level} course tutorial {current_year} site:udemy.com OR site:coursera.org OR site:freecodecamp.org"
 
     def generate_single_query(
         self,

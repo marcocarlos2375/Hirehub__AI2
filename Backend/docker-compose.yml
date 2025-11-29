@@ -30,7 +30,9 @@ services:
       - QDRANT__SERVICE__HTTP_PORT=6333
 
   searxng:
-    image: searxng/searxng:latest
+    build:
+      context: ./searxng
+      dockerfile: Dockerfile
     container_name: test-hirehub-adaptive-searxng
     ports:
       - "8888:8080"
