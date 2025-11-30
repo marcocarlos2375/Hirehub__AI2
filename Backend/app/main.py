@@ -1813,7 +1813,14 @@ Return ONLY valid JSON with this exact structure:
         )
         print(f"✅ Waiting message generation completed using {provider}")
 
-        result = json.loads(response_text)
+        # Parse JSON response with error handling
+        try:
+            result = json.loads(response_text)
+        except json.JSONDecodeError as json_err:
+            print(f"⚠️  JSON parsing failed for score message: {json_err}")
+            print(f"⚠️  AI returned: {response_text[:200]}...")  # Log first 200 chars
+            # Use fallback immediately
+            return get_fallback_message(overall_score)
 
         # Validate response has required fields
         if "title" in result and "subtitle" in result:
@@ -1823,6 +1830,7 @@ Return ONLY valid JSON with this exact structure:
             }
         else:
             # Fallback if AI doesn't return proper format
+            print(f"⚠️  Missing required fields in score message response")
             return get_fallback_message(overall_score)
 
     except Exception as e:
@@ -2189,7 +2197,27 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
                 lines = lines[:-1]
             cleaned_text = "\n".join(lines).strip()
 
-        analysis_result = json.loads(cleaned_text)
+        # Parse JSON with error handling
+        try:
+            analysis_result = json.loads(cleaned_text)
+        except json.JSONDecodeError as json_err:
+            print(f"⚠️  Gap analysis JSON parsing failed: {json_err}")
+            print(f"⚠️  AI returned: {cleaned_text[:200]}...")
+            # Return minimal valid structure
+            analysis_result = {
+                "gaps": {
+                    "critical": [],
+                    "important": [],
+                    "nice_to_have": [],
+                    "logistical": []
+                },
+                "strengths": [],
+                "application_viability": {
+                    "current_likelihood": "medium",
+                    "recommendation": "Review the job requirements and your experience",
+                    "key_blockers": []
+                }
+            }
 
         elapsed_time = time.time() - start_time
 
