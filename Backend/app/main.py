@@ -5,6 +5,7 @@ import re
 import httpx
 import tempfile
 import hashlib
+import asyncio
 from datetime import datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -21,6 +22,9 @@ from core.embeddings import calculate_overall_compatibility
 from core.vector_store import get_qdrant_manager
 from core.cache import get_cache
 from core.gemini_cache import generate_with_cache, get_prompt_cache_stats
+from core.llm_fallback import generate_with_fallback, gemini_client as fallback_gemini_client
+from core.embeddings_fallback import get_embedding_with_fallback
+from app.metrics_endpoints import router as metrics_router
 
 # Load environment variables
 load_dotenv()
@@ -40,6 +44,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include metrics endpoints router (Phase 3.1)
+app.include_router(metrics_router)
 
 # Create persistent HTTP/2 client with connection pooling for performance
 # This reuses connections and enables HTTP/2 for 30-50% speed improvement
@@ -315,29 +322,35 @@ async def parse_job(request: ParseRequest):
             language = "english"
 
         # CACHE: Check if this JD parsing is cached
+        # NON-BLOCKING: Cache failures don't crash JD parsing
         jd_hash = hashlib.md5(job_description.encode()).hexdigest()
         cache_key = f"parse:jd:{jd_hash}:{language}"
 
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            result_dict = json.loads(cached_result)
-            return ParseResponse(**result_dict)
+        try:
+            cached_result = cache.get(cache_key)
+            if cached_result:
+                result_dict = json.loads(cached_result) if isinstance(cached_result, str) else cached_result
+                print(f"✅ Cache HIT for JD parsing (instant response)")
+                return ParseResponse(**result_dict)
+        except Exception as cache_error:
+            print(f"⚠️  JD cache retrieval failed: {cache_error}. Falling back to fresh parsing.")
+            # Continue to fresh parsing below
 
         # Generate JSON prompt using shared config with language
         prompt = get_json_prompt(job_description, language)
 
-        # Call Gemini 2.5 Flash-Lite
+        # Call Gemini 2.5 Flash-Lite with GPT-3.5 fallback
         start_time = time.time()
         model_name = "gemini-2.5-flash-lite"
 
-        response = gemini_client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config={"temperature": 0.2}
+        response_text, provider = generate_with_fallback(
+            prompt=prompt,
+            model_gemini=model_name,
+            temperature=0.2
         )
 
-        response_text = response.text
         elapsed_time = time.time() - start_time
+        print(f"✅ JD parsing completed using {provider} in {elapsed_time:.2f}s")
 
         # Parse JSON response
         try:
@@ -367,7 +380,12 @@ async def parse_job(request: ParseRequest):
                 )
 
                 # CACHE: Store successful parse result (30 days TTL)
-                cache.set(cache_key, json.dumps(result.dict()), ttl=2592000)
+                # NON-BLOCKING: Cache storage failures don't crash parsing
+                try:
+                    cache.set(cache_key, json.dumps(result.dict()), ttl=2592000)
+                    print(f"✅ Cached JD parsing result (TTL: 30 days)")
+                except Exception as cache_error:
+                    print(f"⚠️  JD cache storage failed: {cache_error}. Result not cached, but returned to user.")
 
                 return result
             else:
@@ -435,29 +453,35 @@ async def parse_cv(request: CVParseRequest):
             language = "english"
 
         # CACHE: Check if this CV parsing is cached
+        # NON-BLOCKING: Cache failures don't crash CV parsing
         cv_hash = hashlib.md5(resume_text.encode()).hexdigest()
         cache_key = f"parse:cv:{cv_hash}:{language}"
 
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            result_dict = json.loads(cached_result)
-            return CVParseResponse(**result_dict)
+        try:
+            cached_result = cache.get(cache_key)
+            if cached_result:
+                result_dict = json.loads(cached_result) if isinstance(cached_result, str) else cached_result
+                print(f"✅ Cache HIT for CV parsing (instant response)")
+                return CVParseResponse(**result_dict)
+        except Exception as cache_error:
+            print(f"⚠️  CV cache retrieval failed: {cache_error}. Falling back to fresh parsing.")
+            # Continue to fresh parsing below
 
         # Generate CV prompt using shared config with language
         prompt = get_cv_prompt(resume_text, language)
 
-        # Call Gemini 2.5 Flash-Lite
+        # Call Gemini 2.5 Flash-Lite with GPT-3.5 fallback
         start_time = time.time()
         model_name = "gemini-2.5-flash-lite"
 
-        response = gemini_client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config={"temperature": 0.2}
+        response_text, provider = generate_with_fallback(
+            prompt=prompt,
+            model_gemini=model_name,
+            temperature=0.2
         )
 
-        response_text = response.text
         elapsed_time = time.time() - start_time
+        print(f"✅ CV parsing completed using {provider} in {elapsed_time:.2f}s")
 
         # Parse JSON response
         try:
@@ -487,7 +511,12 @@ async def parse_cv(request: CVParseRequest):
                 )
 
                 # CACHE: Store successful parse result (30 days TTL)
-                cache.set(cache_key, json.dumps(result.dict()), ttl=2592000)
+                # NON-BLOCKING: Cache storage failures don't crash parsing
+                try:
+                    cache.set(cache_key, json.dumps(result.dict()), ttl=2592000)
+                    print(f"✅ Cached CV parsing result (TTL: 30 days)")
+                except Exception as cache_error:
+                    print(f"⚠️  CV cache storage failed: {cache_error}. Result not cached, but returned to user.")
 
                 return result
             else:
@@ -577,30 +606,36 @@ async def find_domains(request: DomainFinderRequest, bypass_cache: bool = False)
             language = "english"
 
         # CACHE: Check if this domain analysis is cached (skip if bypass_cache=True)
+        # NON-BLOCKING: Cache failures don't crash domain finder
         resume_hash = hashlib.md5(resume_text.encode()).hexdigest()
         cache_key = f"domains:{resume_hash}:{language}"
 
         if not bypass_cache:
-            cached_result = cache.get(cache_key)
-            if cached_result:
-                result_dict = json.loads(cached_result)
-                return DomainFinderResponse(**result_dict)
+            try:
+                cached_result = cache.get(cache_key)
+                if cached_result:
+                    result_dict = json.loads(cached_result) if isinstance(cached_result, str) else cached_result
+                    print(f"✅ Cache HIT for domain finder (instant response)")
+                    return DomainFinderResponse(**result_dict)
+            except Exception as cache_error:
+                print(f"⚠️  Domain cache retrieval failed: {cache_error}. Falling back to fresh generation.")
+                # Continue to fresh generation below
 
         # Generate domain finder prompt
         prompt = get_domain_finder_prompt(resume_text, language)
 
-        # Call Gemini 2.5 Flash-Lite
+        # Call Gemini 2.5 Flash-Lite with GPT-3.5 fallback
         start_time = time.time()
         model_name = "gemini-2.5-flash-lite"
 
-        response = gemini_client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config={"temperature": 0.3}
+        response_text, provider = generate_with_fallback(
+            prompt=prompt,
+            model_gemini=model_name,
+            temperature=0.3
         )
 
-        response_text = response.text
         elapsed_time = time.time() - start_time
+        print(f"✅ Domain finder completed using {provider} in {elapsed_time:.2f}s")
 
         # Parse JSON response
         try:
@@ -634,7 +669,12 @@ async def find_domains(request: DomainFinderRequest, bypass_cache: bool = False)
                 )
 
                 # CACHE: Store successful result (1 hour TTL for easier testing/updates)
-                cache.set(cache_key, json.dumps(result.dict()), ttl=3600)
+                # NON-BLOCKING: Cache storage failures don't crash domain finder
+                try:
+                    cache.set(cache_key, json.dumps(result.dict()), ttl=3600)
+                    print(f"✅ Cached domain finder result (TTL: 1 hour)")
+                except Exception as cache_error:
+                    print(f"⚠️  Domain cache storage failed: {cache_error}. Result not cached, but returned to user.")
 
                 return result
             else:
@@ -1153,13 +1193,18 @@ def extract_industries_with_ai(text: str) -> list[str]:
         return []
 
     # OPTIMIZATION #2: Check persistent Redis cache first
+    # NON-BLOCKING: Cache failures don't crash industry extraction
     cache_key = f"ind:{text[:100]}"  # Prefix for industry extraction
-    cached_result = cache.get(cache_key)
-    if cached_result:
-        # Redis cache stores JSON, deserialize if string
-        if isinstance(cached_result, str):
-            return json.loads(cached_result)
-        return cached_result
+    try:
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            # Redis cache stores JSON, deserialize if string
+            industries = json.loads(cached_result) if isinstance(cached_result, str) else cached_result
+            print(f"✅ Cache HIT for industry extraction")
+            return industries
+    except Exception as cache_error:
+        print(f"⚠️  Industry cache retrieval failed: {cache_error}. Falling back to AI extraction.")
+        # Continue to AI extraction below
 
     try:
         prompt = f"""Extract and normalize the industry or business sector from this text.
@@ -1179,13 +1224,14 @@ Example output: ["Finance"]
 
 Return only the JSON array:"""
 
-        response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-            config={"temperature": 0.1}  # Low temperature for consistency
+        result_text, provider = generate_with_fallback(
+            prompt=prompt,
+            model_gemini="gemini-2.5-flash-lite",
+            temperature=0.1  # Low temperature for consistency
         )
+        print(f"✅ Industry extraction completed using {provider}")
 
-        result_text = response.text.strip()
+        result_text = result_text.strip()
 
         # Parse JSON response
         industries = json.loads(result_text)
@@ -1197,7 +1243,12 @@ Return only the JSON array:"""
         industries = [ind.lower().strip() for ind in industries if ind]
 
         # OPTIMIZATION #2: Store in persistent Redis cache (TTL: 30 days)
-        cache.set(cache_key, json.dumps(industries), ttl=2592000)
+        # NON-BLOCKING: Cache storage failures don't crash the extraction
+        try:
+            cache.set(cache_key, json.dumps(industries), ttl=2592000)
+            print(f"✅ Cached industry extraction (TTL: 30 days)")
+        except Exception as cache_error:
+            print(f"⚠️  Industry cache storage failed: {cache_error}. Result not cached, but returned.")
 
         return industries
 
@@ -1217,13 +1268,18 @@ def extract_role_category_with_ai(role: str) -> str:
         return ""
 
     # OPTIMIZATION #2: Check persistent Redis cache first
+    # NON-BLOCKING: Cache failures don't crash role categorization
     role_key = f"role:{role.lower().strip()}"  # Prefix for role extraction
-    cached_result = cache.get(role_key)
-    if cached_result:
-        # Redis cache stores JSON, deserialize if string
-        if isinstance(cached_result, str):
-            return json.loads(cached_result).strip('"')  # Remove JSON quotes
-        return str(cached_result)
+    try:
+        cached_result = cache.get(role_key)
+        if cached_result:
+            # Redis cache stores JSON, deserialize if string
+            role_category = json.loads(cached_result).strip('"') if isinstance(cached_result, str) else str(cached_result)
+            print(f"✅ Cache HIT for role categorization")
+            return role_category
+    except Exception as cache_error:
+        print(f"⚠️  Role cache retrieval failed: {cache_error}. Falling back to AI categorization.")
+        # Continue to AI categorization below
 
     try:
         prompt = f"""Categorize this job role into ONE standard category.
@@ -1250,13 +1306,14 @@ Example: Marketing
 
 Return:"""
 
-        response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-            config={"temperature": 0.1}  # Low temperature for consistency
+        result_text, provider = generate_with_fallback(
+            prompt=prompt,
+            model_gemini="gemini-2.5-flash-lite",
+            temperature=0.1  # Low temperature for consistency
         )
+        print(f"✅ Role categorization completed using {provider}")
 
-        category = response.text.strip().lower()
+        category = result_text.strip().lower()
 
         # Validate category
         valid_categories = {
@@ -1274,7 +1331,12 @@ Return:"""
                 category = 'other'
 
         # OPTIMIZATION #2: Store in persistent Redis cache (TTL: 30 days)
-        cache.set(role_key, json.dumps(category), ttl=2592000)
+        # NON-BLOCKING: Cache storage failures don't crash the categorization
+        try:
+            cache.set(role_key, json.dumps(category), ttl=2592000)
+            print(f"✅ Cached role categorization (TTL: 30 days)")
+        except Exception as cache_error:
+            print(f"⚠️  Role cache storage failed: {cache_error}. Result not cached, but returned.")
 
         return category
 
@@ -1743,17 +1805,16 @@ Return ONLY valid JSON with this exact structure:
 }}"""
 
     try:
-        # Use gemini-2.5-flash-lite with JSON response mode
-        response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-            config={
-                "temperature": 0.7,  # Slightly creative for varied messages
-                "response_mime_type": "application/json"
-            }
+        # Use gemini-2.5-flash-lite with JSON response mode and GPT-3.5 fallback
+        response_text, provider = generate_with_fallback(
+            prompt=prompt,
+            model_gemini="gemini-2.5-flash-lite",
+            temperature=0.7,  # Slightly creative for varied messages
+            response_mime_type="application/json"
         )
+        print(f"✅ Waiting message generation completed using {provider}")
 
-        result = json.loads(response.text)
+        result = json.loads(response_text)
 
         # Validate response has required fields
         if "title" in result and "subtitle" in result:
@@ -2002,16 +2063,15 @@ Sincerely,
 NOW GENERATE THE COVER LETTER:"""
 
     try:
-        response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-            config={
-                "temperature": 0.7,
-                "response_mime_type": "text/plain"
-            }
+        cover_letter, provider = generate_with_fallback(
+            prompt=prompt,
+            model_gemini="gemini-2.5-flash-lite",
+            temperature=0.7,
+            response_mime_type="text/plain"
         )
+        print(f"✅ Cover letter generation completed using {provider}")
 
-        cover_letter = response.text.strip()
+        cover_letter = cover_letter.strip()
 
         # Validate it's not empty
         if cover_letter and len(cover_letter) > 100:
@@ -2059,14 +2119,26 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
         cache_key = f"score:{cv_hash}:{jd_hash}:{request.language}"
 
         # Check cache (skip if bypass_cache=True)
+        # NON-BLOCKING: Cache failures don't crash the app, we fall back to fresh calculation
         if not bypass_cache:
-            cached_result = cache.get(cache_key)
-            if cached_result:
-                # Deserialize cached result
-                result_dict = json.loads(cached_result) if isinstance(cached_result, str) else cached_result
-                # Update time to show it was instant
-                result_dict['time_seconds'] = round(time.time() - start_time, 3)
-                return ScoreResponse(**result_dict)
+            try:
+                cached_result = cache.get(cache_key)
+                if cached_result:
+                    # Deserialize cached result using Pydantic's built-in method
+                    # This properly reconstructs all nested Pydantic models
+                    if isinstance(cached_result, str):
+                        cached_response = ScoreResponse.model_validate_json(cached_result)
+                    else:
+                        # L2 cache might return dict
+                        cached_response = ScoreResponse.model_validate(cached_result)
+                    # Update time to show it was instant
+                    cached_response.time_seconds = round(time.time() - start_time, 3)
+                    print(f"✅ Cache HIT for {cache_key[:20]}... (instant response)")
+                    return cached_response
+            except Exception as cache_error:
+                # Log warning but continue to fresh calculation - don't crash!
+                print(f"⚠️  Cache retrieval failed: {cache_error}. Falling back to fresh calculation.")
+                # Continue below to fresh calculation
 
         # Phase 1: Calculate embedding-based similarity (fast - ~1-2s)
         similarity_metrics = calculate_overall_compatibility(
@@ -2100,16 +2172,17 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
         )
 
         model_name = "gemini-2.5-flash-lite"
-        # Use explicit prompt caching for 90% discount on repeated prompts
-        response = generate_with_cache(
+        # Use explicit prompt caching for 90% discount on repeated prompts with GPT-3.5 fallback
+        response_text, provider = generate_with_cache(
             prompt=analysis_prompt,
             model=model_name,
             temperature=0.1,
             cache_ttl=300  # 5 minutes cache
         )
+        print(f"✅ Gap analysis completed using {provider}")
 
-        # Parse Gemini response
-        cleaned_text = response.text.strip()
+        # Parse response
+        cleaned_text = response_text.strip()
         if cleaned_text.startswith("```"):
             lines = cleaned_text.split("\n")
             if len(lines) > 1:
@@ -2165,7 +2238,14 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
 
         # OPTIMIZATION #1: Store in cache (TTL: 30 days = 2592000 seconds)
         # This provides 99% speedup on subsequent requests with same CV+JD
-        cache.set(cache_key, json.dumps(response.dict()), ttl=2592000)
+        # Use Pydantic's model_dump_json() to properly serialize nested models
+        # NON-BLOCKING: Cache storage failures don't crash the app
+        try:
+            cache.set(cache_key, response.model_dump_json(), ttl=2592000)
+            print(f"✅ Cached result for {cache_key[:20]}... (TTL: 30 days)")
+        except Exception as cache_error:
+            # Log warning but don't crash - user still gets their response
+            print(f"⚠️  Cache storage failed: {cache_error}. Result not cached, but returned to user.")
 
         return response
 
@@ -2192,28 +2272,39 @@ async def generate_questions(request: GenerateQuestionsRequest):
         critical_gaps = gaps.get("critical", [])
         important_gaps = gaps.get("important", [])
 
-        # Step 3: Search Qdrant for similar experiences (RAG)
+        # Step 3: Search Qdrant for similar experiences (RAG) - PARALLEL EXECUTION (Quick Win #3)
         rag_context = []
         rag_used = False
 
         # Extract nice-to-have gaps for RAG search
         nice_to_have_gaps = gaps.get("nice_to_have", [])
 
-        # Search for experiences related to critical, important, AND nice-to-have gaps
-        for gap in critical_gaps + important_gaps[:3] + nice_to_have_gaps[:2]:  # Limit to avoid too much context
-            gap_title = gap.get("title", "")
-            gap_description = gap.get("description", "")
-            search_query = f"{gap_title}: {gap_description}"
+        # Prepare all gaps for parallel search
+        all_gaps_to_search = critical_gaps + important_gaps[:3] + nice_to_have_gaps[:2]
 
-            similar_experiences = qdrant.search_similar_experiences(
-                query=search_query,
-                limit=2,  # Top 2 similar experiences per gap
-                score_threshold=0.7  # Only high-quality matches
-            )
+        if all_gaps_to_search:
+            # Define async search function
+            async def search_gap(gap):
+                gap_title = gap.get("title", "")
+                gap_description = gap.get("description", "")
+                search_query = f"{gap_title}: {gap_description}"
 
-            if similar_experiences:
-                rag_context.extend(similar_experiences)
-                rag_used = True
+                # Run synchronous search in thread pool
+                return await asyncio.to_thread(
+                    qdrant.search_similar_experiences,
+                    query=search_query,
+                    limit=2,
+                    score_threshold=0.7
+                )
+
+            # Run all RAG searches in parallel (saves 2-3s)
+            search_results = await asyncio.gather(*[search_gap(gap) for gap in all_gaps_to_search])
+
+            # Collect results
+            for similar_experiences in search_results:
+                if similar_experiences:
+                    rag_context.extend(similar_experiences)
+                    rag_used = True
 
         # Remove duplicates and limit total RAG context
         seen_texts = set()
@@ -2240,17 +2331,18 @@ async def generate_questions(request: GenerateQuestionsRequest):
             language=request.language
         )
 
-        # Step 6: Call Gemini to generate questions (with explicit prompt caching)
+        # Step 6: Call Gemini to generate questions (with explicit prompt caching and GPT-3.5 fallback)
         model_name = "gemini-2.5-flash-lite"  # Faster model for better performance
-        response = generate_with_cache(
+        response_text, provider = generate_with_cache(
             prompt=question_prompt,
             model=model_name,
             temperature=0.3,  # Balanced creativity and consistency
             cache_ttl=300  # 5 minutes cache
         )
+        print(f"✅ Question generation completed using {provider}")
 
         # Step 7: Parse response
-        cleaned_text = response.text.strip()
+        cleaned_text = response_text.strip()
         if cleaned_text.startswith("```"):
             lines = cleaned_text.split("\n")
             if len(lines) > 1:
@@ -2564,14 +2656,16 @@ For quality_issues and quality_strengths, use dynamic category labels like:
 Language: {request.language}
 """
 
-        # Call Gemini to evaluate
-        response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash-exp",
-            contents=evaluation_prompt
+        # Call Gemini to evaluate with GPT-3.5 fallback
+        response_text, provider = generate_with_fallback(
+            prompt=evaluation_prompt,
+            model_gemini="gemini-2.0-flash-exp",
+            temperature=0.2
         )
+        print(f"✅ Answer quality evaluation completed using {provider}")
 
         # Extract JSON from response
-        response_text = response.text.strip()
+        response_text = response_text.strip()
 
         # Remove markdown code blocks if present
         if response_text.startswith("```json"):
@@ -2676,15 +2770,16 @@ async def submit_answers(request: SubmitAnswersRequest):
             cv_toon, jd_toon, questions_and_answers, request.language
         )
 
-        # Step 4: Call Gemini to analyze answers
-        response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash-exp",
-            contents=analysis_prompt,
-            config={"temperature": 0.3}
+        # Step 4: Call Gemini to analyze answers with GPT-3.5 fallback
+        response_text, provider = generate_with_fallback(
+            prompt=analysis_prompt,
+            model_gemini="gemini-2.0-flash-exp",
+            temperature=0.3
         )
+        print(f"✅ Answer analysis completed using {provider}")
 
         # Step 5: Parse the analysis
-        response_text = response.text.strip()
+        response_text = response_text.strip()
         cleaned_text = response_text.strip('```json').strip('```').strip()
         analysis_data = json.loads(cleaned_text)
 
@@ -2930,17 +3025,18 @@ async def rewrite_resume(request: RewriteResumeRequest):
             language=request.language
         )
 
-        # Call Gemini AI to rewrite resume (with explicit prompt caching)
+        # Call Gemini AI to rewrite resume (with explicit prompt caching and GPT-3.5 fallback)
         model_name = "gemini-2.5-flash-lite"
-        response = generate_with_cache(
+        response_text, provider = generate_with_cache(
             prompt=rewrite_prompt,
             model=model_name,
             temperature=0.3,  # Slightly creative for better writing
             cache_ttl=300  # 5 minutes cache
         )
+        print(f"✅ Resume rewrite completed using {provider}")
 
         # Parse response
-        cleaned_text = response.text.strip()
+        cleaned_text = response_text.strip()
         if cleaned_text.startswith("```"):
             lines = cleaned_text.split("\n")
             if len(lines) > 1:
@@ -3027,24 +3123,23 @@ async def benchmark_gemini(job: JobDescription):
         prompt = create_prompt(job.job_description)
 
         start = time.time()
-        response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash-lite",
-            contents=prompt,
-            config={
-                "temperature": 0.2
-                # Removed response_mime_type to allow TOON format
-            }
+        response_text, provider = generate_with_fallback(
+            prompt=prompt,
+            model_gemini="gemini-2.0-flash-lite",
+            temperature=0.2
+            # Removed response_mime_type to allow TOON format
         )
         elapsed = time.time() - start
+        print(f"✅ Benchmark completed using {provider}")
 
         # Parse TOON/JSON response
-        parsed_data, success, format_used = parse_toon_response(response.text)
+        parsed_data, success, format_used = parse_toon_response(response_text)
 
         # Convert to JSON for API response (backward compatibility)
         if success:
             json_output = json.dumps(parsed_data, indent=2)
         else:
-            json_output = response.text
+            json_output = response_text
 
         return BenchmarkResult(
             model="gemini-2.0-flash-lite",
@@ -3099,24 +3194,23 @@ async def benchmark_gemini_flash(job: JobDescription):
         prompt = create_prompt(job.job_description)
 
         start = time.time()
-        response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash-exp",
-            contents=prompt,
-            config={
-                "temperature": 0.2
-                # Removed response_mime_type to allow TOON format
-            }
+        response_text, provider = generate_with_fallback(
+            prompt=prompt,
+            model_gemini="gemini-2.0-flash-exp",
+            temperature=0.2
+            # Removed response_mime_type to allow TOON format
         )
         elapsed = time.time() - start
+        print(f"✅ Benchmark flash completed using {provider}")
 
         # Parse TOON/JSON response
-        parsed_data, success, format_used = parse_toon_response(response.text)
+        parsed_data, success, format_used = parse_toon_response(response_text)
 
         # Convert to JSON for API response (backward compatibility)
         if success:
             json_output = json.dumps(parsed_data, indent=2)
         else:
-            json_output = response.text
+            json_output = response_text
 
         return BenchmarkResult(
             model="gemini-2.0-flash-exp",
@@ -3254,10 +3348,29 @@ async def get_cache_stats():
     Includes both application-level caching and Gemini prompt caching stats.
     """
     # Get application-level cache stats (Redis + in-memory)
-    app_cache_stats = cache.get_stats()
+    # NON-BLOCKING: Cache stats failures don't crash the endpoint
+    try:
+        app_cache_stats = cache.get_stats()
+    except Exception as cache_error:
+        print(f"⚠️  Cache stats retrieval failed: {cache_error}. Returning error response.")
+        app_cache_stats = {
+            "error": str(cache_error),
+            "l1_hits": 0,
+            "l1_misses": 0,
+            "l2_hits": 0,
+            "l2_misses": 0,
+            "total_requests": 0,
+            "hit_rate": 0.0,
+            "l1_size": 0,
+            "l1_maxsize": 1000
+        }
 
     # Get Gemini prompt cache stats (explicit caching)
-    prompt_cache_stats = get_prompt_cache_stats()
+    try:
+        prompt_cache_stats = get_prompt_cache_stats()
+    except Exception as cache_error:
+        print(f"⚠️  Prompt cache stats retrieval failed: {cache_error}. Returning error response.")
+        prompt_cache_stats = {"error": str(cache_error)}
 
     # Combine both
     return {
@@ -3274,11 +3387,18 @@ async def clear_domains_cache():
     cleared_count = 0
 
     # Clear from L1 (in-memory) cache
+    # NON-BLOCKING: L1 cache deletion failures don't crash the endpoint
     if hasattr(cache, '_l1_cache'):
         domain_keys = [k for k in list(cache._l1_cache.keys()) if k.startswith('domains:')]
         for key in domain_keys:
-            del cache._l1_cache[key]
-            cleared_count += 1
+            try:
+                # Check existence before deletion to avoid KeyError
+                if key in cache._l1_cache:
+                    del cache._l1_cache[key]
+                    cleared_count += 1
+            except Exception as cache_error:
+                print(f"⚠️  Failed to delete L1 cache key {key}: {cache_error}")
+                # Continue to next key
 
     # Clear from L2 (Redis) cache
     if cache.redis_client:
@@ -3855,14 +3975,15 @@ async def analyze_skill_gap(request: SkillGapAnalysisRequest):
             parsed_jd=request.parsed_jd
         )
 
-        # Call Gemini
+        # Call Gemini with GPT-3.5 fallback
         model_name = "gemini-2.5-flash-lite"
-        response = gemini_client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config={"temperature": 0.3}  # Slightly higher for creative, personalized messages
+        response_text, provider = generate_with_fallback(
+            prompt=prompt,
+            model_gemini=model_name,
+            temperature=0.3  # Slightly higher for creative, personalized messages
         )
-        response_text = response.text.strip()
+        print(f"✅ Skill gap analysis completed using {provider}")
+        response_text = response_text.strip()
 
         # Remove markdown code blocks if present
         if response_text.startswith("```"):
@@ -3891,6 +4012,57 @@ async def analyze_skill_gap(request: SkillGapAnalysisRequest):
             status_code=500,
             detail=f"Error analyzing skill gap: {str(e)}"
         )
+
+
+@app.post("/api/test-metrics")
+async def test_metrics():
+    """
+    Generate test metrics for Grafana dashboard testing.
+    This endpoint creates sample data to verify Grafana integration.
+    """
+    from core.metrics_collector import get_metrics_collector
+    import random
+
+    collector = get_metrics_collector()
+
+    # Generate 20 test metrics
+    for i in range(20):
+        # Performance metrics
+        collector.record_performance(
+            operation=random.choice(["generate_questions", "evaluate_answer", "refine_response"]),
+            duration_ms=random.uniform(500, 2500),
+            metadata={"test": True, "iteration": i}
+        )
+
+        # Cost metrics
+        collector.record_llm_cost(
+            operation=random.choice(["question_gen", "quality_eval", "refinement"]),
+            input_tokens=random.randint(1000, 3500),
+            output_tokens=random.randint(300, 1800),
+            cache_hit=random.choice([True, False]),
+            metadata={"test": True, "iteration": i}
+        )
+
+        # Quality metrics
+        collector.record_quality(
+            question_id=f"test-q-{i}",
+            gap_priority=random.choice(["CRITICAL", "IMPORTANT", "MEDIUM", "LOW"]),
+            quality_score=random.randint(5, 10),
+            refinement_count=random.randint(0, 2),
+            metadata={"test": True}
+        )
+
+    return {
+        "success": True,
+        "message": "Test metrics generated successfully",
+        "metrics_generated": {
+            "performance": 20,
+            "cost": 20,
+            "quality": 20
+        },
+        "note": "Refresh your Grafana dashboard to see the data. Auto-refresh is every 10 seconds.",
+        "dashboard_url": "http://localhost:3001/d/4d99bc15-6a7d-4396-9d23-ef7d7b3e92c0/hirehub-metrics-dashboard"
+    }
 
 
 @app.on_event("startup")

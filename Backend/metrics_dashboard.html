@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HireHub Metrics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #0f1419;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+
+        .last-updated {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #1a1f25;
+            border-radius: 8px;
+            padding: 24px;
+            border: 1px solid #2a2f35;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 0.9em;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .card-value {
+            font-size: 3em;
+            font-weight: 600;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+
+        .card-unit {
+            font-size: 0.5em;
+            color: #666;
+            font-weight: 400;
+        }
+
+        .card-footer {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #2a2f35;
+        }
+
+        .green { color: #52c41a; }
+        .yellow { color: #faad14; }
+        .red { color: #f5222d; }
+        .blue { color: #1890ff; }
+        .purple { color: #722ed1; }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .error {
+            background: #2a1515;
+            border: 1px solid #f5222d;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .error-title {
+            color: #f5222d;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 12px;
+            transition: background 0.2s;
+        }
+
+        .button:hover {
+            background: #40a9ff;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .refreshing .card {
+            animation: pulse 1s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 HireHub Metrics Dashboard</h1>
+        <div class="last-updated">Last updated: <span id="lastUpdated">Never</span></div>
+        <button class="button" onclick="refreshMetrics()">🔄 Refresh Now</button>
+        <button class="button" onclick="generateTestMetrics()">🎲 Generate Test Data</button>
+    </div>
+
+    <div id="dashboard" class="dashboard">
+        <div class="loading">Loading metrics...</div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8001';
+        let autoRefreshInterval;
+
+        async function fetchMetrics() {
+            try {
+                const response = await fetch(`${API_URL}/api/metrics/dashboard`);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error fetching metrics:', error);
+                throw error;
+            }
+        }
+
+        async function generateTestMetrics() {
+            try {
+                document.getElementById('dashboard').classList.add('refreshing');
+                const response = await fetch(`${API_URL}/api/test-metrics`, { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    setTimeout(() => {
+                        refreshMetrics();
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('Error generating test metrics:', error);
+                alert('Failed to generate test metrics. Make sure the API is running.');
+            }
+        }
+
+        function formatNumber(num, decimals = 2) {
+            if (num === null || num === undefined || num === 'N/A') return 'N/A';
+            return Number(num).toFixed(decimals);
+        }
+
+        function formatCurrency(num, decimals = 4) {
+            if (num === null || num === undefined || num === 'N/A') return 'N/A';
+            return '$' + Number(num).toFixed(decimals);
+        }
+
+        function getColorClass(value, thresholds) {
+            if (!value || value === 'N/A') return 'blue';
+            if (value < thresholds.green) return 'green';
+            if (value < thresholds.yellow) return 'yellow';
+            return 'red';
+        }
+
+        function renderDashboard(data) {
+            const perf = data.performance?.all_operations || {};
+            const costs = data.costs || {};
+            const cache = data.cache?.prompt_cache || {};
+            const health = data.health || {};
+
+            const cards = [
+                {
+                    title: 'P95 Latency',
+                    value: formatNumber(perf.p95_ms, 0),
+                    unit: 'ms',
+                    footer: `Avg: ${formatNumber(perf.avg_ms, 0)}ms | Operations: ${perf.count || 0}`,
+                    colorClass: getColorClass(perf.p95_ms, { green: 1000, yellow: 2000 })
+                },
+                {
+                    title: 'Total Cost (Hourly)',
+                    value: formatCurrency(costs.total_cost_usd),
+                    unit: '',
+                    footer: `Per call: ${formatCurrency(costs.avg_cost_per_call_usd, 6)}`,
+                    colorClass: 'blue'
+                },
+                {
+                    title: 'Monthly Projection',
+                    value: formatCurrency(costs.projected_monthly_cost_usd, 2),
+                    unit: '',
+                    footer: `Daily: ${formatCurrency(costs.projected_daily_cost_usd, 2)}`,
+                    colorClass: 'purple'
+                },
+                {
+                    title: 'Cache Hit Rate',
+                    value: formatNumber(costs.cache_hit_rate_percent, 0),
+                    unit: '%',
+                    footer: `Total requests: ${costs.count || 0}`,
+                    colorClass: getColorClass(costs.cache_hit_rate_percent, { green: 80, yellow: 50 })
+                },
+                {
+                    title: 'Total Tokens',
+                    value: (costs.total_tokens || 0).toLocaleString(),
+                    unit: '',
+                    footer: `Input: ${(costs.total_input_tokens || 0).toLocaleString()} | Output: ${(costs.total_output_tokens || 0).toLocaleString()}`,
+                    colorClass: 'blue'
+                },
+                {
+                    title: 'System Status',
+                    value: health.overall_status || 'unknown',
+                    unit: '',
+                    footer: 'All systems operational',
+                    colorClass: health.overall_status === 'healthy' ? 'green' : 'yellow'
+                }
+            ];
+
+            const html = cards.map(card => `
+                <div class="card">
+                    <div class="card-title">${card.title}</div>
+                    <div class="card-value ${card.colorClass}">
+                        ${card.value}<span class="card-unit">${card.unit}</span>
+                    </div>
+                    <div class="card-footer">${card.footer}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('dashboard').innerHTML = html;
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+            document.getElementById('dashboard').classList.remove('refreshing');
+        }
+
+        function renderError(error) {
+            const html = `
+                <div class="error">
+                    <div class="error-title">⚠️ Failed to Load Metrics</div>
+                    <p>${error.message || 'Unknown error occurred'}</p>
+                    <button class="button" onclick="refreshMetrics()">Try Again</button>
+                </div>
+            `;
+            document.getElementById('dashboard').innerHTML = html;
+        }
+
+        async function refreshMetrics() {
+            document.getElementById('dashboard').classList.add('refreshing');
+            try {
+                const data = await fetchMetrics();
+                renderDashboard(data);
+            } catch (error) {
+                renderError(error);
+            }
+        }
+
+        // Initial load
+        refreshMetrics();
+
+        // Auto-refresh every 10 seconds
+        autoRefreshInterval = setInterval(refreshMetrics, 10000);
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

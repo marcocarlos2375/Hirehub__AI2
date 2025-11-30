@@ -4,7 +4,7 @@ Orchestrates the multi-step intelligent question flow.
 """
 
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -18,6 +18,12 @@ from core.answer_flow_nodes import (
     route_after_experience_check,
     route_after_quality_eval
 )
+from core.state_persistence import (
+    generate_session_id,
+    save_state_snapshot,
+    load_state_snapshot,
+    get_state_summary
+)
 
 
 class AdaptiveQuestionWorkflow:
@@ -29,24 +35,29 @@ class AdaptiveQuestionWorkflow:
           ↓
         [User selects: Yes/No/Willing to Learn]
           ↓
-        ┌─────────────┬─────────────┐
-        ↓             ↓             ↓
-      YES            NO      WILLING_TO_LEARN
-        ↓             ↓             ↓
-    DEEP_DIVE   LEARNING_RESOURCES  │
-        ↓                           │
-    GENERATE_ANSWER                 │
-        ↓                           │
-    EVALUATE_QUALITY                │
-        ↓                           │
-      Good? ──No→ REFINE ──┐        │
-        │                  │        │
-        Yes                ↓        │
+        ┌──────────────┬──────────────┬───────────────────┐
+        ↓              ↓              ↓                   ↓
+      YES             NO      WILLING_TO_LEARN        (skip)
+        ↓              ↓              ↓                   ↓
+    DEEP_DIVE         END    LEARNING_RESOURCES         END
+        ↓                            ↓
+    GENERATE_ANSWER                 END
+        ↓
+    EVALUATE_QUALITY
+        ↓
+      Good? ──No→ REFINE ──┐
+        │                  │
+        Yes                ↓
         ↓            EVALUATE_QUALITY
-        ↓                  │        │
-        └──────────────────┴────────┘
-                    ↓
-                   END
+        ↓                  │
+        └──────────────────┘
+                ↓
+               END
+
+    Smart Skipping (Quick Win #2):
+    - "No" responses skip directly to END (saves 1-2s LLM call)
+    - Only "willing_to_learn" triggers learning resource search
+    - Only "yes" triggers deep-dive prompts generation
     """
 
     def __init__(self):
@@ -71,7 +82,8 @@ class AdaptiveQuestionWorkflow:
             route_after_experience_check,
             {
                 "deep_dive": "generate_deep_dive",
-                "learning_resources": "search_resources"
+                "learning_resources": "search_resources",
+                "skip": END  # Smart skip: No experience and not interested
             }
         )
 
@@ -139,20 +151,32 @@ class AdaptiveQuestionWorkflow:
 
         return final_state
 
-    def run_sync(self, initial_state: Dict[str, Any]) -> AdaptiveAnswerState:
+    def run_sync(self, initial_state: Dict[str, Any], enable_persistence: bool = True) -> AdaptiveAnswerState:
         """
         Run the workflow synchronously.
 
         Args:
             initial_state: Initial state dictionary
+            enable_persistence: Save state snapshots for resumption (Quick Win #5)
 
         Returns:
             Final state after workflow completion
         """
+        # Add session ID if not present (Quick Win #5)
+        if "session_id" not in initial_state or not initial_state["session_id"]:
+            initial_state["session_id"] = generate_session_id()
+
         # Add metadata
         initial_state["started_at"] = datetime.utcnow()
         initial_state["refinement_iteration"] = 0
         initial_state["answer_accepted"] = False
+
+        # Save initial state snapshot (Quick Win #5)
+        if enable_persistence:
+            try:
+                save_state_snapshot(initial_state)
+            except Exception as e:
+                print(f"⚠️  Failed to save initial snapshot: {e}")
 
         # Compile and run
         app = self.compile()
@@ -168,7 +192,39 @@ class AdaptiveQuestionWorkflow:
                 duration = (final_state["completed_at"] - final_state["started_at"]).total_seconds()
                 final_state["total_time_seconds"] = duration
 
+            # Save final state snapshot (Quick Win #5)
+            if enable_persistence:
+                try:
+                    save_state_snapshot(final_state)
+                except Exception as e:
+                    print(f"⚠️  Failed to save final snapshot: {e}")
+
         return final_state
+
+    def resume_from_snapshot(self, session_id: str, question_id: str) -> Optional[AdaptiveAnswerState]:
+        """
+        Resume workflow from saved snapshot (Quick Win #5).
+
+        Args:
+            session_id: Session UUID
+            question_id: Question identifier
+
+        Returns:
+            Loaded state or None if snapshot not found
+        """
+        print(f"🔄 Attempting to resume session {session_id}, question {question_id}...")
+
+        # Load snapshot
+        state = load_state_snapshot(session_id, question_id)
+
+        if state:
+            print(f"✅ Snapshot loaded successfully")
+            print(f"   Current step: {state.get('current_step')}")
+            print(f"   Time elapsed: {state.get('total_time_seconds', 0):.2f}s")
+            return state
+        else:
+            print(f"⚠️  No snapshot found for session {session_id}, question {question_id}")
+            return None
 
     def visualize(self, output_path: str = "workflow_graph.png"):
         """

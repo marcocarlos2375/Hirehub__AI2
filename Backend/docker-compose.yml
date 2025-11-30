@@ -119,6 +119,28 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: test-hirehub-adaptive-grafana
+    ports:
+      - "3001:3000"  # Grafana UI at http://localhost:3001
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # Change in production!
+      - GF_INSTALL_PLUGINS=yesoreyeram-infinity-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   benchmark:
     build: .
     env_file:
@@ -141,3 +163,4 @@ volumes:
   parakeet_models:
   perplexica_data:
   perplexica_uploads:
+  grafana_data:

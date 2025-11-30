@@ -29,6 +29,9 @@ class AdaptiveAnswerState(TypedDict, total=False):
     parsed_jd: Dict[str, Any]
     language: str
 
+    # Session management (Quick Win #5: State Persistence Prep)
+    session_id: Optional[str]  # UUID for session tracking and resume capability
+
     # Flow control
     current_step: str  # "experience_check", "deep_dive", "resources", "quality_eval", "refinement", "complete"
     has_experience: Optional[bool]  # True, False, or None (willing to learn)
@@ -156,6 +159,17 @@ class UserCancelledError(WorkflowError):
 
 # Constants
 MAX_REFINEMENT_ITERATIONS = 2
-MIN_ACCEPTABLE_QUALITY_SCORE = 7
+MIN_ACCEPTABLE_QUALITY_SCORE = 7  # Default fallback
 MAX_LEARNING_RESOURCES = 5
 MAX_LEARNING_DAYS = 10
+
+# Dynamic quality thresholds based on gap priority
+QUALITY_THRESHOLDS = {
+    "CRITICAL": 8,      # Higher bar for critical gaps (deal-breakers)
+    "HIGH": 7,          # Standard threshold for high priority
+    "IMPORTANT": 7,     # Standard threshold
+    "MEDIUM": 6,        # More lenient for medium priority
+    "NICE_TO_HAVE": 6,  # More lenient for nice-to-have skills
+    "LOW": 5,           # Very lenient for low priority
+    "LOGISTICAL": 5     # Very lenient for logistical gaps
+}

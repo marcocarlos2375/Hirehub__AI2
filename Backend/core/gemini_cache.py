@@ -21,6 +21,7 @@ import hashlib
 from typing import Optional, Dict, Any
 from google import genai
 from google.genai import types
+from core.llm_fallback import generate_with_fallback
 
 # Initialize Gemini client
 gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -113,10 +114,10 @@ def generate_with_cache(
     system_instruction: Optional[str] = None
 ) -> Any:
     """
-    Generate content using cached prompt (with automatic fallback).
+    Generate content using cached prompt (with automatic Gemini → GPT-3.5 fallback).
 
     This function attempts to use explicit caching for cost savings.
-    If caching fails, it falls back to normal generation (still benefits from implicit caching).
+    If caching fails, it falls back to normal generation with Gemini → GPT-3.5 fallback.
 
     Args:
         prompt: The prompt text
@@ -126,7 +127,7 @@ def generate_with_cache(
         system_instruction: Optional system instruction
 
     Returns:
-        Gemini API response object
+        Tuple of (response_text, provider) where provider is "gemini" or "openai"
     """
     # Try to create/use cached content
     cache_name = create_cached_content(
@@ -149,19 +150,19 @@ def generate_with_cache(
                     "cached_content": cache_name
                 }
             )
-            return response
+            return response.text, "gemini"
         except Exception as e:
             print(f"⚠️  Cached generation failed, falling back to normal: {str(e)}")
-            # Fall through to normal generation
+            # Fall through to normal generation with fallback
 
-    # Fallback: Normal generation (still benefits from 75% implicit caching)
-    response = gemini_client.models.generate_content(
-        model=model,
-        contents=prompt,
-        config=config
+    # Fallback: Use generate_with_fallback (Gemini → GPT-3.5)
+    response_text, provider = generate_with_fallback(
+        prompt=prompt,
+        model_gemini=model,
+        temperature=temperature
     )
 
-    return response
+    return response_text, provider
 
 
 def get_prompt_cache_stats() -> Dict[str, Any]:

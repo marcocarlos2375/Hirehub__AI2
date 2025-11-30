@@ -121,6 +121,7 @@ export interface GapInfo {
   description: string
   category: string // 'hard_skill' | 'soft_skill' | 'experience' | 'education' | 'certification'
   impact: string // 'critical' | 'important' | 'nice-to-have' | 'logistical'
+  priority?: string // Gap priority for quality thresholds: 'CRITICAL' | 'HIGH' | 'IMPORTANT' | 'MEDIUM' | 'NICE_TO_HAVE' | 'LOW' | 'LOGISTICAL'
   severity?: number // 0-10 scale
   suggestions?: string[]
 }

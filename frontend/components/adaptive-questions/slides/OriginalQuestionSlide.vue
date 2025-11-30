@@ -29,7 +29,11 @@
         :question-id="question.id"
         :question-text="question.question_text"
         :question-data="question"
-        :gap-info="{ title: question.title, description: question.context_why }"
+        :gap-info="{
+          title: question.title,
+          description: question.context_why,
+          priority: question.priority || 'IMPORTANT'
+        }"
         :user-id="userId"
         :parsed-cv="parsedCv"
         :parsed-jd="parsedJd"

@@ -66,9 +66,9 @@ class LangChainConfig:
             convert_system_message_to_human=True,  # Gemini compatibility
         )
 
-        # Quality LLM: Gemini 2.0 Flash Exp (for critical operations like gap analysis)
+        # Quality LLM: Gemini 2.5 Flash Lite (for quality evaluation - cost optimized)
         self.llm_quality = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",
+            model="gemini-2.5-flash-lite",
             temperature=0.1,
             google_api_key=self.gemini_api_key,
             convert_system_message_to_human=True,
@@ -82,10 +82,10 @@ class LangChainConfig:
             convert_system_message_to_human=True,
         )
 
-        # Fallback LLM: OpenAI GPT-4 (optional, for comparison or fallback)
+        # Fallback LLM: OpenAI GPT-3.5 (optional, for comparison or fallback)
         if self.openai_api_key:
             self.llm_openai = ChatOpenAI(
-                model="gpt-4o-mini",
+                model="gpt-3.5-turbo",
                 temperature=0.1,
                 openai_api_key=self.openai_api_key,
             )
@@ -219,7 +219,26 @@ def get_langchain_config() -> LangChainConfig:
 
 # Convenience functions
 def get_llm(mode: str = "fast"):
-    """Get LLM with specified mode."""
+    """
+    Get LLM with specified mode (sync).
+    Use get_async_llm() for async operations (Phase 2.1).
+    """
+    return get_langchain_config().get_llm(mode)
+
+
+def get_async_llm(mode: str = "fast"):
+    """
+    Get async LLM with specified mode (Phase 2.1: Async Node Conversion).
+
+    LangChain LLMs support both sync (invoke) and async (ainvoke) methods.
+    This returns the same LLM instance but signals async usage intent.
+
+    Args:
+        mode: 'fast', 'quality', 'creative', or 'openai'
+
+    Returns:
+        LLM instance (use with await llm.ainvoke(...))
+    """
     return get_langchain_config().get_llm(mode)
 
 

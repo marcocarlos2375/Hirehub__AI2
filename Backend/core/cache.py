@@ -5,6 +5,7 @@ Provides both in-memory LRU cache and optional Redis cache for persistence.
 
 import hashlib
 import json
+import time
 from functools import lru_cache
 from typing import Optional, Tuple
 
@@ -40,6 +41,10 @@ class EmbeddingCache:
             "misses": 0,
             "total_requests": 0
         }
+
+        # L1 cache storage (will be initialized on first use)
+        self._l1_cache = {}
+        self._l1_cache_access_time = {}  # Track last access time for LRU eviction
 
         # Try to connect to Redis if URL provided
         if REDIS_AVAILABLE and redis_url:
@@ -84,15 +89,14 @@ class EmbeddingCache:
         else:
             # Standard embedding key with hash
             text_hash = self._hash_text(text)
-            cache_key = text_hash
+            cache_key = text_hash  # L1 uses hash only (no prefix)
 
         # Try L1 (in-memory)
         # Note: We use a separate dict because @lru_cache doesn't support dynamic values
-        if not hasattr(self, '_l1_cache'):
-            self._l1_cache = {}
-
         if cache_key in self._l1_cache:
             self.stats["l1_hits"] += 1
+            # Update access time for LRU tracking
+            self._l1_cache_access_time[cache_key] = time.time()
             return self._l1_cache[cache_key]
 
         # Try L2 (Redis)
@@ -104,8 +108,9 @@ class EmbeddingCache:
                 if cached_data:
                     self.stats["l2_hits"] += 1
                     embedding = json.loads(cached_data)
-                    # Promote to L1
+                    # Promote to L1 with access time tracking
                     self._l1_cache[cache_key] = embedding
+                    self._l1_cache_access_time[cache_key] = time.time()
                     return embedding
             except Exception as e:
                 print(f"Redis get error: {e}")
@@ -130,26 +135,27 @@ class EmbeddingCache:
         else:
             # Standard embedding key with hash
             text_hash = self._hash_text(text)
-            cache_key = f"emb:{text_hash}"
+            cache_key = text_hash  # L1 uses hash only
 
-        # Store in L1
-        if not hasattr(self, '_l1_cache'):
-            self._l1_cache = {}
-
-        # Keep L1 size under control (LRU eviction)
+        # Store in L1 with LRU eviction
+        # Keep L1 size under control (true LRU eviction based on access time)
         if len(self._l1_cache) >= 1000:
-            # Remove oldest entry (simple FIFO, could be improved)
-            first_key = next(iter(self._l1_cache))
-            del self._l1_cache[first_key]
+            # Remove least recently used entry (LRU eviction)
+            lru_key = min(self._l1_cache_access_time, key=self._l1_cache_access_time.get)
+            del self._l1_cache[lru_key]
+            del self._l1_cache_access_time[lru_key]
 
         self._l1_cache[cache_key] = embedding
+        self._l1_cache_access_time[cache_key] = time.time()
 
         # Store in L2 (Redis)
         if self.redis_client:
             try:
                 actual_ttl = ttl if ttl is not None else self.ttl
+                # Use "emb:" prefix for Redis keys
+                redis_key = cache_key if text.startswith(('ind:', 'role:', 'score:')) else f"emb:{cache_key}"
                 self.redis_client.setex(
-                    cache_key,
+                    redis_key,
                     actual_ttl,
                     json.dumps(embedding)
                 )

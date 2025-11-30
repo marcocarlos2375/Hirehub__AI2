@@ -9,7 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 
-from core.langchain_config import get_llm, get_learning_resources_vectorstore
+from core.langchain_config import get_llm, get_async_llm, get_learning_resources_vectorstore
 from core.answer_flow_state import (
     AdaptiveAnswerState,
     DeepDivePrompt,
@@ -17,7 +17,8 @@ from core.answer_flow_state import (
     MIN_ACCEPTABLE_QUALITY_SCORE,
     MAX_REFINEMENT_ITERATIONS,
     MAX_LEARNING_RESOURCES,
-    MAX_LEARNING_DAYS
+    MAX_LEARNING_DAYS,
+    QUALITY_THRESHOLDS
 )
 
 
@@ -595,16 +596,19 @@ def route_after_experience_check(state: AdaptiveAnswerState) -> str:
     Route after experience check based on user response.
 
     Returns:
-        "deep_dive" if has experience
-        "learning_resources" if no experience or willing to learn
+        "deep_dive" if has experience (yes)
+        "learning_resources" if willing to learn
+        "skip" if no experience and not interested (no)
     """
     response = state.get("experience_check_response")
 
     if response == "yes":
         return "deep_dive"
-    else:
-        # Both "no" and "willing_to_learn" go to resources
+    elif response == "willing_to_learn":
         return "learning_resources"
+    else:
+        # "no" - skip this question entirely (saves 1-2s)
+        return "skip"
 
 
 def route_after_quality_eval(state: AdaptiveAnswerState) -> str:
@@ -614,11 +618,25 @@ def route_after_quality_eval(state: AdaptiveAnswerState) -> str:
     Returns:
         "complete" if quality is good or max iterations reached
         "refinement" if needs improvement
+
+    Uses dynamic quality threshold based on gap priority:
+    - CRITICAL gaps: Score >= 8 required
+    - HIGH/IMPORTANT gaps: Score >= 7 required (standard)
+    - MEDIUM/NICE_TO_HAVE gaps: Score >= 6 required (more lenient)
+    - LOW/LOGISTICAL gaps: Score >= 5 required (very lenient)
     """
     score = state.get("quality_score", 0)
     iteration = state.get("refinement_iteration", 0)
 
-    if score >= MIN_ACCEPTABLE_QUALITY_SCORE or iteration >= MAX_REFINEMENT_ITERATIONS:
+    # Get gap priority from gap_info (defaults to IMPORTANT if not specified)
+    gap_info = state.get("gap_info", {})
+    gap_priority = gap_info.get("priority", "IMPORTANT")
+
+    # Normalize priority to uppercase and get threshold
+    gap_priority_normalized = gap_priority.upper() if gap_priority else "IMPORTANT"
+    threshold = QUALITY_THRESHOLDS.get(gap_priority_normalized, MIN_ACCEPTABLE_QUALITY_SCORE)
+
+    if score >= threshold or iteration >= MAX_REFINEMENT_ITERATIONS:
         return "complete"
     else:
         return "refinement"

@@ -162,6 +162,7 @@ interface Props {
   gapInfo: {
     title: string
     description: string
+    priority?: string  // Gap priority: CRITICAL, HIGH, IMPORTANT, MEDIUM, NICE_TO_HAVE, LOW, LOGISTICAL
   }
   userId: string
   parsedCv: Record<string, any>

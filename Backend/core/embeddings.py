@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict, Tuple, Optional
 from core.cache import get_cache
+from core.embeddings_fallback import get_embedding_with_fallback
 
 load_dotenv()
 
@@ -41,23 +42,35 @@ def get_embedding(text: str, use_cache: bool = True) -> list[float]:
         # Return zero vector for empty text
         return [0.0] * 768
 
-    # Check cache first
+    # NON-BLOCKING: Check cache first (two-tier: L1 + L2)
+    # Cache failures don't crash embedding generation - we fall back to fresh generation
     if use_cache:
-        cached_embedding = cache.get(text)
-        if cached_embedding is not None:
-            return cached_embedding
+        try:
+            cached_embedding = cache.get(text)
+            if cached_embedding is not None:
+                return cached_embedding
+        except Exception as cache_error:
+            # Log warning but continue to fresh generation
+            print(f"⚠️  Embedding cache retrieval failed: {cache_error}. Generating fresh embedding.")
+            # Continue to fresh generation below
 
-    # Generate new embedding
+    # Generate new embedding with Gemini → OpenAI fallback
     try:
-        response = gemini_client.models.embed_content(
-            model="text-embedding-004",
-            contents=[text]  # Fixed: contents (plural), pass as list
-        )
-        embedding = response.embeddings[0].values
+        embedding, provider = get_embedding_with_fallback(text)
 
-        # Store in cache
+        # Note: provider is "gemini", "openai", or "zero_fallback"
+        # Only log if not using primary provider
+        if provider != "gemini":
+            print(f"✅ Embedding generated using {provider}")
+
+        # NON-BLOCKING: Store in cache (two-tier: L1 + L2)
+        # Cache storage failures don't crash - embedding is still returned
         if use_cache:
-            cache.set(text, embedding)
+            try:
+                cache.set(text, embedding)
+            except Exception as cache_error:
+                # Log warning but don't crash - embedding is still returned
+                print(f"⚠️  Embedding cache storage failed: {cache_error}. Result not cached, but returned.")
 
         return embedding
     except Exception as e:
