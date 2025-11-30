@@ -5,7 +5,7 @@ Input validation utilities.
 from typing import Optional, Tuple
 from fastapi import HTTPException
 
-from core.logging_config import logger
+from core.config.logging_config import logger
 
 
 SUPPORTED_LANGUAGES = ["english", "french", "german", "spanish"]

@@ -7,10 +7,10 @@ import json
 import hashlib
 from fastapi import APIRouter, HTTPException
 
-from core.logging_config import logger
-from core.cache import get_cache
-from core.llm_fallback import generate_with_fallback
-from core.settings import settings
+from core.config.logging_config import logger
+from core.caching.cache import get_cache
+from core.config.llm_fallback import generate_with_fallback
+from core.config.settings import settings
 from app.config import get_json_prompt, get_cv_prompt
 from app.models.parsing import (
     ParseRequest,

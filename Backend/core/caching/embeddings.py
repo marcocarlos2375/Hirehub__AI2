@@ -13,10 +13,10 @@ import numpy as np
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import List, Dict, Tuple, Optional
 
-from core.logging_config import logger
-from core.settings import settings
-from core.cache import get_cache
-from core.embeddings_fallback import get_embedding_with_fallback
+from core.config.logging_config import logger
+from core.config.settings import settings
+from core.caching.cache import get_cache
+from core.caching.embeddings_fallback import get_embedding_with_fallback
 
 # Try to import sklearn for vectorized cosine similarity
 try:

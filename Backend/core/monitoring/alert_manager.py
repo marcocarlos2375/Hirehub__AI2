@@ -8,8 +8,8 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 
-from core.alerting_config import get_alert_config, AlertSeverity, AlertThreshold
-from core.metrics_collector import get_metrics_collector
+from core.monitoring.alerting_config import get_alert_config, AlertSeverity, AlertThreshold
+from core.monitoring.metrics_collector import get_metrics_collector
 
 
 # ========================================

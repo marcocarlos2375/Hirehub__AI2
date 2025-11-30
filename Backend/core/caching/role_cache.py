@@ -4,7 +4,7 @@ These cover the most common job roles encountered in job descriptions.
 """
 
 from typing import Optional
-from core.logging_config import logger
+from core.config.logging_config import logger
 
 # Pre-cached role categorizations
 # Maps common job titles (lowercase) to their category

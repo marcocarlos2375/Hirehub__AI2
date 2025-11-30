@@ -18,12 +18,12 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from formats.toon import to_toon, from_toon
 from app.config import get_toon_prompt, get_json_prompt, get_cv_prompt, get_detailed_gap_analysis_prompt, get_compressed_gap_analysis_prompt, get_question_generation_prompt, get_answer_analysis_prompt, get_resume_rewrite_prompt, get_domain_finder_prompt
-from core.embeddings import calculate_overall_compatibility
-from core.vector_store import get_qdrant_manager
-from core.cache import get_cache
-from core.gemini_cache import generate_with_cache, get_prompt_cache_stats
-from core.llm_fallback import generate_with_fallback, gemini_client as fallback_gemini_client
-from core.embeddings_fallback import get_embedding_with_fallback
+from core.caching.embeddings import calculate_overall_compatibility
+from core.caching.vector_store import get_qdrant_manager
+from core.caching.cache import get_cache
+from core.caching.gemini_cache import generate_with_cache, get_prompt_cache_stats
+from core.config.llm_fallback import generate_with_fallback, gemini_client as fallback_gemini_client
+from core.caching.embeddings_fallback import get_embedding_with_fallback
 from app.metrics_endpoints import router as metrics_router
 
 # Load environment variables
@@ -1047,7 +1047,7 @@ def calculate_domain_match(cv: dict, jd: dict) -> int:
         return 50  # Neutral if no domain info at all (changed from 0)
 
     # OPTIMIZATION: Use batched semantic embeddings for domain matching
-    from core.embeddings import get_embeddings_batch, calculate_cosine_similarity
+    from core.caching.embeddings import get_embeddings_batch, calculate_cosine_similarity
 
     # Combine CV content into sentences
     cv_sentences = [cv_summary] + cv_achievements
@@ -1471,7 +1471,7 @@ def calculate_industry_match(cv: dict, jd: dict) -> int:
     if not cv_industries:
         return 0  # No industry experience found
 
-    from core.embeddings import get_embedding, calculate_cosine_similarity
+    from core.caching.embeddings import get_embedding, calculate_cosine_similarity
 
     # Convert sets to lists
     jd_industries_list = list(jd_industries)
@@ -1555,7 +1555,7 @@ def calculate_role_similarity(cv: dict, jd: dict) -> int:
         else:
             # Use semantic similarity as fallback (for 'other' categories or edge cases)
             try:
-                from core.embeddings import calculate_hybrid_similarity
+                from core.caching.embeddings import calculate_hybrid_similarity
                 similarity = calculate_hybrid_similarity(cv_role.lower(), jd_role, 'roles')
                 max_score = max(max_score, int(similarity * 100))
             except:
@@ -3330,7 +3330,7 @@ async def start_adaptive_question(request: StartAdaptiveQuestionRequest):
     - "no" → Skips the question
     """
     try:
-        from core.adaptive_question_graph import AdaptiveQuestionWorkflow, create_initial_state
+        from core.workflow.adaptive_question_graph import AdaptiveQuestionWorkflow, create_initial_state
 
         # Create initial state
         initial_state = create_initial_state(
@@ -3417,8 +3417,8 @@ async def submit_structured_inputs(request: SubmitStructuredInputsRequest):
     - improvement_suggestions (if quality < 7/10)
     """
     try:
-        from core.adaptive_question_graph import AdaptiveQuestionWorkflow, add_structured_inputs_to_state
-        from core.answer_flow_state import AdaptiveAnswerState
+        from core.workflow.adaptive_question_graph import AdaptiveQuestionWorkflow, add_structured_inputs_to_state
+        from core.workflow.answer_flow_state import AdaptiveAnswerState
 
         # TODO: Retrieve workflow state from session/database by question_id
         # For now, we'll create a simplified flow
@@ -3437,7 +3437,7 @@ async def submit_structured_inputs(request: SubmitStructuredInputsRequest):
         }
 
         # Run from generate_answer node
-        from core.answer_flow_nodes import generate_answer_from_inputs_node, evaluate_quality_node
+        from core.workflow.answer_flow_nodes import generate_answer_from_inputs_node, evaluate_quality_node
 
         # Generate answer
         state = generate_answer_from_inputs_node(state)
@@ -3489,8 +3489,8 @@ async def refine_answer(request: SubmitRefinementDataRequest):
     Max 2 refinement iterations. After that, accepts current answer.
     """
     try:
-        from core.answer_flow_nodes import refine_answer_node
-        from core.answer_flow_state import AdaptiveAnswerState
+        from core.workflow.answer_flow_nodes import refine_answer_node
+        from core.workflow.answer_flow_state import AdaptiveAnswerState
 
         # TODO: Load state from storage
         state: AdaptiveAnswerState = {
@@ -3549,7 +3549,7 @@ async def format_answer_endpoint(request: FormatAnswerRequest):
     - Metadata (duration, company, etc.)
     """
     try:
-        from core.answer_formatter import format_answer, FormattedAnswer
+        from core.workflow.answer_formatter import format_answer, FormattedAnswer
 
         # Format answer with AI
         formatted = format_answer(
@@ -3649,7 +3649,7 @@ async def test_metrics():
     Generate test metrics for Grafana dashboard testing.
     This endpoint creates sample data to verify Grafana integration.
     """
-    from core.metrics_collector import get_metrics_collector
+    from core.monitoring.metrics_collector import get_metrics_collector
     import random
 
     collector = get_metrics_collector()

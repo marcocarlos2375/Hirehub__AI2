@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from pathlib import Path
 
-from core.answer_flow_state import AdaptiveAnswerState
+from core.workflow.answer_flow_state import AdaptiveAnswerState
 
 
 # State snapshot storage directory

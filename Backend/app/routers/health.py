@@ -4,10 +4,10 @@ Health and monitoring endpoints.
 
 from fastapi import APIRouter
 
-from core.logging_config import logger
-from core.cache import get_cache
-from core.gemini_cache import get_prompt_cache_stats
-from core.clients import ClientFactory
+from core.config.logging_config import logger
+from core.caching.cache import get_cache
+from core.caching.gemini_cache import get_prompt_cache_stats
+from core.config.clients import ClientFactory
 
 router = APIRouter(tags=["Health"])
 

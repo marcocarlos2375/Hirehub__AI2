@@ -7,7 +7,7 @@ This provides a seamless migration path from Quick Win #5 to Phase 2.2.
 
 import os
 from typing import Optional
-from core.answer_flow_state import AdaptiveAnswerState
+from core.workflow.answer_flow_state import AdaptiveAnswerState
 
 
 class HybridStateBackend:
@@ -36,7 +36,7 @@ class HybridStateBackend:
 
         if redis_url:
             try:
-                from core.state_persistence_redis import get_redis_backend
+                from core.persistence.state_persistence_redis import get_redis_backend
 
                 self.redis_backend = get_redis_backend()
 
@@ -80,7 +80,7 @@ class HybridStateBackend:
             return await self.redis_backend.save_state(session_id, question_id, state, ttl)
         else:
             # Use file-based (sync, wrapped in async)
-            from core.state_persistence import save_state_snapshot
+            from core.persistence.state_persistence import save_state_snapshot
 
             try:
                 save_state_snapshot(state)
@@ -109,7 +109,7 @@ class HybridStateBackend:
             return await self.redis_backend.load_state(session_id, question_id)
         else:
             # Use file-based (sync)
-            from core.state_persistence import load_state_snapshot
+            from core.persistence.state_persistence import load_state_snapshot
 
             try:
                 return load_state_snapshot(session_id, question_id)
@@ -126,7 +126,7 @@ class HybridStateBackend:
         if self._using_redis and self.redis_backend:
             return await self.redis_backend.delete_state(session_id, question_id)
         else:
-            from core.state_persistence import delete_state_snapshot
+            from core.persistence.state_persistence import delete_state_snapshot
 
             try:
                 return delete_state_snapshot(session_id, question_id)
@@ -138,7 +138,7 @@ class HybridStateBackend:
         if self._using_redis and self.redis_backend:
             return await self.redis_backend.list_session_questions(session_id)
         else:
-            from core.state_persistence import list_snapshots_for_session
+            from core.persistence.state_persistence import list_snapshots_for_session
 
             try:
                 return list_snapshots_for_session(session_id)
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     """Test hybrid backend."""
     import asyncio
     from datetime import datetime
-    from core.state_persistence import generate_session_id
+    from core.persistence.state_persistence import generate_session_id
 
     async def test_hybrid():
         print("=" * 80)

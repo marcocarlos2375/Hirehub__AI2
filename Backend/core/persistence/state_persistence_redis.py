@@ -25,7 +25,7 @@ except ImportError:
         REDIS_AVAILABLE = False
         print("⚠️  redis not installed. Install with: pip install redis")
 
-from core.answer_flow_state import AdaptiveAnswerState
+from core.workflow.answer_flow_state import AdaptiveAnswerState
 
 
 class RedisStateBackend:
@@ -347,7 +347,7 @@ def get_redis_backend() -> RedisStateBackend:
 if __name__ == "__main__":
     """Test Redis state backend."""
     import asyncio
-    from core.state_persistence import generate_session_id
+    from core.persistence.state_persistence import generate_session_id
 
     async def test_redis_backend():
         print("=" * 80)

@@ -11,8 +11,8 @@ import threading
 from functools import lru_cache
 from typing import Optional, Tuple, Any
 
-from core.logging_config import logger
-from core.settings import settings
+from core.config.logging_config import logger
+from core.config.settings import settings
 
 # Try to import Redis, fall back gracefully if not available
 try:

@@ -9,8 +9,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 
-from core.langchain_config import get_llm, get_async_llm
-from core.answer_flow_state import (
+from core.config.langchain_config import get_llm, get_async_llm
+from core.workflow.answer_flow_state import (
     AdaptiveAnswerState,
     DeepDivePrompt,
     QualityFeedback,

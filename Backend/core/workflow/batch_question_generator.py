@@ -15,7 +15,7 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from core.langchain_config import get_async_llm
+from core.config.langchain_config import get_async_llm
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field

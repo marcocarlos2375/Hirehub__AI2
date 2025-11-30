@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from core.metrics_collector import get_metrics_collector
+from core.monitoring.metrics_collector import get_metrics_collector
 
 # Create API router
 router = APIRouter()

@@ -15,9 +15,9 @@ from tenacity import (
 )
 import httpx
 
-from core.logging_config import logger
-from core.settings import settings
-from core.clients import get_gemini_client, get_openai_client
+from core.config.logging_config import logger
+from core.config.settings import settings
+from core.config.clients import get_gemini_client, get_openai_client
 
 
 # Define transient exceptions that should trigger retry

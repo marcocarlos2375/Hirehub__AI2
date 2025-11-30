@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from pydantic import BaseModel
 from fastapi import HTTPException
 
-from core.batch_question_generator import generate_questions_batch, BatchQuestionItem
+from core.workflow.batch_question_generator import generate_questions_batch, BatchQuestionItem
 
 
 # ========================================

@@ -8,8 +8,8 @@ from typing import Dict, Any, Optional
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 
-from core.answer_flow_state import AdaptiveAnswerState
-from core.answer_flow_nodes import (
+from core.workflow.answer_flow_state import AdaptiveAnswerState
+from core.workflow.answer_flow_nodes import (
     generate_deep_dive_prompts_node,
     generate_answer_from_inputs_node,
     evaluate_quality_node,
@@ -17,7 +17,7 @@ from core.answer_flow_nodes import (
     route_after_experience_check,
     route_after_quality_eval
 )
-from core.state_persistence import (
+from core.persistence.state_persistence import (
     generate_session_id,
     save_state_snapshot,
     load_state_snapshot,

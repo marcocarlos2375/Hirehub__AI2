@@ -21,7 +21,7 @@ import hashlib
 from typing import Optional, Dict, Any
 from google import genai
 from google.genai import types
-from core.llm_fallback import generate_with_fallback
+from core.config.llm_fallback import generate_with_fallback
 
 # Initialize Gemini client
 gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
