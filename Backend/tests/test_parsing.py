@@ -9,6 +9,10 @@ import httpx
 from pathlib import Path
 from datetime import datetime
 
+# Resume order control via environment variable
+# RESUME_ORDER=medicine|computer_science|logistics
+RESUME_ORDER = os.environ.get("RESUME_ORDER", None)
+
 # API Configuration
 API_BASE_URL = "http://localhost:8001"
 
@@ -43,7 +47,7 @@ def parse_resume(resume_text: str, language: str = "english") -> dict:
     """Call resume parsing API."""
     response = httpx.post(
         f"{API_BASE_URL}/api/parse-cv",
-        json={"cv_text": resume_text, "language": language},
+        json={"resume_text": resume_text, "language": language},
         timeout=60.0
     )
     response.raise_for_status()
@@ -70,8 +74,9 @@ def test_job_parsing():
                 "result": result
             }
             print(f"  Status: SUCCESS")
-            print(f"  Job Title: {result.get('parsed_jd', {}).get('title', 'N/A')}")
-            print(f"  Company: {result.get('parsed_jd', {}).get('company', 'N/A')}")
+            data = result.get('data', {})
+            print(f"  Job Title: {data.get('title', 'N/A')}")
+            print(f"  Company: {data.get('company', 'N/A')}")
 
             # Save individual result
             save_result(f"job_parsed_{job_file.stem}.json", results[job_file.stem])
@@ -88,13 +93,41 @@ def test_job_parsing():
     save_result("all_job_parsing_results.json", results)
     return results
 
+def get_ordered_resume_files():
+    """Get resume files in specified order based on RESUME_ORDER env var."""
+    all_files = list((SAMPLES_DIR / "resumes").glob("*.txt"))
+
+    if not RESUME_ORDER:
+        return all_files
+
+    # Define order based on which resume should be first
+    order_map = {
+        "medicine": ["medicine_resume.txt", "computer_science_resume.txt", "logistics_resume.txt"],
+        "computer_science": ["computer_science_resume.txt", "logistics_resume.txt", "medicine_resume.txt"],
+        "logistics": ["logistics_resume.txt", "medicine_resume.txt", "computer_science_resume.txt"],
+    }
+
+    if RESUME_ORDER not in order_map:
+        print(f"  Warning: Unknown RESUME_ORDER '{RESUME_ORDER}', using default order")
+        return all_files
+
+    ordered = []
+    for filename in order_map[RESUME_ORDER]:
+        for f in all_files:
+            if f.name == filename:
+                ordered.append(f)
+                break
+
+    print(f"  Resume order: {[f.name for f in ordered]}")
+    return ordered
+
 def test_resume_parsing():
     """Test resume parsing for all sample files."""
     print("\n" + "=" * 60)
     print("TESTING RESUME PARSING")
     print("=" * 60)
 
-    resume_files = list((SAMPLES_DIR / "resumes").glob("*.txt"))
+    resume_files = get_ordered_resume_files()
     results = {}
 
     for resume_file in resume_files:
@@ -110,10 +143,10 @@ def test_resume_parsing():
             }
             print(f"  Status: SUCCESS")
 
-            parsed_cv = result.get('parsed_cv', {})
-            print(f"  Name: {parsed_cv.get('full_name', 'N/A')}")
-            print(f"  Title: {parsed_cv.get('professional_title', 'N/A')}")
-            print(f"  Experience: {len(parsed_cv.get('work_experience', []))} positions")
+            data = result.get('data', {})
+            print(f"  Name: {data.get('full_name', 'N/A')}")
+            print(f"  Title: {data.get('professional_title', 'N/A')}")
+            print(f"  Experience: {len(data.get('work_experience', []))} positions")
 
             # Save individual result
             save_result(f"resume_parsed_{resume_file.stem}.json", results[resume_file.stem])

@@ -36,7 +36,9 @@ services:
       - .env
     ports:
       - "8001:8000"
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # Production: 8 workers for scalability (remove --reload for production)
+    # Development: use --reload for hot-reloading (single worker)
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 8
     volumes:
       - .:/app
     depends_on:

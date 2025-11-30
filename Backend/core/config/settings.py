@@ -44,6 +44,17 @@ class Settings(BaseSettings):
     result_cache_ttl: int = Field(2592000, description="Result cache TTL in seconds (30d)")
     l1_cache_size: int = Field(1000, description="L1 in-memory cache max entries")
 
+    # Redis Connection Pool Configuration (for 10,000+ concurrent users)
+    # Formula: max_connections = (concurrent_users / workers) * 2 = (10000 / 8) * 2 ≈ 200
+    redis_max_connections: int = Field(200, description="Redis connection pool max connections")
+    redis_pool_timeout: float = Field(5.0, description="Redis connection pool timeout (seconds)")
+
+    # Database Connection Pool Configuration (for 10,000+ concurrent users)
+    # Formula: pool_size = workers * 3 = 8 * 3 = 24, overflow = pool_size * 2
+    db_pool_size: int = Field(25, description="DB connection pool size")
+    db_max_overflow: int = Field(50, description="DB max overflow connections")
+    db_pool_recycle: int = Field(1800, description="Recycle DB connections after N seconds")
+
     # Retry Configuration
     max_retries: int = Field(3, description="Maximum retry attempts for API calls")
     retry_min_wait: float = Field(2.0, description="Minimum wait between retries (seconds)")
@@ -54,6 +65,10 @@ class Settings(BaseSettings):
     embedding_timeout: float = Field(10.0, description="Timeout for embedding operations (seconds)")
     http_timeout: float = Field(15.0, description="Default HTTP request timeout (seconds)")
 
+    # Concurrency Control (Backpressure)
+    max_concurrent_llm_calls: int = Field(50, description="Maximum concurrent LLM API calls (backpressure)")
+    llm_queue_timeout: float = Field(60.0, description="Timeout waiting for LLM semaphore (seconds)")
+
     # Thread Pool Configuration
     max_workers: int = Field(8, description="Maximum ThreadPoolExecutor workers")
 
@@ -61,9 +76,15 @@ class Settings(BaseSettings):
     log_level: str = Field("INFO", description="Logging level")
     log_serialize: bool = Field(False, description="Serialize logs as JSON")
 
+    # Circuit Breaker Configuration (for resilience)
+    circuit_breaker_failure_threshold: int = Field(5, description="Failures before opening circuit")
+    circuit_breaker_recovery_timeout: float = Field(30.0, description="Seconds before half-open state")
+    circuit_breaker_half_open_requests: int = Field(3, description="Test requests in half-open state")
+
     # Feature Flags
     enable_metrics: bool = Field(True, description="Enable metrics collection")
     enable_prompt_cache: bool = Field(True, description="Enable Gemini prompt caching")
+    enable_circuit_breaker: bool = Field(True, description="Enable circuit breaker for external services")
 
     @property
     def cors_origins_list(self) -> List[str]:

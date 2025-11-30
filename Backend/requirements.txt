@@ -23,6 +23,7 @@ langsmith<0.4,>=0.1.17
 sqlalchemy==2.0.36
 alembic==1.14.0
 psycopg2-binary==2.9.10
+asyncpg>=0.29.0
 pydantic==2.10.4
 
 # Testing infrastructure
@@ -36,3 +37,6 @@ pydantic-settings>=2.0.0
 
 # Performance optimization
 scikit-learn>=1.3.0
+
+# Rate limiting for scalability
+slowapi>=0.1.9

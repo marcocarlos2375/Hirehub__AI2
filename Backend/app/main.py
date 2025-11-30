@@ -8,9 +8,12 @@ import hashlib
 import asyncio
 from datetime import datetime
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
-from fastapi import FastAPI, HTTPException, UploadFile, File
+# ThreadPoolExecutor removed - using asyncio.gather for parallel async operations
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from pydantic import BaseModel
 from typing import Optional
 from google import genai
@@ -22,7 +25,7 @@ from core.caching.embeddings import calculate_overall_compatibility
 from core.caching.vector_store import get_qdrant_manager
 from core.caching.cache import get_cache
 from core.caching.gemini_cache import generate_with_cache, get_prompt_cache_stats
-from core.config.llm_fallback import generate_with_fallback, gemini_client as fallback_gemini_client
+from core.config.llm_fallback import generate_with_fallback, generate_with_fallback_async, gemini_client as fallback_gemini_client
 from core.caching.embeddings_fallback import get_embedding_with_fallback
 from core.monitoring.metrics_collector import get_metrics_collector
 from app.metrics_endpoints import router as metrics_router
@@ -30,12 +33,20 @@ from app.metrics_endpoints import router as metrics_router
 # Load environment variables
 load_dotenv()
 
+# Initialize rate limiter for scalability
+# Limits: 30 requests/minute per IP for expensive LLM operations
+limiter = Limiter(key_func=get_remote_address)
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Job Parser API",
     description="API for parsing job descriptions using Gemini 2.5 Flash-Lite",
     version="2.0.0"
 )
+
+# Register rate limiter with app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add CORS middleware for frontend
 app.add_middleware(
@@ -287,7 +298,8 @@ class ParseResponse(BaseModel):
     language: str
 
 @app.post("/api/parse", response_model=ParseResponse)
-async def parse_job(request: ParseRequest):
+@limiter.limit("30/minute")  # Rate limit: 30 requests per minute per IP
+async def parse_job(request: Request, body: ParseRequest):
     """
     Parse a job description using Gemini 2.5 Flash-Lite with JSON format.
     This is the main endpoint for the frontend.
@@ -295,18 +307,18 @@ async def parse_job(request: ParseRequest):
     """
     try:
         # Validate input
-        if not request.job_description or len(request.job_description.strip()) < 50:
+        if not body.job_description or len(body.job_description.strip()) < 50:
             raise HTTPException(
                 status_code=400,
                 detail="Job description must be at least 50 characters"
             )
 
         # Auto-truncate if over 6200 characters
-        job_description = request.job_description[:6200] if len(request.job_description) > 6200 else request.job_description
+        job_description = body.job_description[:6200] if len(body.job_description) > 6200 else body.job_description
 
         # Validate language
         supported_languages = ["english", "french", "german", "spanish"]
-        language = request.language.lower()
+        language = body.language.lower()
         if language not in supported_languages:
             language = "english"
 
@@ -332,21 +344,21 @@ async def parse_job(request: ParseRequest):
         start_time = time.time()
         model_name = "gemini-2.5-flash-lite"
 
-        response_text, provider = generate_with_fallback(
+        response_text, provider = await generate_with_fallback_async(
             prompt=prompt,
             model_gemini=model_name,
             temperature=0.2
         )
 
         elapsed_time = time.time() - start_time
-        print(f"✅ JD parsing completed using {provider} in {elapsed_time:.2f}s")
+        print(f"✅ JD parsing completed using {provider} (async) in {elapsed_time:.2f}s")
 
         # Record metrics for Grafana
         metrics = get_metrics_collector()
         metrics.record_performance(
             operation="parse_job_description",
             duration_ms=elapsed_time * 1000,
-            success=True
+            metadata={"success": True}
         )
 
         # Parse JSON response
@@ -427,25 +439,26 @@ class CVParseResponse(BaseModel):
     language: str
 
 @app.post("/api/parse-cv", response_model=CVParseResponse)
-async def parse_cv(request: CVParseRequest):
+@limiter.limit("30/minute")  # Rate limit: 30 requests per minute per IP
+async def parse_cv(request: Request, body: CVParseRequest):
     """
     Parse a resume/CV using Gemini 2.5 Flash-Lite with JSON format.
     Supports multiple languages: english, french, german, spanish
     """
     try:
         # Validate input
-        if not request.resume_text or len(request.resume_text.strip()) < 50:
+        if not body.resume_text or len(body.resume_text.strip()) < 50:
             raise HTTPException(
                 status_code=400,
                 detail="Resume text must be at least 50 characters"
             )
 
         # Auto-truncate if over 6200 characters
-        resume_text = request.resume_text[:6200] if len(request.resume_text) > 6200 else request.resume_text
+        resume_text = body.resume_text[:6200] if len(body.resume_text) > 6200 else body.resume_text
 
         # Validate language
         supported_languages = ["english", "french", "german", "spanish"]
-        language = request.language.lower()
+        language = body.language.lower()
         if language not in supported_languages:
             language = "english"
 
@@ -471,21 +484,21 @@ async def parse_cv(request: CVParseRequest):
         start_time = time.time()
         model_name = "gemini-2.5-flash-lite"
 
-        response_text, provider = generate_with_fallback(
+        response_text, provider = await generate_with_fallback_async(
             prompt=prompt,
             model_gemini=model_name,
             temperature=0.2
         )
 
         elapsed_time = time.time() - start_time
-        print(f"✅ CV parsing completed using {provider} in {elapsed_time:.2f}s")
+        print(f"✅ CV parsing completed using {provider} (async) in {elapsed_time:.2f}s")
 
         # Record metrics for Grafana
         metrics = get_metrics_collector()
         metrics.record_performance(
             operation="parse_resume",
             duration_ms=elapsed_time * 1000,
-            success=True
+            metadata={"success": True}
         )
 
         # Parse JSON response
@@ -633,14 +646,14 @@ async def find_domains(request: DomainFinderRequest, bypass_cache: bool = False)
         start_time = time.time()
         model_name = "gemini-2.5-flash-lite"
 
-        response_text, provider = generate_with_fallback(
+        response_text, provider = await generate_with_fallback_async(
             prompt=prompt,
             model_gemini=model_name,
             temperature=0.3
         )
 
         elapsed_time = time.time() - start_time
-        print(f"✅ Domain finder completed using {provider} in {elapsed_time:.2f}s")
+        print(f"✅ Domain finder completed using {provider} (async) in {elapsed_time:.2f}s")
 
         # Parse JSON response
         try:
@@ -1187,7 +1200,7 @@ def calculate_logistics_match(cv: dict, jd: dict) -> int:
 # Now using cache.get()/cache.set() with "ind:" and "role:" prefixes
 
 
-def extract_industries_with_ai(text: str) -> list[str]:
+async def extract_industries_with_ai(text: str) -> list[str]:
     """
     Use Gemini AI to extract and normalize industries from text.
     Returns list of standard industry names.
@@ -1229,12 +1242,12 @@ Example output: ["Finance"]
 
 Return only the JSON array:"""
 
-        result_text, provider = generate_with_fallback(
+        result_text, provider = await generate_with_fallback_async(
             prompt=prompt,
             model_gemini="gemini-2.5-flash-lite",
             temperature=0.1  # Low temperature for consistency
         )
-        print(f"✅ Industry extraction completed using {provider}")
+        print(f"✅ Industry extraction completed using {provider} (async)")
 
         result_text = result_text.strip()
 
@@ -1262,7 +1275,7 @@ Return only the JSON array:"""
         return []
 
 
-def extract_role_category_with_ai(role: str) -> str:
+async def extract_role_category_with_ai(role: str) -> str:
     """
     Use Gemini AI to categorize a job role into a standard category.
     Returns normalized role category.
@@ -1311,12 +1324,12 @@ Example: Marketing
 
 Return:"""
 
-        result_text, provider = generate_with_fallback(
+        result_text, provider = await generate_with_fallback_async(
             prompt=prompt,
             model_gemini="gemini-2.5-flash-lite",
             temperature=0.1  # Low temperature for consistency
         )
-        print(f"✅ Role categorization completed using {provider}")
+        print(f"✅ Role categorization completed using {provider} (async)")
 
         category = result_text.strip().lower()
 
@@ -1350,7 +1363,7 @@ Return:"""
         return 'other'
 
 
-def calculate_industry_match(cv: dict, jd: dict) -> int:
+async def calculate_industry_match(cv: dict, jd: dict) -> int:
     """
     Calculate industry/domain matching score.
     Compares CV's industry experience vs JD's industry requirements.
@@ -1372,7 +1385,7 @@ def calculate_industry_match(cv: dict, jd: dict) -> int:
     # Source 3: ALWAYS extract from company name (in addition to above)
     company_name = jd.get('company_name', '')
     if company_name:
-        extracted_industries = extract_industries_with_ai(company_name)
+        extracted_industries = await extract_industries_with_ai(company_name)
         if extracted_industries:
             jd_industries.update(i.lower().strip() for i in extracted_industries)
 
@@ -1403,10 +1416,9 @@ def calculate_industry_match(cv: dict, jd: dict) -> int:
                 if achievements_text.strip():
                     extraction_tasks.append(achievements_text)
 
-        # PARALLEL EXECUTION: Run all extractions concurrently
+        # PARALLEL EXECUTION: Run all extractions concurrently using asyncio.gather
         if extraction_tasks:
-            with ThreadPoolExecutor(max_workers=min(len(extraction_tasks), 8)) as executor:
-                results = list(executor.map(extract_industries_with_ai, extraction_tasks))
+            results = await asyncio.gather(*[extract_industries_with_ai(task) for task in extraction_tasks])
 
             # Aggregate all results
             for industries_list in results:
@@ -1438,10 +1450,9 @@ def calculate_industry_match(cv: dict, jd: dict) -> int:
                     if tech_text.strip():
                         project_tasks.append(tech_text)
 
-        # PARALLEL EXECUTION: Run all project extractions concurrently
+        # PARALLEL EXECUTION: Run all project extractions concurrently using asyncio.gather
         if project_tasks:
-            with ThreadPoolExecutor(max_workers=min(len(project_tasks), 8)) as executor:
-                results = list(executor.map(extract_industries_with_ai, project_tasks))
+            results = await asyncio.gather(*[extract_industries_with_ai(task) for task in project_tasks])
 
             # Aggregate project industry results
             for industries_list in results:
@@ -1475,10 +1486,9 @@ def calculate_industry_match(cv: dict, jd: dict) -> int:
                 # Handle simple string certifications
                 cert_tasks.append(cert)
 
-        # PARALLEL EXECUTION: Run all certification extractions concurrently
+        # PARALLEL EXECUTION: Run all certification extractions concurrently using asyncio.gather
         if cert_tasks:
-            with ThreadPoolExecutor(max_workers=min(len(cert_tasks), 8)) as executor:
-                results = list(executor.map(extract_industries_with_ai, cert_tasks))
+            results = await asyncio.gather(*[extract_industries_with_ai(task) for task in cert_tasks])
 
             # Aggregate certification industry results
             for industries_list in results:
@@ -1528,7 +1538,7 @@ def calculate_industry_match(cv: dict, jd: dict) -> int:
     return 0
 
 
-def calculate_role_similarity(cv: dict, jd: dict) -> int:
+async def calculate_role_similarity(cv: dict, jd: dict) -> int:
     """
     Calculate role/job title similarity score.
     Compares CV's job roles vs JD's position title.
@@ -1550,12 +1560,11 @@ def calculate_role_similarity(cv: dict, jd: dict) -> int:
     if not cv_roles:
         return 0  # No work experience
 
-    # OPTIMIZATION: Parallelize role category extraction for all roles
+    # OPTIMIZATION: Parallelize role category extraction using asyncio.gather
     # Categorize JD role + all CV roles concurrently
     all_roles = [jd_role] + cv_roles
 
-    with ThreadPoolExecutor(max_workers=min(len(all_roles), 8)) as executor:
-        categories = list(executor.map(extract_role_category_with_ai, all_roles))
+    categories = await asyncio.gather(*[extract_role_category_with_ai(role) for role in all_roles])
 
     jd_category = categories[0]  # First result is JD role category
     cv_categories = categories[1:]  # Rest are CV role categories
@@ -1581,7 +1590,7 @@ def calculate_role_similarity(cv: dict, jd: dict) -> int:
     return min(100, max_score)
 
 
-def calculate_category_scores_from_metrics(
+async def calculate_category_scores_from_metrics(
     similarity_metrics: dict,
     parsed_cv: dict,
     parsed_jd: dict,
@@ -1617,10 +1626,12 @@ def calculate_category_scores_from_metrics(
     domain_score = calculate_domain_match(parsed_cv, parsed_jd)
 
     # Industry Match (15% weight - NEW!) - from industry/sector matching
-    industry_score = calculate_industry_match(parsed_cv, parsed_jd)
-
     # Role Similarity (10% weight - NEW!) - from job title/role matching
-    role_score = calculate_role_similarity(parsed_cv, parsed_jd)
+    # Run both async calls concurrently for better performance
+    industry_score, role_score = await asyncio.gather(
+        calculate_industry_match(parsed_cv, parsed_jd),
+        calculate_role_similarity(parsed_cv, parsed_jd)
+    )
 
     # Portfolio Quality (7% weight - reduced from 10%) - from achievements & projects
     portfolio_score = calculate_portfolio_quality(parsed_cv)
@@ -1693,7 +1704,7 @@ def get_overall_status(score: int) -> str:
         return "Needs Work"
 
 
-def generate_score_message(overall_score: int, gaps: dict, strengths: list, overall_status: str) -> dict:
+async def generate_score_message(overall_score: int, gaps: dict, strengths: list, overall_status: str) -> dict:
     """
     Generate encouraging, personalized messages for the compatibility score using Gemini.
 
@@ -1811,12 +1822,12 @@ Return ONLY valid JSON with this exact structure:
 
     try:
         # Use gemini-2.5-flash-lite with GPT-4o-mini fallback
-        response_text, provider = generate_with_fallback(
+        response_text, provider = await generate_with_fallback_async(
             prompt=prompt,
             model_gemini="gemini-2.5-flash-lite",
             temperature=0.7  # Slightly creative for varied messages
         )
-        print(f"✅ Waiting message generation completed using {provider}")
+        print(f"✅ Waiting message generation completed using {provider} (async)")
 
         # Parse JSON response with error handling
         # NOTE: Gemini sometimes returns invalid/incomplete JSON for complex prompts with:
@@ -1985,7 +1996,7 @@ def convert_parsed_resume_to_text(parsed_resume: dict) -> str:
     return text
 
 
-def generate_cover_letter(
+async def generate_cover_letter(
     parsed_resume: dict,
     parsed_jd: dict,
     score_data: dict = None
@@ -2081,12 +2092,12 @@ Sincerely,
 NOW GENERATE THE COVER LETTER:"""
 
     try:
-        cover_letter, provider = generate_with_fallback(
+        cover_letter, provider = await generate_with_fallback_async(
             prompt=prompt,
             model_gemini="gemini-2.5-flash-lite",
             temperature=0.7
         )
-        print(f"✅ Cover letter generation completed using {provider}")
+        print(f"✅ Cover letter generation completed using {provider} (async)")
 
         cover_letter = cover_letter.strip()
 
@@ -2118,7 +2129,8 @@ Sincerely,
 
 
 @app.post("/api/calculate-score", response_model=ScoreResponse)
-async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
+@limiter.limit("20/minute")  # Rate limit: 20 requests per minute per IP (most expensive operation)
+async def calculate_score(request: Request, body: ScoreRequest, bypass_cache: bool = False):
     """
     Calculate compatibility score between CV and JD using hybrid approach:
     - Vector embeddings for quantitative similarity
@@ -2134,9 +2146,9 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
 
         # OPTIMIZATION #1: Check cache first (99% speedup on cache hits)
         # Generate deterministic cache key from CV + JD content + language
-        cv_hash = hashlib.md5(json.dumps(request.parsed_cv, sort_keys=True).encode()).hexdigest()
-        jd_hash = hashlib.md5(json.dumps(request.parsed_jd, sort_keys=True).encode()).hexdigest()
-        cache_key = f"score:{cv_hash}:{jd_hash}:{request.language}"
+        cv_hash = hashlib.md5(json.dumps(body.parsed_cv, sort_keys=True).encode()).hexdigest()
+        jd_hash = hashlib.md5(json.dumps(body.parsed_jd, sort_keys=True).encode()).hexdigest()
+        cache_key = f"score:{cv_hash}:{jd_hash}:{body.language}"
 
         # Check cache (skip if bypass_cache=True)
         # NON-BLOCKING: Cache failures don't crash the app, we fall back to fresh calculation
@@ -2164,8 +2176,8 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
         # TOON = plain text representation for AI prompts (40-50% token reduction)
         # We keep BOTH formats: JSON for calculations, TOON text for AI
         print("📝 Converting CV and JD to TOON text format...")
-        cv_toon = to_toon(request.parsed_cv)
-        jd_toon = to_toon(request.parsed_jd)
+        cv_toon = to_toon(body.parsed_cv)
+        jd_toon = to_toon(body.parsed_jd)
         print(f"   ✅ TOON conversion complete")
         print(f"   CV: {len(cv_toon)} chars (plain text)")
         print(f"   JD: {len(jd_toon)} chars (plain text)")
@@ -2174,19 +2186,19 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
         # Uses JSON format for structured access
         print("📊 Phase 1: Calculating embedding-based similarity...")
         similarity_metrics = calculate_overall_compatibility(
-            request.parsed_cv,
-            request.parsed_jd
+            body.parsed_cv,
+            body.parsed_jd
         )
         print(f"✅ Phase 1 complete - similarity metrics calculated")
 
         # Phase 2a: Calculate category scores using hybrid approach (instant!)
         # Uses JSON format for structured calculations
         print("📈 Phase 2a: Calculating category scores from metrics...")
-        category_scores = calculate_category_scores_from_metrics(
+        category_scores = await calculate_category_scores_from_metrics(
             similarity_metrics,
-            request.parsed_cv,  # JSON format
-            request.parsed_jd,  # JSON format
-            language=request.language
+            body.parsed_cv,  # JSON format
+            body.parsed_jd,  # JSON format
+            language=body.language
         )
         overall_score = calculate_weighted_score(category_scores)
         overall_status = get_overall_status(overall_score)
@@ -2202,7 +2214,7 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
             jd_toon=jd_toon,
             similarity_metrics=similarity_metrics,
             overall_score=overall_score,  # Pass score for adaptive gap requirements
-            language=request.language
+            language=body.language
         )
         print(f"   Prompt length: {len(analysis_prompt)} chars")
 
@@ -2277,7 +2289,7 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
 
         # Generate AI-powered encouraging message for the score
         print("💬 Phase 4: Generating score message...")
-        score_message_dict = generate_score_message(
+        score_message_dict = await generate_score_message(
             overall_score=overall_score,
             gaps=gaps_data,
             strengths=strengths_data,
@@ -2734,12 +2746,12 @@ Language: {request.language}
 """
 
         # Call Gemini to evaluate with GPT-3.5 fallback
-        response_text, provider = generate_with_fallback(
+        response_text, provider = await generate_with_fallback_async(
             prompt=evaluation_prompt,
             model_gemini="gemini-2.0-flash-exp",
             temperature=0.2
         )
-        print(f"✅ Answer quality evaluation completed using {provider}")
+        print(f"✅ Answer quality evaluation completed using {provider} (async)")
 
         # Extract JSON from response
         response_text = response_text.strip()
@@ -2848,12 +2860,12 @@ async def submit_answers(request: SubmitAnswersRequest):
         )
 
         # Step 4: Call Gemini to analyze answers with GPT-3.5 fallback
-        response_text, provider = generate_with_fallback(
+        response_text, provider = await generate_with_fallback_async(
             prompt=analysis_prompt,
             model_gemini="gemini-2.0-flash-exp",
             temperature=0.3
         )
-        print(f"✅ Answer analysis completed using {provider}")
+        print(f"✅ Answer analysis completed using {provider} (async)")
 
         # Step 5: Parse the analysis
         response_text = response_text.strip()
@@ -3164,7 +3176,7 @@ async def generate_cover_letter_endpoint(request: CoverLetterRequest):
             )
 
         # Generate cover letter
-        cover_letter_text = generate_cover_letter(
+        cover_letter_text = await generate_cover_letter(
             parsed_resume=request.parsed_resume,
             parsed_jd=request.parsed_jd,
             score_data=request.score_data
@@ -3623,12 +3635,12 @@ async def analyze_skill_gap(request: SkillGapAnalysisRequest):
 
         # Call Gemini with GPT-3.5 fallback
         model_name = "gemini-2.5-flash-lite"
-        response_text, provider = generate_with_fallback(
+        response_text, provider = await generate_with_fallback_async(
             prompt=prompt,
             model_gemini=model_name,
             temperature=0.3  # Slightly higher for creative, personalized messages
         )
-        print(f"✅ Skill gap analysis completed using {provider}")
+        print(f"✅ Skill gap analysis completed using {provider} (async)")
         response_text = response_text.strip()
 
         # Remove markdown code blocks if present

@@ -7,7 +7,7 @@ import threading
 from typing import Optional
 import httpx
 from google import genai
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
 from core.config.logging_config import logger
 from core.config.settings import settings
@@ -29,6 +29,7 @@ class ClientFactory:
 
     _gemini_client: Optional[genai.Client] = None
     _openai_client: Optional[OpenAI] = None
+    _async_openai_client: Optional[AsyncOpenAI] = None
     _redis_client: Optional["redis.Redis"] = None
     _http_client: Optional[httpx.Client] = None
     _async_http_client: Optional[httpx.AsyncClient] = None
@@ -37,6 +38,7 @@ class ClientFactory:
     _initialized = {
         "gemini": False,
         "openai": False,
+        "async_openai": False,
         "redis": False,
         "http": False,
         "async_http": False
@@ -85,6 +87,35 @@ class ClientFactory:
                     cls._initialized["openai"] = True
                     logger.info("OpenAI client initialized with HTTP/2 pooling")
         return cls._openai_client
+
+    @classmethod
+    def get_async_openai(cls) -> AsyncOpenAI:
+        """
+        Get async OpenAI API client with HTTP/2 connection pooling (thread-safe singleton).
+        For use in async contexts to avoid blocking the event loop.
+
+        Returns:
+            Configured AsyncOpenAI client instance
+        """
+        if not cls._initialized["async_openai"]:
+            with cls._lock:
+                if not cls._initialized["async_openai"]:
+                    # Create async HTTP/2 client with connection pooling
+                    http_client = httpx.AsyncClient(
+                        http2=True,
+                        timeout=settings.llm_timeout,
+                        limits=httpx.Limits(
+                            max_keepalive_connections=10,
+                            keepalive_expiry=30.0
+                        )
+                    )
+                    cls._async_openai_client = AsyncOpenAI(
+                        api_key=settings.openai_api_key,
+                        http_client=http_client
+                    )
+                    cls._initialized["async_openai"] = True
+                    logger.info("Async OpenAI client initialized with HTTP/2 pooling")
+        return cls._async_openai_client
 
     @classmethod
     def get_redis(cls) -> Optional["redis.Redis"]:
@@ -236,6 +267,11 @@ def get_openai_client() -> OpenAI:
     return ClientFactory.get_openai()
 
 
+def get_async_openai_client() -> AsyncOpenAI:
+    """Get async OpenAI client instance for non-blocking operations."""
+    return ClientFactory.get_async_openai()
+
+
 def get_redis_client() -> Optional["redis.Redis"]:
     """Get Redis client instance."""
     return ClientFactory.get_redis()
@@ -245,5 +281,6 @@ __all__ = [
     'ClientFactory',
     'get_gemini_client',
     'get_openai_client',
+    'get_async_openai_client',
     'get_redis_client'
 ]
