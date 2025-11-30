@@ -1805,12 +1805,11 @@ Return ONLY valid JSON with this exact structure:
 }}"""
 
     try:
-        # Use gemini-2.5-flash-lite with JSON response mode and GPT-3.5 fallback
+        # Use gemini-2.5-flash-lite with GPT-4o-mini fallback
         response_text, provider = generate_with_fallback(
             prompt=prompt,
             model_gemini="gemini-2.5-flash-lite",
-            temperature=0.7,  # Slightly creative for varied messages
-            response_mime_type="application/json"
+            temperature=0.7  # Slightly creative for varied messages
         )
         print(f"✅ Waiting message generation completed using {provider}")
 
@@ -2066,8 +2065,7 @@ NOW GENERATE THE COVER LETTER:"""
         cover_letter, provider = generate_with_fallback(
             prompt=prompt,
             model_gemini="gemini-2.5-flash-lite",
-            temperature=0.7,
-            response_mime_type="text/plain"
+            temperature=0.7
         )
         print(f"✅ Cover letter generation completed using {provider}")
 
