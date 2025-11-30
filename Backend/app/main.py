@@ -2155,7 +2155,18 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
                 print(f"⚠️  Cache retrieval failed: {cache_error}. Falling back to fresh calculation.")
                 # Continue below to fresh calculation
 
+        # STEP 0: Convert to TOON format ONCE at the beginning
+        # TOON = plain text representation for AI prompts (40-50% token reduction)
+        # We keep BOTH formats: JSON for calculations, TOON text for AI
+        print("📝 Converting CV and JD to TOON text format...")
+        cv_toon = to_toon(request.parsed_cv)
+        jd_toon = to_toon(request.parsed_jd)
+        print(f"   ✅ TOON conversion complete")
+        print(f"   CV: {len(cv_toon)} chars (plain text)")
+        print(f"   JD: {len(jd_toon)} chars (plain text)")
+
         # Phase 1: Calculate embedding-based similarity (fast - ~1-2s)
+        # Uses JSON format for structured access
         print("📊 Phase 1: Calculating embedding-based similarity...")
         similarity_metrics = calculate_overall_compatibility(
             request.parsed_cv,
@@ -2164,24 +2175,21 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
         print(f"✅ Phase 1 complete - similarity metrics calculated")
 
         # Phase 2a: Calculate category scores using hybrid approach (instant!)
-        # This replaces asking Gemini for category scores - much faster
+        # Uses JSON format for structured calculations
         print("📈 Phase 2a: Calculating category scores from metrics...")
         category_scores = calculate_category_scores_from_metrics(
             similarity_metrics,
-            request.parsed_cv,
-            request.parsed_jd,
+            request.parsed_cv,  # JSON format
+            request.parsed_jd,  # JSON format
             language=request.language
         )
         overall_score = calculate_weighted_score(category_scores)
         overall_status = get_overall_status(overall_score)
         print(f"✅ Phase 2a complete - Overall score: {overall_score}% ({overall_status})")
 
-        # Phase 2b: Full Gemini AI analysis for gaps + strengths (ALWAYS)
-        # Convert to TOON format for token efficiency (40-50% reduction)
+        # Phase 2b: Full Gemini AI analysis for gaps + strengths
+        # Uses TOON text format (created in Step 0) for AI prompts
         print("🤖 Phase 2b: Preparing Gemini gap analysis...")
-        cv_toon = to_toon(request.parsed_cv)
-        jd_toon = to_toon(request.parsed_jd)
-        print(f"   TOON format: CV={len(cv_toon)} chars, JD={len(jd_toon)} chars")
 
         # Use compressed prompt (60% smaller - only gaps + strengths)
         analysis_prompt = get_compressed_gap_analysis_prompt(
