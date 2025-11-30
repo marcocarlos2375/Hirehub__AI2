@@ -1599,7 +1599,7 @@ def calculate_category_scores_from_metrics(
 
     # Experience Level (15% weight - reduced from 20%) - from years comparison with domain relevance
     cv_years = calculate_total_experience_years(parsed_cv)
-    jd_years = parsed_jd.get('experience_years_required', 0)
+    jd_years = parsed_jd.get('experience_years_required', 0) or 0  # Handle None values
     if jd_years > 0:
         experience_ratio = min(1.2, cv_years / jd_years)  # Cap at 1.2 (20% bonus for extra experience)
         # Lower base multiplier from 85 to 70
@@ -2123,6 +2123,9 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
     """
     try:
         start_time = time.time()
+        print(f"\n{'='*60}")
+        print(f"🔄 Starting score calculation")
+        print(f"{'='*60}")
 
         # OPTIMIZATION #1: Check cache first (99% speedup on cache hits)
         # Generate deterministic cache key from CV + JD content + language
@@ -2153,13 +2156,16 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
                 # Continue below to fresh calculation
 
         # Phase 1: Calculate embedding-based similarity (fast - ~1-2s)
+        print("📊 Phase 1: Calculating embedding-based similarity...")
         similarity_metrics = calculate_overall_compatibility(
             request.parsed_cv,
             request.parsed_jd
         )
+        print(f"✅ Phase 1 complete - similarity metrics calculated")
 
         # Phase 2a: Calculate category scores using hybrid approach (instant!)
         # This replaces asking Gemini for category scores - much faster
+        print("📈 Phase 2a: Calculating category scores from metrics...")
         category_scores = calculate_category_scores_from_metrics(
             similarity_metrics,
             request.parsed_cv,
@@ -2168,11 +2174,14 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
         )
         overall_score = calculate_weighted_score(category_scores)
         overall_status = get_overall_status(overall_score)
+        print(f"✅ Phase 2a complete - Overall score: {overall_score}% ({overall_status})")
 
         # Phase 2b: Full Gemini AI analysis for gaps + strengths (ALWAYS)
         # Convert to TOON format for token efficiency (40-50% reduction)
+        print("🤖 Phase 2b: Preparing Gemini gap analysis...")
         cv_toon = to_toon(request.parsed_cv)
         jd_toon = to_toon(request.parsed_jd)
+        print(f"   TOON format: CV={len(cv_toon)} chars, JD={len(jd_toon)} chars")
 
         # Use compressed prompt (60% smaller - only gaps + strengths)
         analysis_prompt = get_compressed_gap_analysis_prompt(
@@ -2182,8 +2191,10 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
             overall_score=overall_score,  # Pass score for adaptive gap requirements
             language=request.language
         )
+        print(f"   Prompt length: {len(analysis_prompt)} chars")
 
         model_name = "gemini-2.5-flash-lite"
+        print(f"   Calling {model_name} for gap analysis...")
         # Use explicit prompt caching for 90% discount on repeated prompts with GPT-3.5 fallback
         response_text, provider = generate_with_cache(
             prompt=analysis_prompt,
@@ -2231,6 +2242,7 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
         elapsed_time = time.time() - start_time
 
         # Parse categorized gaps
+        print("📋 Phase 3: Parsing gap analysis results...")
         gaps_data = analysis_result.get("gaps", {})
         categorized_gaps = CategorizedGaps(
             critical=[GapItem(**gap) for gap in gaps_data.get("critical", [])],
@@ -2238,16 +2250,20 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
             nice_to_have=[GapItem(**gap) for gap in gaps_data.get("nice_to_have", [])],
             logistical=[GapItem(**gap) for gap in gaps_data.get("logistical", [])]
         )
+        print(f"   Gaps: {len(gaps_data.get('critical', []))} critical, {len(gaps_data.get('important', []))} important, {len(gaps_data.get('nice_to_have', []))} nice-to-have")
 
         # Parse strengths
         strengths_data = analysis_result.get("strengths", [])
         strengths = [StrengthItem(**strength) for strength in strengths_data]
+        print(f"   Strengths: {len(strengths_data)} identified")
 
         # Parse application viability
         viability_data = analysis_result.get("application_viability", {})
         application_viability = ApplicationViability(**viability_data)
+        print(f"   Viability: {viability_data.get('current_likelihood', 'N/A')}")
 
         # Generate AI-powered encouraging message for the score
+        print("💬 Phase 4: Generating score message...")
         score_message_dict = generate_score_message(
             overall_score=overall_score,
             gaps=gaps_data,
@@ -2255,6 +2271,7 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
             overall_status=overall_status
         )
         score_message = ScoreMessage(**score_message_dict)
+        print(f"   Message: '{score_message.title}'")
 
         # Build response
         response = ScoreResponse(
@@ -2275,6 +2292,7 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
         # This provides 99% speedup on subsequent requests with same CV+JD
         # Use Pydantic's model_dump_json() to properly serialize nested models
         # NON-BLOCKING: Cache storage failures don't crash the app
+        print("💾 Caching result...")
         try:
             cache.set(cache_key, response.model_dump_json(), ttl=2592000)
             print(f"✅ Cached result for {cache_key[:20]}... (TTL: 30 days)")
@@ -2282,9 +2300,20 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
             # Log warning but don't crash - user still gets their response
             print(f"⚠️  Cache storage failed: {cache_error}. Result not cached, but returned to user.")
 
+        print(f"{'='*60}")
+        print(f"✅ Score calculation complete - {elapsed_time:.2f}s")
+        print(f"{'='*60}\n")
         return response
 
     except Exception as e:
+        print(f"\n{'='*60}")
+        print(f"❌ ERROR in calculate_score:")
+        print(f"   Exception type: {type(e).__name__}")
+        print(f"   Exception message: {str(e)}")
+        import traceback
+        print(f"   Traceback:")
+        traceback.print_exc()
+        print(f"{'='*60}\n")
         raise HTTPException(
             status_code=500,
             detail=f"Error calculating score: {str(e)}"
