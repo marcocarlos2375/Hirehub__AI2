@@ -1,6 +1,6 @@
 """
 LLM Fallback Module
-Provides Gemini → GPT-3.5 Turbo fallback for all text generation operations.
+Provides Gemini → GPT-4o-mini fallback for all text generation operations.
 """
 
 import os
@@ -18,12 +18,12 @@ openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 def generate_with_fallback(
     prompt: str,
     model_gemini: str = "gemini-2.5-flash-lite",
-    model_openai: str = "gpt-3.5-turbo",
+    model_openai: str = "gpt-4o-mini",
     temperature: float = 0.2,
     **kwargs
 ) -> tuple[str, str]:
     """
-    Generate text with Gemini, fall back to OpenAI GPT-3.5 on any error.
+    Generate text with Gemini, fall back to OpenAI GPT-4o-mini on any error.
 
     Returns:
         tuple: (response_text, provider_used)
@@ -41,7 +41,7 @@ def generate_with_fallback(
 
     except Exception as gemini_error:
         # Log Gemini failure
-        print(f"⚠️  Gemini API failed: {gemini_error}. Falling back to OpenAI GPT-3.5...")
+        print(f"⚠️  Gemini API failed: {gemini_error}. Falling back to OpenAI GPT-4o-mini...")
 
         # Fall back to OpenAI GPT-3.5
         try:

@@ -82,10 +82,10 @@ class LangChainConfig:
             convert_system_message_to_human=True,
         )
 
-        # Fallback LLM: OpenAI GPT-3.5 (optional, for comparison or fallback)
+        # Fallback LLM: OpenAI GPT-4o-mini (optional, for comparison or fallback)
         if self.openai_api_key:
             self.llm_openai = ChatOpenAI(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 temperature=0.1,
                 openai_api_key=self.openai_api_key,
             )
