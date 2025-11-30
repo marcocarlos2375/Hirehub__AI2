@@ -232,6 +232,17 @@ const getPriorityDotClass = (priority: string) => {
   --text-secondary: var(--gray-600);
   --text-muted: var(--gray-400);
   --divider: var(--gray-200);
+
+  /* Priority colors */
+  --critical-bg: #fef2f2;
+  --critical-text: #991b1b;
+  --critical-dot: #ef4444;
+  --important-bg: #fffbeb;
+  --important-text: #92400e;
+  --important-dot: #f59e0b;
+  --nice-bg: var(--gray-100);
+  --nice-text: var(--gray-600);
+  --nice-dot: var(--gray-400);
 }
 
 /* Header */
@@ -444,18 +455,18 @@ const getPriorityDotClass = (priority: string) => {
 }
 
 .skill-tag.priority-critical {
-  background: var(--primary-50);
-  color: var(--primary-900);
+  background: var(--critical-bg);
+  color: var(--critical-text);
 }
 
 .skill-tag.priority-important {
-  background: var(--gray-100);
-  color: var(--gray-800);
+  background: var(--important-bg);
+  color: var(--important-text);
 }
 
 .skill-tag.priority-nice {
-  background: var(--gray-50);
-  color: var(--gray-600);
+  background: var(--nice-bg);
+  color: var(--nice-text);
 }
 
 .priority-dot {
@@ -465,15 +476,15 @@ const getPriorityDotClass = (priority: string) => {
 }
 
 .dot-critical {
-  background: var(--primary-500);
+  background: var(--critical-dot);
 }
 
 .dot-important {
-  background: var(--gray-400);
+  background: var(--important-dot);
 }
 
 .dot-nice {
-  background: var(--gray-300);
+  background: var(--nice-dot);
 }
 
 .tech-tag {
@@ -522,15 +533,15 @@ const getPriorityDotClass = (priority: string) => {
 }
 
 .dot.critical {
-  background: var(--primary-500);
+  background: var(--critical-dot);
 }
 
 .dot.important {
-  background: var(--gray-400);
+  background: var(--important-dot);
 }
 
 .dot.nice {
-  background: var(--gray-300);
+  background: var(--nice-dot);
 }
 
 /* Lists */
