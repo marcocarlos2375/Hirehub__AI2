@@ -29,51 +29,6 @@ services:
     environment:
       - QDRANT__SERVICE__HTTP_PORT=6333
 
-  searxng:
-    build:
-      context: ./searxng
-      dockerfile: Dockerfile
-    container_name: test-hirehub-adaptive-searxng
-    ports:
-      - "8888:8080"
-    volumes:
-      - ./searxng:/etc/searxng:rw
-    environment:
-      - SEARXNG_BASE_URL=http://localhost:8888/
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
-  perplexica:
-    build:
-      context: ./perplexica
-      dockerfile: Dockerfile
-    container_name: test-hirehub-perplexica
-    ports:
-      - "3002:3000"  # Perplexica web UI
-      # Note: Not exposing 8080 - using external SearXNG at searxng:8080
-    volumes:
-      - perplexica_data:/home/perplexica/data
-      - perplexica_uploads:/home/perplexica/uploads
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - SEARXNG_API_URL=http://searxng:8080  # Use existing SearXNG
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    depends_on:
-      searxng:
-        condition: service_healthy
-
   api:
     build: .
     container_name: test-hirehub-adaptive-api
@@ -161,6 +116,4 @@ volumes:
   postgres_data:
   qdrant_storage:
   parakeet_models:
-  perplexica_data:
-  perplexica_uploads:
   grafana_data:

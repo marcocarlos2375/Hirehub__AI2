@@ -11,7 +11,6 @@ from langgraph.checkpoint.memory import MemorySaver
 from core.answer_flow_state import AdaptiveAnswerState
 from core.answer_flow_nodes import (
     generate_deep_dive_prompts_node,
-    search_learning_resources_node,
     generate_answer_from_inputs_node,
     evaluate_quality_node,
     refine_answer_node,
@@ -33,15 +32,15 @@ class AdaptiveQuestionWorkflow:
     Flow:
         START
           ↓
-        [User selects: Yes/No/Willing to Learn]
+        [User selects: Yes/No]
           ↓
-        ┌──────────────┬──────────────┬───────────────────┐
-        ↓              ↓              ↓                   ↓
-      YES             NO      WILLING_TO_LEARN        (skip)
-        ↓              ↓              ↓                   ↓
-    DEEP_DIVE         END    LEARNING_RESOURCES         END
-        ↓                            ↓
-    GENERATE_ANSWER                 END
+        ┌──────────────┬──────────────┐
+        ↓              ↓              ↓
+      YES             NO          (skip)
+        ↓              ↓              ↓
+    DEEP_DIVE         END            END
+        ↓
+    GENERATE_ANSWER
         ↓
     EVALUATE_QUALITY
         ↓
@@ -54,9 +53,8 @@ class AdaptiveQuestionWorkflow:
                 ↓
                END
 
-    Smart Skipping (Quick Win #2):
+    Smart Skipping:
     - "No" responses skip directly to END (saves 1-2s LLM call)
-    - Only "willing_to_learn" triggers learning resource search
     - Only "yes" triggers deep-dive prompts generation
     """
 
@@ -71,7 +69,6 @@ class AdaptiveQuestionWorkflow:
 
         # Add nodes
         self.workflow.add_node("generate_deep_dive", generate_deep_dive_prompts_node)
-        self.workflow.add_node("search_resources", search_learning_resources_node)
         self.workflow.add_node("generate_answer", generate_answer_from_inputs_node)
         self.workflow.add_node("evaluate_quality", evaluate_quality_node)
         self.workflow.add_node("refine_answer", refine_answer_node)
@@ -82,8 +79,7 @@ class AdaptiveQuestionWorkflow:
             route_after_experience_check,
             {
                 "deep_dive": "generate_deep_dive",
-                "learning_resources": "search_resources",
-                "skip": END  # Smart skip: No experience and not interested
+                "skip": END  # Smart skip: No experience
             }
         )
 
@@ -92,9 +88,6 @@ class AdaptiveQuestionWorkflow:
 
         # After generate answer → evaluate quality
         self.workflow.add_edge("generate_answer", "evaluate_quality")
-
-        # After search resources → END (no quality check for learning path)
-        self.workflow.add_edge("search_resources", END)
 
         # After quality evaluation → conditional routing
         self.workflow.add_conditional_edges(
@@ -115,7 +108,7 @@ class AdaptiveQuestionWorkflow:
             checkpointer=self.memory,
             interrupt_before=[],
             # Interrupt after these nodes to wait for user input
-            interrupt_after=["generate_deep_dive", "search_resources"]
+            interrupt_after=["generate_deep_dive"]
         )
 
     async def run_async(self, initial_state: Dict[str, Any]) -> AdaptiveAnswerState:
@@ -254,7 +247,7 @@ def create_initial_state(
     user_id: str,
     parsed_cv: Dict[str, Any],
     parsed_jd: Dict[str, Any],
-    experience_check_response: str,  # "yes", "no", or "willing_to_learn"
+    experience_check_response: str,  # "yes" or "no"
     language: str = "english"
 ) -> Dict[str, Any]:
     """
@@ -268,7 +261,7 @@ def create_initial_state(
         user_id: User identifier
         parsed_cv: Parsed CV data
         parsed_jd: Parsed job description data
-        experience_check_response: "yes", "no", or "willing_to_learn"
+        experience_check_response: "yes" or "no"
         language: Content language
 
     Returns:

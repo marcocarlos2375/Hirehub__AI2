@@ -13,10 +13,9 @@ class AdaptiveAnswerState(TypedDict, total=False):
     This state is passed through all nodes in the LangGraph.
 
     Flow:
-        1. check_experience → has_experience? → deep_dive OR learning_resources
+        1. check_experience → has_experience? → deep_dive OR skip
         2. deep_dive → generate_answer → evaluate_quality
-        3. learning_resources → END
-        4. evaluate_quality → quality_good? → END OR refine_answer → evaluate_quality
+        3. evaluate_quality → quality_good? → END OR refine_answer → evaluate_quality
     """
 
     # Input data
@@ -33,12 +32,12 @@ class AdaptiveAnswerState(TypedDict, total=False):
     session_id: Optional[str]  # UUID for session tracking and resume capability
 
     # Flow control
-    current_step: str  # "experience_check", "deep_dive", "resources", "quality_eval", "refinement", "complete"
-    has_experience: Optional[bool]  # True, False, or None (willing to learn)
-    chosen_path: Optional[Literal["deep_dive", "learning_resources", "willing_to_learn"]]
+    current_step: str  # "experience_check", "deep_dive", "quality_eval", "refinement", "complete"
+    has_experience: Optional[bool]  # True or False
+    chosen_path: Optional[Literal["deep_dive", "skip"]]
 
     # User input from experience check
-    experience_check_response: Optional[str]  # "yes", "no", "willing_to_learn"
+    experience_check_response: Optional[str]  # "yes" or "no"
 
     # Deep dive data (if has_experience = True)
     structured_inputs: Optional[Dict[str, Any]]  # Responses to structured prompts
@@ -51,11 +50,6 @@ class AdaptiveAnswerState(TypedDict, total=False):
     # }
 
     raw_answer: Optional[str]  # Free-text answer from user
-
-    # Learning resources (if has_experience = False or willing_to_learn)
-    suggested_resources: Optional[List[Dict[str, Any]]]  # Courses, projects from semantic search
-    selected_resource_ids: Optional[List[str]]  # Resources user selected to add to plan
-    learning_plan_id: Optional[str]  # UUID of created learning plan
 
     # Answer generation
     generated_answer: Optional[str]  # AI-generated professional answer from structured inputs
@@ -77,7 +71,6 @@ class AdaptiveAnswerState(TypedDict, total=False):
 
     # Final output
     final_answer: Optional[str]  # Accepted professional answer
-    resume_addition: Optional[str]  # Text to add to resume (if willing_to_learn or no experience)
     answer_accepted: bool  # Did user accept the final answer?
 
     # Metadata
@@ -88,7 +81,7 @@ class AdaptiveAnswerState(TypedDict, total=False):
 
 
 # Routing decision types
-RoutingDecision = Literal["deep_dive", "learning_resources", "willing_to_learn", "END"]
+RoutingDecision = Literal["deep_dive", "skip", "END"]
 QualityRoutingDecision = Literal["good", "needs_improvement", "max_iterations"]
 
 
@@ -108,21 +101,6 @@ class DeepDivePrompt(TypedDict):
     options: Optional[List[str]]  # For select/multiselect
     required: bool
     help_text: Optional[str]
-
-
-class LearningResource(TypedDict):
-    """Learning resource from semantic search."""
-    id: str
-    title: str
-    description: str
-    type: Literal["course", "project", "certification", "challenge", "tutorial"]
-    provider: str
-    url: str
-    duration_days: int
-    difficulty: Literal["beginner", "intermediate", "advanced"]
-    cost: Literal["free", "paid", "freemium"]
-    skills_covered: List[str]
-    rating: Optional[float]
 
 
 class QualityFeedback(TypedDict):
@@ -160,8 +138,6 @@ class UserCancelledError(WorkflowError):
 # Constants
 MAX_REFINEMENT_ITERATIONS = 2
 MIN_ACCEPTABLE_QUALITY_SCORE = 7  # Default fallback
-MAX_LEARNING_RESOURCES = 5
-MAX_LEARNING_DAYS = 10
 
 # Dynamic quality thresholds based on gap priority
 QUALITY_THRESHOLDS = {

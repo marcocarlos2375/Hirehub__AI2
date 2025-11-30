@@ -10,7 +10,6 @@ This is an AI-powered job application optimization system (HireHubAI) that analy
 - Backend: Python, FastAPI, Google Gemini API, OpenAI API, LangGraph (workflow orchestration)
 - Frontend: Nuxt 3 (Vue 3), TypeScript, Tailwind CSS, Vitest (testing)
 - Database: PostgreSQL (user data), Qdrant (vector DB for RAG)
-- Search: SearXNG (self-hosted meta-search for learning resources)
 - Speech-to-Text: NVIDIA Parakeet v3 (self-hosted GPU service) + OpenAI Whisper (fallback)
 - Optimization: TOON format for token reduction, embedding caching, prompt caching
 
@@ -41,7 +40,6 @@ docker-compose up parakeet     # Just the Parakeet speech-to-text service
 # API will be available at http://localhost:8001
 # PostgreSQL database at localhost:5433
 # Qdrant dashboard at http://localhost:6333/dashboard
-# SearXNG at http://localhost:8888
 # Parakeet API at http://localhost:8002
 ```
 
@@ -166,11 +164,9 @@ The project requires API keys in `Backend/.env`:
 - `USE_PARAKEET` - Enable self-hosted Parakeet speech-to-text (`true`/`false`)
   - Defaults to `false` (uses OpenAI Whisper)
 - `PARAKEET_URL` - Parakeet service URL (default: `http://parakeet:8002`)
-- `SEARXNG_URL` - SearXNG instance URL (default: `http://searxng:8080`)
-  - Used for learning resource discovery in adaptive questions
 - `DATABASE_URL` - PostgreSQL connection string
   - Format: `postgresql://hirehub:hirehub_password@localhost:5433/hirehub`
-  - Used for storing learning plans and user data
+  - Used for storing user data
 
 **Example `.env` file:**
 ```env
@@ -179,7 +175,6 @@ OPENAI_API_KEY=your_openai_key_here
 REDIS_URL=redis://localhost:6379/0
 USE_PARAKEET=false
 PARAKEET_URL=http://parakeet:8002
-SEARXNG_URL=http://searxng:8080
 DATABASE_URL=postgresql://hirehub:hirehub_password@localhost:5433/hirehub
 ```
 
@@ -202,17 +197,15 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 
 3. **Phase 4: Adaptive Questions (LangGraph Workflow)**
    - Generate 5-11 personalized questions based on gaps
-   - **Intelligent Flow:** Users select experience level (Yes/No/Willing to Learn)
+   - **Intelligent Flow:** Users select experience level (Yes/No)
      - **Yes** → Deep-dive prompts to extract details
      - **No** → Skip question
-     - **Willing to Learn** → SearXNG search for learning resources, generate learning plan
    - **LangGraph State Machine:** Orchestrates multi-step workflow with branching logic
    - **Quality Evaluation:** AI scores answer quality (0-10) and provides improvement suggestions
    - **Iterative Refinement:** Up to 2 refinement cycles to improve low-quality answers
    - Use Qdrant vector DB to find similar past experiences (RAG)
    - Support text or voice answers (Parakeet/Whisper transcription)
    - Extract "hidden experience" not in original CV
-   - Save learning plans to PostgreSQL for future reference
 
 5. **Phase 5: Resume Rewriting**
    - Incorporate insights from user answers
@@ -230,12 +223,9 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 - `POST /api/calculate-score` - Calculate compatibility score (Phase 3)
 
 *Adaptive Questions Workflow (LangGraph):*
-- `POST /api/adaptive-questions/start` - Start adaptive question flow (select Yes/No/Willing to Learn)
+- `POST /api/adaptive-questions/start` - Start adaptive question flow (select Yes/No)
 - `POST /api/adaptive-questions/submit-inputs` - Submit deep-dive answers or refinement data
 - `POST /api/adaptive-questions/refine-answer` - Refine answer based on quality feedback
-- `POST /api/adaptive-questions/get-learning-resources` - Get learning resources from SearXNG
-- `POST /api/adaptive-questions/save-learning-plan` - Save learning plan to PostgreSQL
-- `POST /api/adaptive-questions/get-learning-plans` - Retrieve saved learning plans
 
 *Legacy Question Flow (being phased out):*
 - `POST /api/generate-questions` - Generate personalized questions (Phase 4)
@@ -258,11 +248,8 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 - `app/main.py` - FastAPI application with all endpoints
 - `app/config.py` - Centralized prompt templates for all phases
 - `core/adaptive_question_graph.py` - LangGraph workflow for adaptive questions (state machine)
-- `core/answer_flow_nodes.py` - LangGraph nodes (deep-dive, search, evaluate, refine)
+- `core/answer_flow_nodes.py` - LangGraph nodes (deep-dive, evaluate, refine)
 - `core/answer_flow_state.py` - LangGraph state definition
-- `core/searxng_client.py` - SearXNG search client for learning resources
-- `core/search_query_builder.py` - Intelligent search query generation
-- `core/resource_matcher.py` - Learning resource matching and ranking
 - `core/embeddings.py` - Semantic similarity with caching (2-tier: in-memory + Redis)
 - `core/cache.py` - Embedding cache management (Redis or in-memory)
 - `core/gemini_cache.py` - Gemini prompt caching (context caching for repeated prompts)
@@ -340,11 +327,10 @@ The application follows a multi-phase pipeline architecture (see `docs/pipeline.
 2. **Parsing:** Both documents parsed to structured JSON (multilingual support)
 3. **Scoring:** Hybrid approach (embeddings + rules + AI gaps)
 4. **Adaptive Questions:** RAG-enhanced personalized questions based on gaps
-   - User selects experience level for each question (Yes/No/Willing to Learn)
+   - User selects experience level for each question (Yes/No)
    - **LangGraph Workflow branches based on selection:**
      - **Yes** → Generate deep-dive prompts → User provides answers → Evaluate quality → Refine if needed
      - **No** → Skip to next question
-     - **Willing to Learn** → Search SearXNG for resources → Generate learning plan → Save to PostgreSQL
 5. **Analysis:** Extract hidden experience from answers, update CV, recalculate score
 6. **Rewrite:** Generate optimized resume with ATS keywords + learned skills
 
@@ -356,27 +342,27 @@ The adaptive questions system uses **LangGraph** for stateful workflow orchestra
 ```
 START
   ↓
-[Experience Check: Yes/No/Willing to Learn]
+[Experience Check: Yes/No]
   ↓
-  ┌────────────┬──────────────┬─────────────────┐
+  ┌────────────┬──────────────┐
   ↓            ↓              ↓
-YES          NO         WILLING_TO_LEARN
+YES          NO          (skip)
   ↓            ↓              ↓
-DEEP_DIVE     END      SEARCH_RESOURCES
-  ↓                           ↓
-GENERATE_ANSWER      GENERATE_LEARNING_PLAN
-  ↓                           ↓
-EVALUATE_QUALITY           SAVE_PLAN
-  ↓                           ↓
-Quality >= 7?                END
+DEEP_DIVE     END            END
+  ↓
+GENERATE_ANSWER
+  ↓
+EVALUATE_QUALITY
+  ↓
+Quality >= 7?
   ↓
 Yes → END
 No → REFINE (max 2 iterations) → EVALUATE
 ```
 
 **Key Components:**
-- **State:** `AdaptiveAnswerState` - Tracks question, user inputs, quality scores, learning resources
-- **Nodes:** `generate_deep_dive_prompts_node`, `search_learning_resources_node`, `evaluate_quality_node`, `refine_answer_node`
+- **State:** `AdaptiveAnswerState` - Tracks question, user inputs, quality scores
+- **Nodes:** `generate_deep_dive_prompts_node`, `evaluate_quality_node`, `refine_answer_node`
 - **Routing:** Conditional edges based on experience level and quality score
 - **Persistence:** MemorySaver for state checkpointing
 
@@ -509,9 +495,6 @@ Backend/
 │   ├── adaptive_question_graph.py  # LangGraph workflow orchestration
 │   ├── answer_flow_nodes.py       # LangGraph workflow nodes
 │   ├── answer_flow_state.py       # LangGraph state definition
-│   ├── searxng_client.py          # SearXNG search integration
-│   ├── search_query_builder.py    # Search query generation
-│   ├── resource_matcher.py        # Learning resource matching
 │   ├── langchain_config.py        # LangChain/LangGraph setup
 │   ├── embeddings.py              # Semantic similarity with caching
 │   ├── cache.py                   # Embedding cache (Redis/in-memory)
@@ -535,7 +518,7 @@ Backend/
 ├── data/
 │   ├── samples/           # Sample CVs and job descriptions
 │   └── outputs/           # Generated JSON outputs
-└── docker-compose.yml      # Multi-service orchestration (DB, Qdrant, SearXNG, API, Parakeet)
+└── docker-compose.yml      # Multi-service orchestration (DB, Qdrant, API, Parakeet)
 
 frontend/
 ├── pages/
@@ -549,7 +532,6 @@ frontend/
 │   ├── adaptive-questions/  # Adaptive questions workflow components
 │   ├── results/           # Result display components
 │   ├── modals/            # Modal components
-│   ├── learning/          # Learning resource components
 │   └── cards/             # Card components (GapCard, etc.)
 ├── composables/           # Composition API composables
 │   ├── useAdaptiveQuestions.ts     # LangGraph workflow client
@@ -617,19 +599,6 @@ nvidia-smi
 # or continuously: watch -n 1 nvidia-smi
 ```
 
-### SearXNG Service Health
-
-```bash
-# Check SearXNG status
-curl http://localhost:8888/healthz
-
-# View SearXNG logs
-docker-compose logs -f searxng
-
-# Test search functionality
-curl "http://localhost:8888/search?q=Python+tutorial&format=json"
-```
-
 ### Common Debugging Scenarios
 
 1. **Slow scoring/parsing:**
@@ -655,8 +624,6 @@ curl "http://localhost:8888/search?q=Python+tutorial&format=json"
 
 5. **Adaptive questions workflow issues:**
    - Check LangGraph state persistence (workflow uses MemorySaver)
-   - Verify SearXNG is running for "Willing to Learn" flow
-   - Check PostgreSQL connection for learning plan storage
    - Review quality evaluation thresholds (score >= 7 is acceptable)
    - Max 2 refinement iterations before accepting answer
 
@@ -696,11 +663,6 @@ curl "http://localhost:8888/search?q=Python+tutorial&format=json"
   - Adaptive questions use stateful workflows with branching logic
   - State persisted via MemorySaver (in-memory checkpointing)
   - Quality threshold: score >= 7 is acceptable, otherwise refine (max 2 iterations)
-  - "Willing to Learn" flow requires SearXNG and PostgreSQL
-- **Learning Resources:**
-  - SearXNG provides privacy-focused meta-search for learning resources
-  - PostgreSQL stores user learning plans for future reference
-  - Resources matched using semantic similarity and recency ranking
 - **Migration Path:**
   - Legacy `/api/generate-questions` and `/api/submit-answers` being phased out
   - New endpoints under `/api/adaptive-questions/*` use LangGraph workflow

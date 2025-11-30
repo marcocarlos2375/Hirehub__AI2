@@ -9,15 +9,13 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 
-from core.langchain_config import get_llm, get_async_llm, get_learning_resources_vectorstore
+from core.langchain_config import get_llm, get_async_llm
 from core.answer_flow_state import (
     AdaptiveAnswerState,
     DeepDivePrompt,
     QualityFeedback,
     MIN_ACCEPTABLE_QUALITY_SCORE,
     MAX_REFINEMENT_ITERATIONS,
-    MAX_LEARNING_RESOURCES,
-    MAX_LEARNING_DAYS,
     QUALITY_THRESHOLDS
 )
 
@@ -167,72 +165,7 @@ Return JSON:
 
 
 # ========================================
-# Node 2: Search Learning Resources
-# ========================================
-
-def search_learning_resources_node(state: AdaptiveAnswerState) -> AdaptiveAnswerState:
-    """
-    Search for relevant learning resources using semantic search.
-    Called when user doesn't have experience or is willing to learn.
-    """
-    try:
-        vectorstore = get_learning_resources_vectorstore()
-
-        # Build search query from gap
-        gap = state["gap_info"]
-        search_query = f"{gap['title']}: {gap.get('description', '')}"
-
-        # Semantic search without filters (do post-filtering in Python)
-        docs = vectorstore.similarity_search(
-            search_query,
-            k=MAX_LEARNING_RESOURCES * 2  # Get extra to allow filtering
-        )
-
-        # Convert to structured format with post-filtering
-        resources = []
-        for doc in docs:
-            metadata = doc.metadata
-            duration = metadata.get("duration_days", 0)
-
-            # Filter by duration in Python
-            if duration <= MAX_LEARNING_DAYS:
-                resources.append({
-                    "id": metadata.get("id"),
-                    "title": metadata.get("title"),
-                    "description": doc.page_content,
-                    "type": metadata.get("type"),
-                    "provider": metadata.get("provider"),
-                    "url": metadata.get("url"),
-                    "duration_days": duration,
-                    "difficulty": metadata.get("difficulty"),
-                    "cost": metadata.get("cost"),
-                    "skills_covered": metadata.get("skills_covered", []),
-                    "rating": metadata.get("rating"),
-                    "score": None  # Relevance score (not calculated here)
-                })
-
-                if len(resources) >= MAX_LEARNING_RESOURCES:
-                    break
-
-        state["suggested_resources"] = resources
-        state["current_step"] = "resources"
-
-        # Generate timeline suggestion
-        total_days = sum(r["duration_days"] for r in resources[:3])  # Top 3
-        state["resume_addition"] = f"Currently expanding {gap['title']} expertise through hands-on learning ({total_days}-day program)"
-
-        return state
-
-    except Exception as e:
-        state["error"] = f"Failed to search learning resources: {str(e)}"
-        # Fallback: suggest "willing to learn" message
-        state["resume_addition"] = f"Open to learning {state['gap_info']['title']}"
-        state["suggested_resources"] = []
-        return state
-
-
-# ========================================
-# Node 3: Generate Professional Answer
+# Node 2: Generate Professional Answer
 # ========================================
 
 def generate_answer_from_inputs_node(state: AdaptiveAnswerState) -> AdaptiveAnswerState:
@@ -346,7 +279,7 @@ Return JSON:
 
 
 # ========================================
-# Node 4: Evaluate Answer Quality
+# Node 3: Evaluate Answer Quality
 # ========================================
 
 def evaluate_quality_node(state: AdaptiveAnswerState) -> AdaptiveAnswerState:
@@ -456,7 +389,7 @@ Return JSON exactly matching this structure:
 
 
 # ========================================
-# Node 5: Refine Answer
+# Node 4: Refine Answer
 # ========================================
 
 def refine_answer_node(state: AdaptiveAnswerState) -> AdaptiveAnswerState:
@@ -597,15 +530,12 @@ def route_after_experience_check(state: AdaptiveAnswerState) -> str:
 
     Returns:
         "deep_dive" if has experience (yes)
-        "learning_resources" if willing to learn
-        "skip" if no experience and not interested (no)
+        "skip" if no experience (no)
     """
     response = state.get("experience_check_response")
 
     if response == "yes":
         return "deep_dive"
-    elif response == "willing_to_learn":
-        return "learning_resources"
     else:
         # "no" - skip this question entirely (saves 1-2s)
         return "skip"

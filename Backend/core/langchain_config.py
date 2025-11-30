@@ -115,9 +115,6 @@ class LangChainConfig:
         # This is the existing collection from core/vector_store.py
         self.user_experiences_store = None  # Lazy initialization
 
-        # Vector store for learning resources (semantic search)
-        self.learning_resources_store = None  # Lazy initialization
-
     def _init_langsmith(self):
         """Initialize LangSmith tracing (optional)."""
         if self.langsmith_api_key:
@@ -140,35 +137,6 @@ class LangChainConfig:
                 embedding=self.embeddings,
             )
         return self.user_experiences_store
-
-    def get_learning_resources_vectorstore(self) -> QdrantVectorStore:
-        """
-        Get or create vector store for learning resources.
-        Enables semantic search for courses/projects based on skill gaps.
-        """
-        if self.learning_resources_store is None:
-            # Check if collection exists, create if not
-            try:
-                self.qdrant_client.get_collection("learning_resources")
-            except Exception:
-                # Collection doesn't exist, create it
-                from qdrant_client.models import Distance, VectorParams
-
-                self.qdrant_client.create_collection(
-                    collection_name="learning_resources",
-                    vectors_config=VectorParams(
-                        size=self.embedding_dimension,
-                        distance=Distance.COSINE
-                    )
-                )
-                print("✅ Created 'learning_resources' Qdrant collection")
-
-            self.learning_resources_store = QdrantVectorStore(
-                client=self.qdrant_client,
-                collection_name="learning_resources",
-                embedding=self.embeddings,
-            )
-        return self.learning_resources_store
 
     def get_llm(self, mode: str = "fast") -> ChatGoogleGenerativeAI:
         """
@@ -252,11 +220,6 @@ def get_user_experiences_vectorstore():
     return get_langchain_config().get_user_experiences_vectorstore()
 
 
-def get_learning_resources_vectorstore():
-    """Get learning resources vector store (for semantic search)."""
-    return get_langchain_config().get_learning_resources_vectorstore()
-
-
 # Example usage
 if __name__ == "__main__":
     # Test configuration
@@ -282,12 +245,6 @@ if __name__ == "__main__":
         print(f"✅ User Experiences Store: Connected to '{user_exp_store.collection_name}'")
     except Exception as e:
         print(f"⚠️  User Experiences Store: {str(e)}")
-
-    try:
-        resources_store = config.get_learning_resources_vectorstore()
-        print(f"✅ Learning Resources Store: Connected to '{resources_store.collection_name}'")
-    except Exception as e:
-        print(f"⚠️  Learning Resources Store: {str(e)}")
 
     print("=" * 50)
     print("✅ Configuration test complete!\n")

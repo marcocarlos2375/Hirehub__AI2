@@ -3527,7 +3527,7 @@ class StartAdaptiveQuestionRequest(BaseModel):
     user_id: str
     parsed_cv: dict
     parsed_jd: dict
-    experience_check_response: str  # "yes", "no", or "willing_to_learn"
+    experience_check_response: str  # "yes" or "no"
     language: str = "english"
 
 class DeepDivePromptItem(BaseModel):
@@ -3539,26 +3539,10 @@ class DeepDivePromptItem(BaseModel):
     required: bool = True
     help_text: Optional[str] = None
 
-class LearningResourceItem(BaseModel):
-    id: str
-    title: str
-    description: str
-    type: str  # "course", "project", "certification"
-    provider: str
-    url: str
-    duration_days: int
-    difficulty: str  # "beginner", "intermediate", "advanced"
-    cost: str  # "free", "paid", "freemium"
-    skills_covered: list[str]
-    rating: Optional[float] = None
-    score: Optional[int] = None  # Relevance score (0-100)
-
 class AdaptiveQuestionResponse(BaseModel):
     question_id: str
     current_step: str
     deep_dive_prompts: list[DeepDivePromptItem] = []
-    suggested_resources: list[LearningResourceItem] = []
-    resume_addition: Optional[str] = None
     error: Optional[str] = None
 
 
@@ -3569,7 +3553,7 @@ async def start_adaptive_question(request: StartAdaptiveQuestionRequest):
 
     Based on experience_check_response:
     - "yes" → Returns deep_dive_prompts for detailed questioning
-    - "no" or "willing_to_learn" → Returns suggested_resources
+    - "no" → Skips the question
     """
     try:
         from core.adaptive_question_graph import AdaptiveQuestionWorkflow, create_initial_state
@@ -3619,34 +3603,6 @@ async def start_adaptive_question(request: StartAdaptiveQuestionRequest):
                     print(f"Warning: Skipping invalid prompt {i}: {str(e)}")
                     continue
             response_data["deep_dive_prompts"] = validated_prompts
-
-        # If learning resources path
-        if final_state.get("suggested_resources"):
-            # Ensure resources have required fields with defaults
-            validated_resources = []
-            for i, resource in enumerate(final_state["suggested_resources"]):
-                try:
-                    # Ensure required fields exist
-                    validated_resource = {
-                        "id": resource.get("id", f"resource_{i}"),
-                        "title": resource.get("title", ""),
-                        "description": resource.get("description", ""),
-                        "type": resource.get("type", "course"),
-                        "provider": resource.get("provider", "Unknown"),
-                        "url": resource.get("url", ""),
-                        "duration_days": resource.get("duration_days", 0),
-                        "difficulty": resource.get("difficulty", "beginner"),
-                        "cost": resource.get("cost", "free"),
-                        "skills_covered": resource.get("skills_covered", []),
-                        "rating": resource.get("rating"),
-                        "score": resource.get("score")
-                    }
-                    validated_resources.append(LearningResourceItem(**validated_resource))
-                except Exception as e:
-                    print(f"Warning: Skipping invalid resource {i}: {str(e)}")
-                    continue
-            response_data["suggested_resources"] = validated_resources
-            response_data["resume_addition"] = final_state.get("resume_addition")
 
         return AdaptiveQuestionResponse(**response_data)
 
@@ -3836,201 +3792,6 @@ async def format_answer_endpoint(request: FormatAnswerRequest):
         raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Formatting error: {str(e)}")
-
-
-class GetLearningResourcesRequest(BaseModel):
-    gap: dict  # Gap information
-    user_level: str = "intermediate"  # "beginner", "intermediate", "advanced"
-    max_days: int = 10
-    cost_preference: str = "any"  # "free", "paid", "any"
-    limit: int = 5
-    search_mode: str = "perplexica"  # "local_only", "web_only", "hybrid", "perplexica"
-
-
-class LearningPathStep(BaseModel):
-    resource_id: str
-    resource_title: str
-    type: str
-    start_day: int
-    end_day: int
-    duration_days: int
-
-
-class LearningPath(BaseModel):
-    timeline: list[LearningPathStep]
-    total_days: int
-    estimated_completion: str
-    resources_in_path: int
-
-
-class GetLearningResourcesResponse(BaseModel):
-    resources: list[LearningResourceItem]
-    timeline: list  # Flattened from learning_path.timeline
-    total_resources: int
-    total_duration_days: int
-    estimated_completion: str
-    error: str = None
-
-
-@app.post("/api/adaptive-questions/get-learning-resources", response_model=GetLearningResourcesResponse)
-async def get_learning_resources(request: GetLearningResourcesRequest):
-    """
-    Get learning resources for a specific gap using semantic search.
-
-    Returns:
-    - Ranked resources (courses, projects, certifications)
-    - Learning path timeline
-    - Estimated completion date
-    """
-    try:
-        from core.resource_matcher import get_resource_matcher
-
-        matcher = get_resource_matcher()
-
-        # Use hybrid search if search_mode is hybrid or web_only
-        if request.search_mode in ["hybrid", "web_only"]:
-            result = matcher.find_resources_with_web_search(
-                gap=request.gap,
-                user_level=request.user_level,
-                max_days=request.max_days,
-                cost_preference=request.cost_preference,
-                limit=request.limit,
-                search_mode=request.search_mode
-            )
-        else:
-            result = matcher.find_resources(
-                gap=request.gap,
-                user_level=request.user_level,
-                max_days=request.max_days,
-                cost_preference=request.cost_preference,
-                limit=request.limit
-            )
-
-        if result.get("error"):
-            return GetLearningResourcesResponse(
-                resources=[],
-                timeline=[],
-                total_resources=0,
-                total_duration_days=0,
-                estimated_completion="",
-                error=result["error"]
-            )
-
-        return GetLearningResourcesResponse(
-            resources=[LearningResourceItem(**r) for r in result["resources"]],
-            timeline=result["learning_path"]["timeline"],
-            total_resources=result["total_resources"],
-            total_duration_days=result["total_duration_days"],
-            estimated_completion=result["estimated_completion"]
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Resource matching error: {str(e)}")
-
-
-class SaveLearningPlanRequest(BaseModel):
-    user_id: str
-    gap_info: dict
-    selected_resource_ids: list[str]
-    notes: str = None
-
-
-class SaveLearningPlanResponse(BaseModel):
-    plan_id: str
-    status: str  # "success" or "error"
-    error: str = None
-
-
-@app.post("/api/adaptive-questions/save-learning-plan", response_model=SaveLearningPlanResponse)
-async def save_learning_plan(request: SaveLearningPlanRequest):
-    """
-    Save a learning plan for the user.
-
-    Stores selected resources and gap information for later tracking.
-    """
-    try:
-        from core.resource_matcher import get_resource_matcher
-
-        matcher = get_resource_matcher()
-        plan_id = matcher.save_learning_plan(
-            user_id=request.user_id,
-            gap=request.gap_info,
-            resource_ids=request.selected_resource_ids,
-            notes=request.notes
-        )
-
-        return SaveLearningPlanResponse(
-            plan_id=plan_id,
-            status="success"
-        )
-
-    except Exception as e:
-        return SaveLearningPlanResponse(
-            plan_id="",
-            status="error",
-            error=f"Failed to save learning plan: {str(e)}"
-        )
-
-
-class GetLearningPlansRequest(BaseModel):
-    user_id: str
-    status: str = None  # Optional: "suggested", "in_progress", "completed", "abandoned"
-
-
-class LearningPlanItem(BaseModel):
-    id: str
-    gap_title: str
-    gap_description: str
-    resource_ids: list[str]
-    resources: list[dict] = []  # Full resource objects
-    status: str
-    created_at: str
-    notes: str = None
-
-
-class GetLearningPlansResponse(BaseModel):
-    plans: list[LearningPlanItem]
-    total: int
-
-
-@app.post("/api/adaptive-questions/get-learning-plans", response_model=GetLearningPlansResponse)
-async def get_learning_plans(request: GetLearningPlansRequest):
-    """
-    Get all learning plans for a user.
-
-    Optionally filter by status.
-    """
-    try:
-        from core.resource_matcher import get_resource_matcher
-
-        matcher = get_resource_matcher()
-        plans = matcher.get_user_learning_plans(
-            user_id=request.user_id,
-            status=request.status
-        )
-
-        return GetLearningPlansResponse(
-            plans=[
-                LearningPlanItem(
-                    id=str(p["id"]),
-                    gap_title=p["gap_title"],
-                    gap_description=p["gap_description"],
-                    resource_ids=p["resource_ids"],
-                    resources=p.get("resources", []),
-                    status=p["status"],
-                    created_at=(
-                        p["created_at"].isoformat() if hasattr(p.get("created_at"), "isoformat")
-                        else str(p.get("created_at", ""))
-                    ),
-                    notes=p.get("notes")
-                )
-                for p in plans
-            ],
-            total=len(plans)
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving learning plans: {str(e)}")
 
 
 # ============= Skill Gap Analysis (No Experience) =============
