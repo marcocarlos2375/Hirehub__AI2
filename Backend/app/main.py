@@ -25,7 +25,14 @@ from core.caching.embeddings import calculate_overall_compatibility
 from core.caching.vector_store import get_qdrant_manager
 from core.caching.cache import get_cache
 from core.caching.gemini_cache import generate_with_cache, get_prompt_cache_stats
-from core.config.llm_fallback import generate_with_fallback, generate_with_fallback_async, gemini_client as fallback_gemini_client
+from core.config.llm_fallback import (
+    generate_with_fallback,
+    generate_with_fallback_async,
+    generate_validated_json_async,
+    gemini_client as fallback_gemini_client,
+    JSONValidationError,
+)
+from core.config.json_validators import ScoreMessageResponse, AnswerEvaluationResponse
 from core.caching.embeddings_fallback import get_embedding_with_fallback
 from core.monitoring.metrics_collector import get_metrics_collector
 from app.metrics_endpoints import router as metrics_router
@@ -1821,44 +1828,26 @@ Return ONLY valid JSON with this exact structure:
 }}"""
 
     try:
-        # Use gemini-2.5-flash-lite with GPT-4o-mini fallback
-        response_text, provider = await generate_with_fallback_async(
+        # Use validated JSON generation with automatic retry on validation failure
+        # This uses response_mime_type="application/json" to force valid JSON
+        # and validates against ScoreMessageResponse schema with up to 2 retries
+        result, provider = await generate_validated_json_async(
             prompt=prompt,
+            validator=ScoreMessageResponse,
             model_gemini="gemini-2.5-flash-lite",
-            temperature=0.7  # Slightly creative for varied messages
+            temperature=0.7,  # Slightly creative for varied messages
+            max_validation_retries=2
         )
         print(f"✅ Waiting message generation completed using {provider} (async)")
 
-        # Parse JSON response with error handling
-        # NOTE: Gemini sometimes returns JSON wrapped in markdown code blocks
-        # Strip them before parsing
-        try:
-            cleaned_text = response_text.strip()
-            if cleaned_text.startswith("```"):
-                lines = cleaned_text.split("\n")
-                if len(lines) > 1:
-                    lines = lines[1:]  # Remove ```json line
-                if lines and lines[-1].strip() == "```":
-                    lines = lines[:-1]  # Remove closing ```
-                cleaned_text = "\n".join(lines).strip()
+        return {
+            "title": result["title"],
+            "subtitle": result["subtitle"]
+        }
 
-            result = json.loads(cleaned_text)
-        except json.JSONDecodeError as json_err:
-            print(f"⚠️  JSON parsing failed for score message: {json_err}")
-            print(f"⚠️  AI returned: {response_text[:200]}...")  # Log first 200 chars
-            # Use fallback immediately
-            return get_fallback_message(overall_score)
-
-        # Validate response has required fields
-        if "title" in result and "subtitle" in result:
-            return {
-                "title": result["title"],
-                "subtitle": result["subtitle"]
-            }
-        else:
-            # Fallback if AI doesn't return proper format
-            print(f"⚠️  Missing required fields in score message response")
-            return get_fallback_message(overall_score)
+    except JSONValidationError as e:
+        print(f"⚠️  JSON validation failed after retries: {e}")
+        return get_fallback_message(overall_score)
 
     except Exception as e:
         print(f"Error generating score message: {e}")
@@ -2750,29 +2739,17 @@ For quality_issues and quality_strengths, use dynamic category labels like:
 Language: {request.language}
 """
 
-        # Call Gemini to evaluate with GPT-3.5 fallback
-        response_text, provider = await generate_with_fallback_async(
+        # Use validated JSON generation with automatic retry on validation failure
+        # This uses response_mime_type="application/json" to force valid JSON
+        # and validates against AnswerEvaluationResponse schema with up to 2 retries
+        evaluation_data, provider = await generate_validated_json_async(
             prompt=evaluation_prompt,
+            validator=AnswerEvaluationResponse,
             model_gemini="gemini-2.0-flash-exp",
-            temperature=0.2
+            temperature=0.2,
+            max_validation_retries=2
         )
         print(f"✅ Answer quality evaluation completed using {provider} (async)")
-
-        # Extract JSON from response
-        response_text = response_text.strip()
-
-        # Remove markdown code blocks if present
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]
-        if response_text.startswith("```"):
-            response_text = response_text[3:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
-
-        response_text = response_text.strip()
-
-        # Parse JSON
-        evaluation_data = json.loads(response_text)
 
         quality_score = evaluation_data.get("quality_score", 5)
         quality_issues = evaluation_data.get("quality_issues", [])
@@ -2794,9 +2771,8 @@ Language: {request.language}
             model="gemini-2.0-flash-exp"
         )
 
-    except json.JSONDecodeError as e:
-        print(f"JSON decode error: {str(e)}")
-        print(f"Response text: {response_text}")
+    except JSONValidationError as e:
+        print(f"JSON validation failed after retries: {str(e)}")
         return EvaluateAnswerResponse(
             success=False,
             question_id=request.question_id,
@@ -2808,7 +2784,7 @@ Language: {request.language}
             is_acceptable=False,
             time_seconds=round(time.time() - start_time, 2),
             model="gemini-2.0-flash-exp",
-            error=f"JSON parse error: {str(e)}"
+            error=f"JSON validation error: {str(e)}"
         )
     except Exception as e:
         print(f"Error evaluating answer: {str(e)}")

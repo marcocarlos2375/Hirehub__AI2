@@ -7,7 +7,7 @@ Implements semaphore-based backpressure to prevent overwhelming LLM APIs.
 Circuit breaker pattern for resilience against external service failures.
 """
 
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, Type
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -19,11 +19,17 @@ from tenacity import (
 import httpx
 import asyncio
 import threading
+from pydantic import BaseModel
 
 from core.config.logging_config import logger
 from core.config.settings import settings
 from core.config.clients import get_gemini_client, get_openai_client, get_async_openai_client
 from core.config.circuit_breaker import get_circuit_breaker, CircuitBreakerOpenError
+from core.config.json_validators import (
+    JSONValidationError,
+    validate_json_response,
+    clean_json_response,
+)
 
 
 # Define transient exceptions that should trigger retry
@@ -438,6 +444,99 @@ async def generate_with_fallback_async(
         semaphore.release()
 
 
+# =============================================================================
+# VALIDATED JSON GENERATION WITH RETRY
+# =============================================================================
+
+async def generate_validated_json_async(
+    prompt: str,
+    validator: Type[BaseModel],
+    model_gemini: str = None,
+    model_openai: str = None,
+    temperature: float = None,
+    max_validation_retries: int = 2,
+    **kwargs
+) -> Tuple[dict, str]:
+    """
+    Generate JSON with Gemini JSON mode, schema validation, and retry logic.
+
+    This function:
+    1. Uses response_mime_type="application/json" to force valid JSON from Gemini
+    2. Validates the response against a Pydantic schema
+    3. Retries up to max_validation_retries times if validation fails
+
+    Args:
+        prompt: The prompt text to send
+        validator: Pydantic model class for validation
+        model_gemini: Gemini model name (default from settings)
+        model_openai: OpenAI model name (default from settings)
+        temperature: Generation temperature (default from settings)
+        max_validation_retries: Max attempts on validation failure (default: 2)
+        **kwargs: Additional config options for Gemini
+
+    Returns:
+        tuple: (validated_dict, provider_used)
+            - validated_dict: Parsed and validated dictionary
+            - provider_used: "gemini" or "openai"
+
+    Raises:
+        JSONValidationError: If all retries fail validation
+        LLMBackpressureError: If semaphore acquisition times out
+        Exception: If both providers fail
+    """
+    last_error = None
+    last_response = None
+
+    for attempt in range(max_validation_retries):
+        try:
+            # Call LLM with JSON mode enabled
+            response_text, provider = await generate_with_fallback_async(
+                prompt=prompt,
+                model_gemini=model_gemini,
+                model_openai=model_openai,
+                temperature=temperature,
+                response_mime_type="application/json",  # Force JSON output
+                **kwargs
+            )
+
+            last_response = response_text
+
+            # Clean response (remove any markdown blocks if present)
+            cleaned_text = clean_json_response(response_text)
+
+            # Validate against schema
+            result, error = validate_json_response(cleaned_text, validator)
+
+            if result is not None:
+                if attempt > 0:
+                    logger.info(f"JSON validation succeeded on attempt {attempt + 1}")
+                return result, provider
+
+            # Validation failed
+            last_error = error
+            logger.warning(
+                f"JSON validation failed (attempt {attempt + 1}/{max_validation_retries}): {error}"
+            )
+
+        except (LLMBackpressureError, CircuitBreakerOpenError):
+            # Don't retry on backpressure/circuit breaker - re-raise immediately
+            raise
+
+        except Exception as e:
+            last_error = str(e)
+            logger.warning(
+                f"LLM call failed (attempt {attempt + 1}/{max_validation_retries}): {e}"
+            )
+
+    # All retries exhausted
+    error_msg = f"JSON validation failed after {max_validation_retries} attempts: {last_error}"
+    if last_response:
+        error_msg += f"\nLast response (first 200 chars): {last_response[:200]}"
+
+    logger.error(error_msg)
+    raise JSONValidationError(error_msg)
+
+
 # Export clients for compatibility with existing code
 gemini_client = get_gemini_client
 openai_client = get_openai_client
@@ -445,8 +544,10 @@ openai_client = get_openai_client
 __all__ = [
     'generate_with_fallback',
     'generate_with_fallback_async',
+    'generate_validated_json_async',
     'gemini_client',
     'openai_client',
     'LLMBackpressureError',
     'CircuitBreakerOpenError',
+    'JSONValidationError',
 ]
