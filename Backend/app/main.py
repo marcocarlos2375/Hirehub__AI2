@@ -1830,14 +1830,19 @@ Return ONLY valid JSON with this exact structure:
         print(f"✅ Waiting message generation completed using {provider} (async)")
 
         # Parse JSON response with error handling
-        # NOTE: Gemini sometimes returns invalid/incomplete JSON for complex prompts with:
-        #   - Currency symbols ($35M, $500M)
-        #   - Mixed text/numbers (Fortune 10s)
-        #   - Dense technical terms (FastAPI, Redis, PostgreSQL, AWS, etc.)
-        #   - References to other AI models (Gemini, Claude, GPT)
-        # In these cases, Gemini may return "```json" followed by empty/incomplete content
+        # NOTE: Gemini sometimes returns JSON wrapped in markdown code blocks
+        # Strip them before parsing
         try:
-            result = json.loads(response_text)
+            cleaned_text = response_text.strip()
+            if cleaned_text.startswith("```"):
+                lines = cleaned_text.split("\n")
+                if len(lines) > 1:
+                    lines = lines[1:]  # Remove ```json line
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]  # Remove closing ```
+                cleaned_text = "\n".join(lines).strip()
+
+            result = json.loads(cleaned_text)
         except json.JSONDecodeError as json_err:
             print(f"⚠️  JSON parsing failed for score message: {json_err}")
             print(f"⚠️  AI returned: {response_text[:200]}...")  # Log first 200 chars
