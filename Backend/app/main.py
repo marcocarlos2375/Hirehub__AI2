@@ -24,6 +24,7 @@ from core.caching.cache import get_cache
 from core.caching.gemini_cache import generate_with_cache, get_prompt_cache_stats
 from core.config.llm_fallback import generate_with_fallback, gemini_client as fallback_gemini_client
 from core.caching.embeddings_fallback import get_embedding_with_fallback
+from core.monitoring.metrics_collector import get_metrics_collector
 from app.metrics_endpoints import router as metrics_router
 
 # Load environment variables
@@ -340,6 +341,14 @@ async def parse_job(request: ParseRequest):
         elapsed_time = time.time() - start_time
         print(f"✅ JD parsing completed using {provider} in {elapsed_time:.2f}s")
 
+        # Record metrics for Grafana
+        metrics = get_metrics_collector()
+        metrics.record_performance(
+            operation="parse_job_description",
+            duration_ms=elapsed_time * 1000,
+            success=True
+        )
+
         # Parse JSON response
         try:
             # Remove markdown code blocks if present
@@ -470,6 +479,14 @@ async def parse_cv(request: CVParseRequest):
 
         elapsed_time = time.time() - start_time
         print(f"✅ CV parsing completed using {provider} in {elapsed_time:.2f}s")
+
+        # Record metrics for Grafana
+        metrics = get_metrics_collector()
+        metrics.record_performance(
+            operation="parse_resume",
+            duration_ms=elapsed_time * 1000,
+            success=True
+        )
 
         # Parse JSON response
         try:

@@ -1,0 +1,75 @@
+Senior Backend Engineer - Platform Team
+
+Company: TechScale Inc.
+Location: San Francisco, CA (Hybrid - 3 days in office)
+Employment Type: Full-time
+Salary: $180,000 - $250,000 + equity
+
+About TechScale:
+TechScale is a fast-growing fintech startup revolutionizing payment infrastructure for e-commerce businesses. Backed by $150M in Series C funding, we process over $5B in transactions annually for 10,000+ merchants. Our engineering team of 80 is building the future of global payments.
+
+The Role:
+We're looking for a Senior Backend Engineer to join our Platform team. You'll design and build the core services that power our payment processing infrastructure, working on challenging problems at scale including real-time transaction processing, fraud detection, and distributed systems.
+
+What You'll Do:
+- Design, build, and maintain high-performance microservices processing millions of transactions daily
+- Lead technical architecture decisions for critical payment infrastructure
+- Optimize system performance, achieving sub-100ms latency for API endpoints
+- Implement robust monitoring, alerting, and observability practices
+- Write clean, well-tested code with comprehensive documentation
+- Collaborate with product managers to translate business requirements into technical solutions
+- Mentor junior engineers through code reviews and pair programming
+- Participate in on-call rotation for production systems
+- Contribute to engineering standards, best practices, and technical roadmap
+- Work with security team to ensure PCI-DSS compliance
+
+Requirements:
+- 5+ years of professional software engineering experience
+- Strong proficiency in Python or Go (we use both)
+- Experience building and operating distributed systems at scale
+- Solid understanding of relational databases (PostgreSQL) and caching (Redis)
+- Experience with message queues (Kafka, RabbitMQ, or similar)
+- Familiarity with containerization and orchestration (Docker, Kubernetes)
+- Experience with cloud platforms (AWS preferred)
+- Strong understanding of software design patterns and principles
+- Excellent problem-solving and debugging skills
+- BS/MS in Computer Science or equivalent experience
+
+Nice to Have:
+- Experience in fintech or payments industry
+- Knowledge of event-driven architectures
+- Experience with GraphQL
+- Familiarity with Terraform or other IaC tools
+- Contributions to open source projects
+- Experience with AI/ML integration (LangChain, OpenAI)
+
+Tech Stack:
+- Languages: Python, Go, TypeScript
+- Frameworks: FastAPI, gRPC
+- Databases: PostgreSQL, Redis, Elasticsearch
+- Infrastructure: AWS, Kubernetes, Terraform
+- Observability: Datadog, PagerDuty
+- CI/CD: GitHub Actions, ArgoCD
+
+Interview Process:
+1. Recruiter screen (30 min)
+2. Technical phone screen (60 min)
+3. Virtual onsite (4 hours):
+   - System design interview
+   - Coding interview (2 sessions)
+   - Behavioral interview
+4. Team meet & greet
+
+Benefits:
+- Competitive salary + equity package
+- Health, dental, vision insurance (100% covered)
+- Unlimited PTO (minimum 3 weeks encouraged)
+- $2,500 annual learning budget
+- Home office setup stipend ($1,500)
+- Monthly wellness allowance ($100)
+- 16 weeks parental leave
+- 401(k) with 4% match
+- Free lunch when in office
+- Annual company retreat
+
+TechScale is an equal opportunity employer. We celebrate diversity and are committed to creating an inclusive environment for all employees.

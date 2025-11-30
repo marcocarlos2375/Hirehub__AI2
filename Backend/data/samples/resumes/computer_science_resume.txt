@@ -1,0 +1,55 @@
+ALEX MARTINEZ
+Senior Software Engineer
+
+Email: alex.martinez@email.com | Phone: (555) 987-6543 | San Francisco, CA
+GitHub: github.com/alexmartinez | LinkedIn: linkedin.com/in/alexmartinezdev
+
+SUMMARY
+Full-stack software engineer with 6 years of experience building scalable web applications and distributed systems. Expert in Python, TypeScript, and cloud technologies. Passionate about clean code, system design, and mentoring junior developers. Track record of delivering high-impact features that improved user engagement by 40%.
+
+TECHNICAL SKILLS
+Languages: Python, TypeScript, JavaScript, Go, SQL, Rust
+Frontend: React, Next.js, Vue.js, Tailwind CSS, Redux
+Backend: FastAPI, Django, Node.js, Express, GraphQL
+Databases: PostgreSQL, MongoDB, Redis, Elasticsearch
+Cloud & DevOps: AWS (EC2, S3, Lambda, RDS), Docker, Kubernetes, Terraform, GitHub Actions
+AI/ML: LangChain, OpenAI API, Hugging Face, PyTorch basics
+Tools: Git, Jira, Datadog, Sentry, Figma
+
+PROFESSIONAL EXPERIENCE
+
+Senior Software Engineer | Stripe
+San Francisco, CA | March 2021 - Present
+- Architected and built a real-time fraud detection system processing 10M+ transactions daily using Python and Kafka
+- Led migration of legacy monolith to microservices architecture, reducing deployment time from 2 hours to 15 minutes
+- Mentored 5 junior engineers through code reviews, pair programming, and technical design sessions
+- Implemented CI/CD pipeline with GitHub Actions, achieving 99.9% deployment success rate
+- Collaborated with product managers to define technical requirements for new payment features
+- Technologies: Python, Go, PostgreSQL, Redis, Kubernetes, AWS
+
+Software Engineer | Airbnb
+San Francisco, CA | June 2018 - February 2021
+- Developed search ranking algorithm improvements that increased booking conversion by 15%
+- Built React components for the host dashboard, serving 4M+ hosts globally
+- Optimized database queries reducing API response time by 60% (from 500ms to 200ms)
+- Participated in on-call rotation, resolving production incidents with 99.95% uptime SLA
+- Technologies: Python, React, GraphQL, Elasticsearch, Docker
+
+Junior Software Engineer | Startup XYZ
+Palo Alto, CA | July 2017 - May 2018
+- Built RESTful APIs for mobile application serving 50K daily active users
+- Implemented automated testing suite increasing code coverage from 40% to 85%
+- Technologies: Node.js, Express, MongoDB, Jest
+
+EDUCATION
+Bachelor of Science in Computer Science
+University of California, Berkeley | 2013-2017
+GPA: 3.7/4.0
+
+PROJECTS
+- Open Source Contributor: LangChain (15+ merged PRs), FastAPI (documentation improvements)
+- Personal: Built AI-powered resume analyzer using GPT-4 and vector embeddings (1K+ GitHub stars)
+
+CERTIFICATIONS
+- AWS Solutions Architect Associate (2022)
+- Kubernetes Administrator (CKA) (2023)
