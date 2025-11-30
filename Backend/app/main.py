@@ -3421,6 +3421,28 @@ async def clear_domains_cache():
     }
 
 
+@app.post("/api/cache/clear")
+async def clear_all_cache():
+    """
+    Clear all cache entries (embeddings, domains, parsing, scoring, etc.).
+    Useful for forcing fresh calculations after model or prompt updates.
+    """
+    try:
+        # Call the cache's clear() method which clears everything
+        cache.clear()
+
+        return {
+            "success": True,
+            "message": "All cache entries cleared successfully",
+            "cache_types": ["embeddings", "domains", "parsing", "scoring", "industries", "roles"]
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to clear cache: {str(e)}"
+        }
+
+
 # ========================================
 # Adaptive Question Flow Endpoints
 # ========================================
