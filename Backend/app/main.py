@@ -1814,6 +1814,12 @@ Return ONLY valid JSON with this exact structure:
         print(f"✅ Waiting message generation completed using {provider}")
 
         # Parse JSON response with error handling
+        # NOTE: Gemini sometimes returns invalid/incomplete JSON for complex prompts with:
+        #   - Currency symbols ($35M, $500M)
+        #   - Mixed text/numbers (Fortune 10s)
+        #   - Dense technical terms (FastAPI, Redis, PostgreSQL, AWS, etc.)
+        #   - References to other AI models (Gemini, Claude, GPT)
+        # In these cases, Gemini may return "```json" followed by empty/incomplete content
         try:
             result = json.loads(response_text)
         except json.JSONDecodeError as json_err:
@@ -2198,6 +2204,9 @@ async def calculate_score(request: ScoreRequest, bypass_cache: bool = False):
             cleaned_text = "\n".join(lines).strip()
 
         # Parse JSON with error handling
+        # NOTE: Gemini sometimes returns invalid/incomplete JSON for complex job descriptions
+        # containing currency symbols, technical jargon, or references to AI models.
+        # See score message parsing (line ~1817) for detailed explanation of failure cases.
         try:
             analysis_result = json.loads(cleaned_text)
         except json.JSONDecodeError as json_err:
