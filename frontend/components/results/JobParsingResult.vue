@@ -233,16 +233,16 @@ const getPriorityDotClass = (priority: string) => {
   --text-muted: var(--gray-400);
   --divider: var(--gray-200);
 
-  /* Priority colors */
+  /* Priority colors - traffic light style */
   --critical-bg: #fef2f2;
   --critical-text: #991b1b;
   --critical-dot: #ef4444;
-  --important-bg: #fffbeb;
-  --important-text: #92400e;
-  --important-dot: #f59e0b;
-  --nice-bg: var(--gray-100);
-  --nice-text: var(--gray-600);
-  --nice-dot: var(--gray-400);
+  --important-bg: #fefce8;
+  --important-text: #854d0e;
+  --important-dot: #eab308;
+  --nice-bg: #f0fdf4;
+  --nice-text: #166534;
+  --nice-dot: #22c55e;
 }
 
 /* Header */
